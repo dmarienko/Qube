@@ -14,7 +14,7 @@ try:
     import matplotlib.pyplot as plt
     import matplotlib.ticker as mticker
 except:
-    print(" >>> Can't import matplotlib modules in ira charting modlue")
+    print(" >>> Can't import matplotlib modules in qube charting modlue")
 
 from qube.utils.DateUtils import DateUtils
 from qube.quantitative.tools import isscalar
@@ -108,7 +108,7 @@ def multiplot(frame: pd.DataFrame, names: Union[List, Tuple, str] = None, pos=No
     import pandas as pd
     import numpy as np
 
-    from ira.charting.plot_helpers import miltiplot
+    from qube.charting.plot_helpers import miltiplot
 
     data = pd.DataFrame(data=np.random.randn(1000,4).cumsum(axis=0),
                         index=pd.date_range('1/1/2000 00:00:00', periods=1000, freq='30s'),

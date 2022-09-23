@@ -27,7 +27,7 @@ class BasicConnector:
         self.cwd = _dir
         self.__type = _cfg['type']
         self.__name = _name
-        self.__logger = QubeLogger.getLogger('.'.join(['ira.datasource', _name]))
+        self.__logger = QubeLogger.getLogger('.'.join(['qube.datasource', _name]))
 
     def check_mandatory_props(self, props):
         for p in props:
@@ -96,7 +96,7 @@ class DataSource:
     VERBOSE_MODE = 'verbose'
 
     def __init__(self, data_source_name, config_path=None, overload_props=None, **kwargs):
-        self.__logger = QubeLogger.getLogger('ira.datasource')
+        self.__logger = QubeLogger.getLogger('qube.datasource')
         self.__logger.setLevel(logging.INFO) if kwargs.get(self.VERBOSE_MODE, False) else self.__logger.setLevel(
             logging.WARN)
 

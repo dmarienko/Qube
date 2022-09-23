@@ -44,7 +44,7 @@ class KdbServerController:
         self.__user = user
         self.__pass = password
         self.__timeout = timeout
-        self.__logger = QubeLogger.getLogger('.'.join(['ira.datasource', 'KDB', host, str(port)]))
+        self.__logger = QubeLogger.getLogger('.'.join(['qube.datasource', 'KDB', host, str(port)]))
         self.__db_path = db_path
         self.__init_script = init_script
 

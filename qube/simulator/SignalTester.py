@@ -371,7 +371,7 @@ class SignalTester:
         elif isinstance(datasource, DataSource):
             self.__data_src = datasource
         else:
-            raise ValueError("Datasource must be either string or instance of ira.datasource.DataSource class!")
+            raise ValueError("Datasource must be either string or instance of qube.datasource.DataSource class!")
 
         self.__ds_info: dsinfo = ds_info
         self.__broker_info: BrokerInfo = broker_info

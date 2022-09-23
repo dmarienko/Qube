@@ -177,7 +177,7 @@ def add_project_to_system_path():
         if exists(project_path):
             sys.path.insert(0, relpath(expanduser('~/projects')))
         else:
-            print('ira> %s seems to be not existed !' % project_path)
+            print('qube> %s seems to be not existed !' % project_path)
 
 
 def is_localhost(host):

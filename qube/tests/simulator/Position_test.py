@@ -173,7 +173,7 @@ class Simulator_Position_test(unittest.TestCase):
         self.assertAlmostEqual(pnl, 9.0744, delta=0.001)
 
     def test_save_and_position_change_logging(self):
-        logger = QubeLogger.getLogger('ira.test.test_pos_change_logging')
+        logger = QubeLogger.getLogger('qube.test.test_pos_change_logging')
         stringio = StringIO()
         QubeLogger.addStreamHandler(logger, stringio)
 

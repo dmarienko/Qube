@@ -69,7 +69,7 @@ class TestBarsSeries(TestCase):
         self.assertEqual(s1.is_new_bar, s2.is_new_bar)
         self.assertEqual(s2.to_frame().index.dtype.type, np.datetime64)
 
-    def test_ira_freq(self):
+    def test_freq(self):
         self.assertEqual(BarSeries.get_pd_freq_by_seconds_freq_val(300), '5Min')
         self.assertEqual(BarSeries.get_pd_freq_by_seconds_freq_val(60), '1Min')
         self.assertEqual(BarSeries.get_pd_freq_by_seconds_freq_val(3600), '1H')

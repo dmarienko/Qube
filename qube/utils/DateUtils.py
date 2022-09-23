@@ -57,28 +57,28 @@ class DateUtils:
             return dt
 
     @staticmethod
-    def get_datetime(ira_date):
-        if isinstance(ira_date, str):
-            return DateUtils.__get_datetime_with_pattern(ira_date)[0]
+    def get_datetime(date_time):
+        if isinstance(date_time, str):
+            return DateUtils.__get_datetime_with_pattern(date_time)[0]
         else:
-            return ira_date
+            return date_time
 
     @staticmethod
-    def get_datetime_ls(ira_date_ls):
-        return [DateUtils.get_datetime(ira_date) for ira_date in ira_date_ls]
+    def get_datetime_ls(date_time_ls):
+        return [DateUtils.get_datetime(idate) for idate in date_time_ls]
 
     @staticmethod
-    def __get_datetime_with_pattern(ira_date: str, is_process_parsing=True):
-        lowered = ira_date.lower()
+    def __get_datetime_with_pattern(date_time: str, is_process_parsing=True):
+        lowered = date_time.lower()
         if lowered == 'now' or lowered == 'today':
             return DateUtils.get_now(), DateUtils.DEFAULT_DATETIME_FORMAT
 
-        if ira_date.startswith('-'):
+        if date_time.startswith('-'):
             # time_unit_to_subtract = DateUtils.TIME_UNIT_DICT[date_as_string[-1]]
             # if time_unit_to_subtract is None:
             #     raise ValueError("can't identify time_unit_to_subtract {}", date_as_string[-1])
             delta = None
-            amount_to_subtract = int(ira_date[1:-1])
+            amount_to_subtract = int(date_time[1:-1])
             if lowered[-1] == 'd':
                 delta = timedelta(days=amount_to_subtract)
             elif lowered[-1] == 'h':
@@ -87,7 +87,7 @@ class DateUtils:
                 delta = timedelta(weeks=amount_to_subtract)
 
             if delta is None:
-                raise ValueError("can't identify time_unit_to_subtract '{0}'".format(ira_date[-1]))
+                raise ValueError("can't identify time_unit_to_subtract '{0}'".format(date_time[-1]))
 
             return DateUtils.get_now() - delta, DateUtils.DEFAULT_DATETIME_FORMAT
 
@@ -95,13 +95,13 @@ class DateUtils:
             result = None
             for pat in DateUtils._all_dateformats():
                 try:
-                    result = datetime.strptime(ira_date, pat), pat
+                    result = datetime.strptime(date_time, pat), pat
                     break
                 except ValueError:
                     pass
 
             if result is None:
-                raise ValueError("Unable transform value '{0}' into datetime".format(ira_date))
+                raise ValueError("Unable transform value '{0}' into datetime".format(date_time))
 
             return result
         else:

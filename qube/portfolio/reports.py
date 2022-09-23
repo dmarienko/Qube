@@ -93,7 +93,7 @@ def tearsheet(portfolio: Union[pd.DataFrame, SimulationResult], init_cash, risk_
         try:
             benchmark = ds.load_data(bm, start=portfolio.index[0], end=portfolio.index[-1]).get(bm.upper())
         except:
-            QubeLogger.getLogger('ira.analysis.tearsheet').warn(
+            QubeLogger.getLogger('qube.portfolio.reports').warn(
                 'Unable to load benchmark data for %s from %s ' % (bm, bm_datasource)
             )
         finally:

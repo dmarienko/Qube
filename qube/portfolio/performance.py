@@ -11,7 +11,6 @@ from scipy import stats
 from scipy.stats import norm
 from statsmodels.regression.linear_model import OLS
 
-# from ira.analysis import commissions
 from qube.portfolio.drawdown import max_drawdown_pct, absmaxdd, dd_freq_stats
 from qube.quantitative.tools import scols, infer_series_frequency
 from qube.utils import QubeLogger
