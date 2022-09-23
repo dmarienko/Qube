@@ -1,0 +1,8 @@
+Date,Close,x1,x2,hellodata,v_bool
+2016.01.01, 12.0, 1, 100, "xixixi", True
+2016.01.02, 13.1, 2, 120, "xaxad", False
+2016.01.03, 14.2, 3, 110, "ddfsdfa", True
+2016.01.04, 15.3, 1, 101, "dsd356", True
+2016.01.05, 16.4, 0, 300, "986;l;lk", False
+2016.01.06, 17.5, 5, 134, "liubguytgvyh", True
+2016.01.07, 18.6, 4, 678, "nhbdhcgbwrekwle", True

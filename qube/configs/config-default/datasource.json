@@ -1,0 +1,22 @@
+{
+	"yahoo::daily.adjusted": {
+		"type": "yahoo",
+		"adjusted": "True"
+	},
+	"yahoo::daily": {
+		"type": "yahoo",
+		"adjusted": "False"
+	},
+	"dukas_outlook": {
+		"type": "dukas_outlook",
+		"dukas_outlook_file": "dukas_outlook.csv"
+	},
+	"kdb::yahoo.daily.adjusted": {
+		"type": "kdb",
+		"host": "localhost",
+		"db_path": "/var/databases/kdb/yahoo",
+		"port": 5555,
+		"init": "../databases/yahoo/YahooLoad.q",
+		"timeout": 30
+	}
+}

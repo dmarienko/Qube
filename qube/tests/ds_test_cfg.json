@@ -1,0 +1,113 @@
+{
+    "test::test_local" : {
+        "type" : "csv",
+        "file" : "data/csv/test.csv",
+        "delimiter" : ",",
+        "header" : 0,
+		"index" : "Date"
+    },
+
+    "test::csv_single" : {
+        "type" : "csv",
+        "file" : "data/csv/test.csv",
+        "delimiter" : ",",
+		"index" : "Date",
+		"header" : 0
+    },
+
+    "test::csv_dir" : {
+        "type" : "csv",
+        "file" : "data/csv/",
+        "delimiter" : ",",
+		"index" : "Date",
+		"header" : 0,
+        "need_sort" : "True"
+    },
+
+  "test::csv_single.timezone" : {
+        "type" : "csv",
+        "file" : "data/csv/IBB.csv",
+        "delimiter" : " ",
+        "parse_dates" : [[0,1]],
+		"index" : 0,
+        "timezone" : "Europe/Minsk"
+    },
+
+
+    "yahoo::daily.adjusted" : {
+        "type" : "yahoo",
+        "adjusted" : true
+    },
+
+
+    "yahoo::daily" : {
+        "type" : "yahoo",
+        "adjusted" : "False"
+    },
+
+
+   "kdb::daily" : {
+        "type" : "kdb",
+        "host" : "localhost",
+        "port" : 5010,
+        "init" : "kdb/db_daily_init.q",
+        "timeout" : "10"
+    },
+
+
+   "kdb::quotes" : {
+        "type" : "kdb",
+        "host" : "localhost",
+        "port" : 5020,
+        "init" : "kdb/db_quotes_init.q",
+        "timeout" : "10"
+    },
+
+
+    "dukas::quotes" : {
+        "type" : "kdb",
+        "host" : "localhost",
+        "port" : 5555,
+        "init_script" : "dukas/StartQuotesDatabase.q",
+        "testalive" : "5 minutes"
+    },
+
+    "dukas::quotes.remote" : {
+        "type" : "kdb",
+        "host" : "research.jwizards.com",
+        "port" : 5555,
+        "do_not_run" : "True"
+    },
+
+
+    "finviz::test" : {
+        "type" : "finviz",
+        "finviz_cache_file" : "data/finviz/finviz.csv",
+        "supported_exchanges" : "AMEX"
+    },
+
+    "quandl::wiki_test" : {
+        "type" : "quandl",
+        "database" : "WIKI",
+        "adjusted" : false
+    },
+
+  "alphavantage::test": {
+    "type": "alphavantage",
+    "adjusted": false
+  },
+
+  "alphavantage::test.adjusted": {
+    "type": "alphavantage",
+    "adjusted": true
+  },
+
+
+
+    "simulations::*" : {
+        "type" : "csv",
+        "file" : "data/simulations/sim_$1.csv",
+        "delimiter" : ",",
+        "header" : 0
+    }
+}

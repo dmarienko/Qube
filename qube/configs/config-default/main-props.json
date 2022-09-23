@@ -1,0 +1,11 @@
+{
+	"memcache": {
+		"memcached_port": 11211,
+		"key_prefix": "tests"
+	},
+	"mongo": {
+		"default_mongourl": "mongodb://localhost:27017/",
+		"default_db_name": "simdb",
+		"selection_timeout_ms": 5000
+	}
+}

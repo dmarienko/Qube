@@ -1,0 +1,37 @@
+{
+
+    "simulator::ohlc_data" : {
+        "type" : "csv",
+        "file" : "ohlc",
+        "delimiter" : ",",
+		"index" : "Date",
+		"header" : 0,
+        "need_sort" : "True"
+    },
+
+    "simulator::quotes_data" : {
+        "type" : "csv",
+        "file" : "quotes",
+        "delimiter" : ",",
+		"index" : "Date",
+		"header" : 0,
+        "need_sort" : "True"
+    },
+
+    "simulator::intraday_ticks_data" : {
+        "type" : "kdb",
+        "host" : "localhost",
+        "port" : 7791,
+        "init" : "ticks/db_test_ticks_init.q",
+        "timeout" : "10"
+    },
+
+    "simulator::intraday_5min_data" : {
+        "type" : "kdb",
+        "host" : "localhost",
+        "port" : 7781,
+        "init" : "ticks/db_test_5min_init.q",
+        "timeout" : "10"
+    }
+
+}
