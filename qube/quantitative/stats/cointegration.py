@@ -4,7 +4,7 @@ from numpy import diff as tdiff
 from numpy import zeros, ones, flipud, log
 from numpy.linalg import inv, eig, cholesky as chol
 
-from qube.analysis.timeseries import detrend
+from qube.quantitative.ta.indicators import detrend
 
 """
    Johansen cointegration ported from matlab (econometrix library)

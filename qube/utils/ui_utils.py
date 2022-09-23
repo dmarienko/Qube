@@ -38,13 +38,6 @@ def ui_progress_bar(name: str, width='99%'):
                    name=name)
 
 
-def ui_cores_table(core_uis):
-    if runtime_env() == 'notebook':
-        import ipywidgets as widgets
-        return widgets.HBox([c.panel for c in core_uis])
-    return None
-
-
 def ui_confirmation_dialog(confirmation_callback, cancel_callback, output,
                            text="Are you sure want to run optimization?", confirm_text="Run", cancel_text="Cancel"):
     if runtime_env() == 'notebook':

@@ -17,7 +17,7 @@ except:
     print(" >>> Can't import matplotlib modules in ira charting modlue")
 
 from qube.utils.DateUtils import DateUtils
-from qube.analysis.tools import isscalar
+from qube.quantitative.tools import isscalar
 
 try:
     from plotly.graph_objs.graph_objs import FigureWidget

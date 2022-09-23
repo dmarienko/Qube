@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from qube.analysis.dtw import dtw_distance, dtw_window_distance, dtw_keogh_lower_bound
+from qube.quantitative.ta.dtw import dtw_distance, dtw_window_distance, dtw_keogh_lower_bound
 
 
 class DTWTest(unittest.TestCase):

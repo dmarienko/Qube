@@ -1,4 +1,4 @@
-from . import analysis
+from . import quantitative
 from . import charting
 from . import datasource
 from . import utils

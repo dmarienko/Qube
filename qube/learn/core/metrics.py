@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score
 from sklearn.pipeline import Pipeline
 
-from qube.analysis.tools import scols
+from qube.quantitative.tools import scols
 from qube.learn.core.data_utils import detect_data_type, ohlc_to_flat_price_series, forward_timeseries
 from qube.learn.core.structs import MarketInfo, _FIELD_MARKET_INFO
 from qube.learn.core.utils import debug_output

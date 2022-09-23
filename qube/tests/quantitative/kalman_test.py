@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from qube.analysis.kalman import kalman_regression_estimator
+from qube.quantitative.ta.kalman import kalman_regression_estimator
 
 
 class Kalman_LR_Estimator(unittest.TestCase):

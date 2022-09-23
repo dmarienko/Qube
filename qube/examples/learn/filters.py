@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
 
-from qube.analysis import column_vector
-from qube.analysis.timeseries import adx, atr
-from qube.analysis.tools import ohlc_resample, rolling_sum
+from qube.quantitative import column_vector
+from qube.quantitative.ta.indicators import adx, atr
+from qube.quantitative.tools import ohlc_resample, rolling_sum
 from qube.learn.core.base import signal_generator
 
 

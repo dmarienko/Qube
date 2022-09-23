@@ -1,8 +1,8 @@
 import pandas as pd
 from sklearn.base import TransformerMixin, BaseEstimator
 
-from qube.analysis.timeseries import pivot_point
-from qube.analysis.tools import ohlc_resample, scols
+from qube.quantitative.ta.indicators import pivot_point
+from qube.quantitative.tools import ohlc_resample, scols
 from qube.learn.core.base import signal_generator
 from qube.learn.core.utils import _check_frame_columns
 

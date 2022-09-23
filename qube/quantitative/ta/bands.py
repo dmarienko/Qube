@@ -1,12 +1,12 @@
 """
-    Set of utilities for generating trading signals, handle prices etc
+ Set of utilities for generating trading signals, handle prices etc
 """
 
 import numpy as np
 import pandas as pd
 from pandas.core.generic import NDFrame
 
-from qube.analysis.tools import isscalar, nans
+from qube.quantitative.tools import isscalar, nans
 
 
 def __get_row(r, i):

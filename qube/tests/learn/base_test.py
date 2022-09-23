@@ -6,7 +6,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 from sklearn.pipeline import make_pipeline
 
-from qube.analysis.tools import srows, drop_duplicated_indexes
+from qube.quantitative.tools import srows, drop_duplicated_indexes
 from qube.examples.learn.filters import AdxFilter
 from qube.examples.learn.generators import CrossingMovings, Rsi
 from qube.learn.core.base import MarketDataComposer, signal_generator, SingleInstrumentComposer

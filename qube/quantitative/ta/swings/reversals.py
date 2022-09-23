@@ -3,8 +3,9 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-from qube.analysis.timeseries import find_movements, ema, sma
-from qube.analysis.tools import ohlc_resample, apply_to_frame
+from qube.quantitative.ta.swings.swings_splitter import find_movements
+from qube.quantitative.ta.indicators import ema, sma
+from qube.quantitative.tools import ohlc_resample, apply_to_frame
 from qube.utils.utils import mstruct
 
 

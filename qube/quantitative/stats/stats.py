@@ -1,9 +1,14 @@
 import math
 
 import numpy as np
+from scipy.linalg import LinAlgError
+from scipy.optimize import minimize
 from scipy.special import gamma
+from scipy.stats import gaussian_kde
+from statsmodels.tsa.stattools import adfuller
 
-from .tools import isscalar
+from qube.charting.plot_helpers import sbp
+from qube.quantitative.tools import isscalar
 
 
 def j_divergence(p, q):
@@ -191,3 +196,78 @@ def percentile_rank(x: np.ndarray, v, pctls=np.arange(1, 101)):
     >>> 2
     """
     return np.argmax(np.sign(np.append(np.percentile(x, pctls), np.inf) - v))
+
+
+def adfuller_report(x, **kwargs):
+    """
+    ADF test with report
+    """
+    result = adfuller(x, **kwargs)
+    print('ADF Statistic: %f' % result[0])
+    print('p-value: %.9f' % result[1])
+    print('Critical Values:')
+    for key, value in result[4].items():
+        print('\t%s: %.3f' % (key, value))
+
+
+def kde(array, cut_down=True, bw_method='scott'):
+    """
+    Kernel dense estimation
+    """
+    if cut_down:
+        bins, counts = np.unique(array, return_counts=True)
+        f_mean = counts.mean()
+        f_above_mean = bins[counts > f_mean]
+        bounds = [f_above_mean.min(), f_above_mean.max()]
+        array = array[np.bitwise_and(bounds[0] < array, array < bounds[1])]
+    return gaussian_kde(array, bw_method=bw_method)
+
+
+def mode_estimation(array, cut_down=True, bw_method='scott'):
+    """
+    Returns mode from estimated empirical distribution of values
+    """
+    kernel = kde(array, cut_down=cut_down, bw_method=bw_method)
+    height = kernel.pdf(array)
+    x0 = array[np.argmax(height)]
+    span = array.max() - array.min()
+    dx = span / 4
+    bounds = np.array([[x0 - dx, x0 + dx]])
+    linear_constraint = [{'type': 'ineq', 'fun': lambda x: x - 0.5}]
+    results = minimize(lambda x: -kernel(x)[0], x0=x0, bounds=bounds, constraints=linear_constraint)
+    return results.x[0]
+
+
+def safe_mode_estimation(array):
+    if len(array) == 0:
+        return np.nan
+
+    try:
+        m0 = mode_estimation(array, False)
+    except (LinAlgError, ValueError):
+        m0 = np.mean(array)
+    return m0
+
+
+def cmp_to_norm(xs, xranges=None):
+    """
+    Compare distribution from xs against normal using estimated mean and std
+    """
+    import scipy.stats as stats
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    _m, _s = np.mean(xs), np.std(xs)
+    fit = stats.norm.pdf(sorted(xs), _m, _s)  # this is a fitting indeed
+
+    sbp(12, 1)
+    plt.plot(sorted(xs), fit, 'r--', lw=2, label='N(%.2f, %.2f)' % (_m, _s))
+    plt.legend(loc='upper right')
+
+    sns.kdeplot(xs, color='g', label='Data', shade=True)
+    if xranges is not None and len(xranges) > 1:
+        plt.xlim(xranges)
+    plt.legend(loc='upper right')
+
+    sbp(12, 2)
+    stats.probplot(xs, dist="norm", sparams=(_m, _s), plot=plt)

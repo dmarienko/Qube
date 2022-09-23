@@ -2,8 +2,8 @@ import numpy as np
 from numba import float64
 from numba.experimental import jitclass
 
-from .timeseries import njit
-from .tools import nans, isscalar, add_constant, column_vector
+from qube.quantitative.ta.indicators import njit
+from qube.quantitative.tools import nans, isscalar, add_constant, column_vector
 
 
 def kalman_regression_estimator(x, y, vb, vm, intercept=True):

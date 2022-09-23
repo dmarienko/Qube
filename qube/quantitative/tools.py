@@ -1,10 +1,13 @@
 import types
+from datetime import timedelta
 from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
 from numba import njit
 from numpy.lib.stride_tricks import as_strided as stride
+
+from qube.utils.utils import mstruct
 
 
 def column_vector(x):
@@ -252,7 +255,7 @@ def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None
     >>> ohlc_resample(d, '15Min')
     >>>
     >>> # if we need to resample quotes
-    >>> from ira.datasource import DataSource
+    >>> from qube.datasource import DataSource
     >>> with DataSource('kdb::dukas') as ds:
     >>>     quotes = ds.load_data(['EURUSD', 'GBPUSD'], '2018-05-07', '2018-05-11')
     >>> ohlc_resample(quotes, '1Min', vmpt=True)
@@ -469,3 +472,39 @@ def retain_columns_and_join(data: dict, columns):
         raise ValueError('Data must be passed as dictionary')
 
     return pd.concat([data[k][columns] for k in data.keys()], axis=1, keys=data.keys())
+
+
+def infer_series_frequency(series):
+    """
+    Infer frequency of given timeseries
+
+    :param series: Series, DataFrame or DatetimeIndex object
+    :return: timedelta for found frequency
+    """
+
+    if not isinstance(series, (pd.DataFrame, pd.Series, pd.DatetimeIndex)):
+        raise ValueError("infer_series_frequency> Only DataFrame, Series of DatetimeIndex objects are allowed")
+
+    times_index = (series if isinstance(series, pd.DatetimeIndex) else series.index).to_pydatetime()
+    if times_index.shape[0] < 2:
+        raise ValueError("Series must have at least 2 points to determ frequency")
+
+    values = np.array(sorted([(x.total_seconds()) for x in np.diff(times_index)]))
+    diff = np.concatenate(([1], np.diff(values)))
+    idx = np.concatenate((np.where(diff)[0], [len(values)]))
+    freqs = dict(zip(values[idx[:-1]], np.diff(idx)))
+    return timedelta(seconds=max(freqs, key=freqs.get))
+
+
+def continuous_periods(xs, cond):
+    """
+    Detect continues periods on series xs based on condition cond
+    """
+    df = scols(xs, cond, keys=['_XS_', 'sig'])
+    df['block'] = (df.sig.shift(1) != df.sig).astype(int).cumsum()
+
+    blk = df[df.sig].reset_index().groupby('block')['time'].apply(np.array)
+    starts = blk.apply(lambda x: x[0])
+    ends = blk.apply(lambda x: x[-1])
+    se_info = scols(starts, ends, keys=['start', 'end'])
+    return mstruct(blocks=blk.reset_index(drop=True), periods=se_info)

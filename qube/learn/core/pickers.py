@@ -3,7 +3,7 @@ from typing import Union, Dict
 
 import pandas as pd
 
-from qube.analysis.tools import ohlc_resample
+from qube.quantitative.tools import ohlc_resample
 from qube.learn.core.data_utils import _get_top_names, detect_data_type, make_dataframe_from_dict
 
 

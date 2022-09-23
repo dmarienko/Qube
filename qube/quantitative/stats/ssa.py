@@ -8,7 +8,7 @@ import numpy as np
 import scipy.linalg as linalg
 import scipy.stats as stats
 
-from .tools import isscalar, nans
+from qube.quantitative.tools import isscalar, nans
 
 try:
     from matplotlib import pyplot as plt

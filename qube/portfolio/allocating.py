@@ -4,7 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import pandas as pd
 
-from qube.analysis.tools import column_vector
+from qube.quantitative.tools import column_vector
 from qube.simulator.utils import rolling_forward_test_split
 
 

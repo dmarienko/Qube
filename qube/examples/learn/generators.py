@@ -3,8 +3,8 @@ from typing import Union
 import pandas as pd
 from sklearn.base import BaseEstimator
 
-from qube.analysis.timeseries import smooth, rsi, ema
-from qube.analysis.tools import srows, scols, apply_to_frame, ohlc_resample
+from qube.quantitative.ta.indicators import smooth, rsi, ema
+from qube.quantitative.tools import srows, scols, apply_to_frame, ohlc_resample
 from qube.learn.core.base import signal_generator
 from qube.learn.core.data_utils import pre_close_time_shift
 from qube.learn.core.utils import _check_frame_columns

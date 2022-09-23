@@ -1,6 +1,6 @@
 from sklearn.base import BaseEstimator
 
-from qube.analysis.tools import scols, srows
+from qube.quantitative.tools import scols, srows
 from qube.learn.core.base import _FIELD_MARKET_INFO
 from qube.learn.core.base import signal_generator
 

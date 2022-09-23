@@ -10,9 +10,9 @@ from qube.utils.DateUtils import DateUtils
 from qube.series.Indicators import (Indicator, Sma, Ema, Tema, Dema, ATR, MovingMinMax, KAMA, Bollinger, Returns,
                                    DailyHighLow, MACD, TrendDetector, BollingerATR, DenoisedTrend, DenoisedDeltaRank,
                                    RollingStd, WilliamsR)
-from qube.analysis.timeseries import (ema, tema, dema, atr, kama, bollinger, macd,
-                                     trend_detector, bollinger_atr, sma, denoised_trend, rolling_std_with_mean)
-from qube.analysis.stats import percentile_rank
+from qube.quantitative.ta.indicators import (ema, tema, dema, atr, kama, bollinger, macd,
+                                             trend_detector, bollinger_atr, sma, denoised_trend, rolling_std_with_mean)
+from qube.quantitative.stats import percentile_rank
 
 import numpy as np
 import pandas as pd

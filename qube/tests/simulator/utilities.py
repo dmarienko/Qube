@@ -3,7 +3,7 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
-from qube.analysis.tools import scols, srows
+from qube.quantitative.tools import scols, srows
 from qube.datasource import DataSource
 from qube.simulator.SignalTester import ExecutionLogger
 from qube.simulator.utils import shift_signals

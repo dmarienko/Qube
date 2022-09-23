@@ -8,7 +8,7 @@ from typing import List, Union, Dict
 import numpy as np
 import pandas as pd
 
-from qube.analysis.timeseries import infer_series_frequency
+from qube.quantitative.tools import infer_series_frequency
 from qube.datasource import DataSource
 from qube.portfolio.performance import split_cumulative_pnl
 from qube.simulator.Brokerage import BrokerInfo

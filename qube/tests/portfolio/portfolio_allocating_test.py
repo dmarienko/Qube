@@ -3,7 +3,7 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from qube.analysis.tools import column_vector
+from qube.quantitative.tools import column_vector
 from qube.portfolio.allocating import tang_portfolio, effective_portfolio, gmv_portfolio, \
     runnig_portfolio_allocator, olmar_portfolio
 

@@ -1,6 +1,6 @@
 import pandas as pd
 
-from qube.analysis.timeseries import infer_series_frequency
+from qube.quantitative.tools import infer_series_frequency
 from qube.datasource import DataSource
 from qube.datasource.MultiExchangeDataSource import EXCHANGE_SEPARATOR
 from qube.portfolio.Instrument import Instrument

@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 from numpy import nan
 
-from qube.analysis.timeseries import ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, \
+from qube.quantitative.ta.indicators import ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, \
     pivot_point
-from qube.analysis.tools import add_constant, ohlc_resample
+from qube.quantitative.tools import add_constant, ohlc_resample
 
 
 class TestTimeSeriesUtils(unittest.TestCase):

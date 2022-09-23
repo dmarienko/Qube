@@ -1,7 +1,7 @@
 import unittest
 
-from qube.analysis.timeseries import ema
-from qube.analysis.tools import *
+from qube.quantitative.ta.indicators import ema
+from qube.quantitative.tools import *
 
 
 class ToolsTests(unittest.TestCase):

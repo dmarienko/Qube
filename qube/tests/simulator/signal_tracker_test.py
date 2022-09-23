@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from qube.portfolio.performance import portfolio_stats
-from qube.analysis.tools import scols
+from qube.quantitative.tools import scols
 from qube.datasource import DataSource
 from qube.portfolio.PortfolioLogger import PortfolioLogger
 from qube.portfolio.commissions import TransactionCostsCalculator

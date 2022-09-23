@@ -230,7 +230,7 @@ def run_tasks(name: str, tasks: Union[Dict, List], max_cpus=np.inf, max_tasks_pe
     ui_progress = ui_progress_bar(f"{name} [{run_id}]")
     results = []
 
-    # turn into dict if need
+    # turn into dict if needed
     if isinstance(tasks, List):
         tasks = {f"task_{n}": t for n, t in enumerate(tasks, task_id_start)}
 

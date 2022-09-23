@@ -6,8 +6,9 @@ from typing import Union, List, Set
 import numpy as np
 import pandas as pd
 
-from qube.analysis.timeseries import infer_series_frequency
 from qube.learn.core.utils import _check_frame_columns
+from qube.quantitative.tools import scols, infer_series_frequency
+from qube.utils.utils import mstruct
 
 
 @dataclass
@@ -70,6 +71,13 @@ def time_delta_to_str(d: Union[int, timedelta_t, pd.Timedelta]):
     if seconds > 0:
         r += '%dS' % seconds
     return r
+
+
+def series_period_as_str(data: Union[pd.Series, pd.DataFrame], min_size=100) -> str:
+    """
+    Returns series/dataframe period as string
+    """
+    return time_delta_to_str(pd.Timedelta(infer_series_frequency(data[:min_size])))
 
 
 def shift_for_timeframe(signals: pd.Series, data: pd.DataFrame, tf: Union[str, pd.Timedelta]) -> pd.Series:

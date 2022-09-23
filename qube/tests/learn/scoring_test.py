@@ -6,7 +6,7 @@ from sklearn.base import TransformerMixin, BaseEstimator
 from sklearn.model_selection import TimeSeriesSplit, GridSearchCV
 from sklearn.pipeline import make_pipeline
 
-from qube.analysis.tools import srows, ohlc_resample
+from qube.quantitative.tools import srows, ohlc_resample
 from qube.examples.learn.generators import RangeBreakoutDetector
 from qube.examples.learn.transformers import RollingRange
 from qube.learn.core.base import MarketDataComposer, signal_generator

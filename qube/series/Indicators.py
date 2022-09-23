@@ -3,8 +3,8 @@ from typing import Union, List
 
 import numpy as np
 
-from qube.analysis.stats import percentile_rank
-from qube.analysis.timeseries import nans
+from qube.quantitative.stats import percentile_rank
+from qube.quantitative.ta.indicators import nans
 from qube.series.Bar import Bar
 
 try:

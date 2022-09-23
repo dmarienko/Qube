@@ -15,7 +15,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.transforms import Affine2D
 from six.moves import xrange, zip
 
-from qube.analysis.timeseries import infer_series_frequency
+from qube.quantitative.tools import infer_series_frequency
 
 
 def plot_day_summary_oclh(ax, quotes, ticksize=3, colorup='k', colordown='r'):

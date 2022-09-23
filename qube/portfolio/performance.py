@@ -13,8 +13,7 @@ from statsmodels.regression.linear_model import OLS
 
 # from ira.analysis import commissions
 from qube.portfolio.drawdown import max_drawdown_pct, absmaxdd, dd_freq_stats
-from qube.analysis.timeseries import infer_series_frequency
-from qube.analysis.tools import scols
+from qube.quantitative.tools import scols, infer_series_frequency
 from qube.utils import QubeLogger
 
 # Most used annualization factors
