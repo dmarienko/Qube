@@ -18,10 +18,6 @@ def get_version(rel_path):
         return "Undefined"
 
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
-
-
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
@@ -32,7 +28,7 @@ setuptools.setup(
     author="Dmitry Marienko",
     author_email="dmitry.ema@gmail.com",
     description="Qube",
-    long_description=long_description,
+    long_description="Quantitative Backtesting Environment",
     long_description_content_type="text/markdown",
     url="https://github.com/dmarienko/CQube",
     project_urls={
