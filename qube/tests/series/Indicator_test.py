@@ -1,21 +1,19 @@
 import unittest
 
-from qube.series.BarSeries import BarSeries
-from qube.series.DoubleSeries import DoubleSeries
-from qube.series.Quote import Quote
-from qube.tests.data.test_mdf import generate_feed
-
-from qube.utils.DateUtils import DateUtils
-
-from qube.series.Indicators import (Indicator, Sma, Ema, Tema, Dema, ATR, MovingMinMax, KAMA, Bollinger, Returns,
-                                   DailyHighLow, MACD, TrendDetector, BollingerATR, DenoisedTrend, DenoisedDeltaRank,
-                                   RollingStd, WilliamsR)
-from qube.quantitative.ta.indicators import (ema, tema, dema, atr, kama, bollinger, macd,
-                                             trend_detector, bollinger_atr, sma, denoised_trend, rolling_std_with_mean)
-from qube.quantitative.stats import percentile_rank
-
 import numpy as np
 import pandas as pd
+
+from qube.quantitative.stats.stats import percentile_rank
+from qube.quantitative.ta.indicators import (ema, tema, dema, atr, kama, bollinger, macd,
+                                             trend_detector, bollinger_atr, sma, denoised_trend, rolling_std_with_mean)
+from qube.series.BarSeries import BarSeries
+from qube.series.DoubleSeries import DoubleSeries
+from qube.series.Indicators import (Indicator, Sma, Ema, Tema, Dema, ATR, MovingMinMax, KAMA, Bollinger, Returns,
+                                    DailyHighLow, MACD, TrendDetector, BollingerATR, DenoisedTrend, DenoisedDeltaRank,
+                                    RollingStd, WilliamsR)
+from qube.series.Quote import Quote
+from qube.tests.data.test_mdf import generate_feed
+from qube.utils.DateUtils import DateUtils
 
 
 class Adder(Indicator):
@@ -434,14 +432,16 @@ class IndicatorTest(unittest.TestCase):
         dt1_test = denoised_trend(s1.to_frame(), 10, 0, None, False)
         df1 = pd.DataFrame(dt1[::-1], index=s1.times())
 
-        np.testing.assert_almost_equal(df1.values.flatten(), dt1_test.values.flatten(), 5, err_msg="DenoisedTrend indicator 1")
+        np.testing.assert_almost_equal(df1.values.flatten(), dt1_test.values.flatten(), 5,
+                                       err_msg="DenoisedTrend indicator 1")
 
         dt2 = DenoisedTrend(10, 0, None, True)
         s1.attach(dt2)
         dt2_test = denoised_trend(s1.to_frame(), 10, 0, None, True)
         df2 = pd.DataFrame(dt2[::-1], index=s1.times())
 
-        np.testing.assert_almost_equal(df2.values.flatten(), dt2_test.values.flatten(), 5, err_msg="DenoisedTrend indicator 2")
+        np.testing.assert_almost_equal(df2.values.flatten(), dt2_test.values.flatten(), 5,
+                                       err_msg="DenoisedTrend indicator 2")
 
         dt3 = DenoisedTrend(8, 0, None, True)
         s2.attach(dt3)
@@ -449,8 +449,8 @@ class IndicatorTest(unittest.TestCase):
         dt3_test = denoised_trend(s2.to_frame(), 8, 0, None, True)
         df3 = pd.DataFrame(dt3[::-1], index=s2.times())
 
-        np.testing.assert_almost_equal(df3.values.flatten(), dt3_test.values.flatten(), 5, err_msg="DenoisedTrend indicator 3")
-
+        np.testing.assert_almost_equal(df3.values.flatten(), dt3_test.values.flatten(), 5,
+                                       err_msg="DenoisedTrend indicator 3")
 
     def test_denoised_delta_rank(self):
         def delta_rank(x, f_p, s_p, n_back=30, qts=np.arange(10, 100, 10)):
@@ -462,20 +462,21 @@ class IndicatorTest(unittest.TestCase):
             slot = slot * np.sign(slow_trend)
             return slot
 
-
         df = generate_feed(DateUtils.get_datetime('2017-08-01 00:00:00'), 10.0, 10000)
         s1 = BarSeries('5Min', df)
         dd1 = DenoisedDeltaRank(10, 5, 10, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
         s1.attach(dd1)
         dd1_test = delta_rank(s1.to_frame(), 10, 5, 10, [10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
         df1 = pd.DataFrame(dd1[::-1], index=s1.times())
-        np.testing.assert_almost_equal(df1.values.flatten(), dd1_test.values.flatten(), 5, err_msg="DenoisedDeltaRank indicator 1")
+        np.testing.assert_almost_equal(df1.values.flatten(), dd1_test.values.flatten(), 5,
+                                       err_msg="DenoisedDeltaRank indicator 1")
 
         dd2 = DenoisedDeltaRank(8, 12, 11, [10, 20, 30, 100])
         s1.attach(dd2)
         df2 = pd.DataFrame(dd2[::-1], index=s1.times())
         dd2_test = delta_rank(s1.to_frame(), 8, 12, 11, [10, 20, 30, 100])
-        np.testing.assert_almost_equal(df2.values.flatten(), dd2_test.values.flatten(), 5, err_msg="DenoisedDeltaRank indicator 2")
+        np.testing.assert_almost_equal(df2.values.flatten(), dd2_test.values.flatten(), 5,
+                                       err_msg="DenoisedDeltaRank indicator 2")
 
         dd3 = DenoisedDeltaRank(5, 10, 5, [10, 20, 30, 100])
         s2 = BarSeries('5Min')
@@ -484,7 +485,8 @@ class IndicatorTest(unittest.TestCase):
         df3 = pd.DataFrame(dd3[::-1], index=s2.times())
         dd3_test = delta_rank(s2.to_frame(), 5, 10, 5, [10, 20, 30, 100])
 
-        np.testing.assert_almost_equal(df3.values.flatten(), dd3_test.values.flatten(), 5, err_msg="DenoisedDeltaRank indicator 3")
+        np.testing.assert_almost_equal(df3.values.flatten(), dd3_test.values.flatten(), 5,
+                                       err_msg="DenoisedDeltaRank indicator 3")
 
     def test_rolling_std(self):
         _x = pd.Series(np.random.rand(2000), index=pd.date_range('2000-01-01', periods=2000, freq='1d'))
@@ -493,7 +495,7 @@ class IndicatorTest(unittest.TestCase):
         xs = DoubleSeries('1D')
         xs.attach(rtsd)
         xs.attach(isma)
-        
+
         for xi, ti in zip(_x, _x.index):
             xs.update_by_value(ti, xi)
 
@@ -516,4 +518,3 @@ class IndicatorTest(unittest.TestCase):
         np.testing.assert_almost_equal(wr1[::], wr2[::])
         self.assertAlmostEqual(wr1[2], -80.093, delta=0.01)
         self.assertAlmostEqual(wr1[6], -83.7209, delta=0.01)
-

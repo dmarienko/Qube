@@ -2,7 +2,6 @@
  Metrics for portfolio performance
 """
 
-import traceback
 from datetime import timedelta
 
 import numpy as np
@@ -543,16 +542,15 @@ def collect_entries_data(pf_log: pd.DataFrame) -> dict:
 
 
 def portfolio_stats(pfl_log: pd.DataFrame, init_cash, start=None, end=None,
-                    risk_free=0, benchmark=None,
+                    risk_free=0,
                     rolling_sharpe_window=252,
-                    account_transactions=False,
+                    account_transactions=True,
                     performance_statistics_period=DAILY,
                     **kwargs) -> dict:
     if len(pfl_log) == 0:
         raise ValueError("Can't calculate statistcis on empty portfolio")
 
     sheet = dict()
-    benchmark_sheet = dict()
 
     pft_total = calculate_total_pnl(pfl_log, split_cumulative=False)
     pft_total['Total_PnL'] = pft_total['Total_PnL'].cumsum()
@@ -576,42 +574,6 @@ def portfolio_stats(pfl_log: pd.DataFrame, init_cash, start=None, end=None,
     if infer_series_frequency(returns) < timedelta(days=1):
         returns = aggregate_returns(returns, 'daily')
         returns_on_init_bp = aggregate_returns(returns_on_init_bp, 'daily')
-
-    # benchmark
-    if benchmark is not None:
-        try:
-            benchmark = benchmark[returns.index[0]:returns.index[-1]]
-            returns_bm = benchmark['close'].pct_change()
-            benchmark_sheet['behcmark_returns'] = returns_bm
-            bm_compound = (returns_bm + 1).cumprod(axis=0) - 1
-            benchmark_sheet['behcmark_compound'] = bm_compound
-            benchmark_sheet['benchmark_cagr'] = cagr(returns_bm, performance_statistics_period)
-            benchmark_sheet['benchmark_sharpe'] = sharpe_ratio(returns_bm, risk_free, performance_statistics_period)
-            benchmark_sheet['benchmark_calmar'] = calmar_ratio(returns_bm, performance_statistics_period)
-            benchmark_sheet['benchmark_sortino'] = sortino_ratio(returns_bm, risk_free, performance_statistics_period,
-                                                                 _downside_risk=kwargs.pop('downside_risk', None))
-            benchmark_sheet['benchmark_drawdown_pct'] = max_drawdown_pct(returns_bm)
-            # simplest buy&hold on benchmark to get equity and max dd in USD
-            benchmark_max_dd_usd, _, _, _, _ = absmaxdd((bm_compound * init_cash).dropna())
-            benchmark_sheet['benchmark_max_dd_usd'] = benchmark_max_dd_usd
-            p_beta = beta(returns, returns_bm, risk_free)
-            benchmark_sheet['beta'] = p_beta
-            benchmark_sheet['alpha'] = alpha(returns, returns_bm, risk_free, period=performance_statistics_period,
-                                             _beta=p_beta)
-            benchmark_sheet['benchmark_rolling_sharpe'] = rolling_sharpe_ratio(returns_bm, risk_free,
-                                                                               periods=rolling_sharpe_window)
-            benchmark_sheet['benchmark_annual_volatility'] = annual_volatility(returns_bm)
-            benchmark_sheet['benchmark_monthly_returns'] = aggregate_returns(returns_bm, convert_to='mon')
-            benchmark_sheet['benchmark_tail_ratio'] = tail_ratio(returns_bm)
-            benchmark_sheet['benchmark_stability'] = stability_of_returns(returns_bm)
-            bm_r_m = np.mean(returns_bm)
-            bm_r_s = np.std(returns_bm)
-            benchmark_sheet['benchmark_var'] = var_cov_var(init_cash, bm_r_m, bm_r_s)
-            benchmark_sheet['benchmark_mean_return'] = bm_r_m
-        except ValueError:
-            __logger.error(traceback.format_exc())
-        else:
-            sheet.update(benchmark_sheet)
 
     # todo: add transaction_cost calculations
     equity = init_cash + pft_total['Total_PnL']

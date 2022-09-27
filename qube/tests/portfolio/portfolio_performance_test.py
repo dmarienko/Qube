@@ -1,13 +1,12 @@
 import unittest
 from os.path import join
 
-from qube.portfolio.performance import *
-from qube.datasource.DataSource import DataSource
+from qube.configs.Properties import get_root_dir
 from qube.portfolio.PortfolioLogger import PortfolioLogger
+from qube.portfolio.performance import *
 from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo
 from qube.tests.simulator.signal_tester_test import MockDataSource, gen_pos
-from qube.configs.Properties import get_root_dir
 
 
 class PortfolioStatsTests(unittest.TestCase):
@@ -50,10 +49,8 @@ class PortfolioStatsTests(unittest.TestCase):
     def test_stat_sheet(self):
         portfolio = pd.read_csv(join(get_root_dir(), 'qube/tests/data/portfolios/portfolio1.csv'), index_col='Date',
                                 parse_dates=True)
-        ds = DataSource('test::csv_dir', self.DS_CFG_PATH)
-        benchmark = ds.load_data('SPY')['SPY']
 
-        sheet = portfolio_stats(portfolio, 100000, benchmark=benchmark, commissions='dukas')
+        sheet = portfolio_stats(portfolio, 100000, commissions='dukas')
 
         print(100 * sheet['cagr'])
         print(sheet['sharpe'])
@@ -61,8 +58,6 @@ class PortfolioStatsTests(unittest.TestCase):
         print(sheet['calmar'])
         print(100 * sheet['annual_volatility'])
         print('MaxDD: $%.2f, %0.2f%%' % (sheet['mdd_usd'], 100 * sheet['drawdown_pct']))
-        if sheet['benchmark_drawdown_pct']:
-            print('MaxDD benchmark: %0.2f%%' % (100 * sheet['benchmark_drawdown_pct']))
         print(sheet['mdd_start'])
         print(sheet['mdd_peak'])
         print(sheet['mdd_recover'])
@@ -72,10 +67,8 @@ class PortfolioStatsTests(unittest.TestCase):
 
         # Value-At-Risk
         print('VaR: $%0.2f' % sheet['var'])
-        if sheet['benchmark_var']:
-            print('Benchmark VaR: $%0.2f' % sheet['benchmark_var'])
 
-        if sheet['alpha']:
+        if 'alpha' in sheet:
             print('Alpha: %f, Beta: %f' % (sheet['alpha'], sheet['beta']))
 
         if sheet['broker_commissions']:

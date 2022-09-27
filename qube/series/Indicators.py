@@ -3,7 +3,7 @@ from typing import Union, List
 
 import numpy as np
 
-from qube.quantitative.stats import percentile_rank
+from qube.quantitative.stats.stats import percentile_rank
 from qube.quantitative.ta.indicators import nans
 from qube.series.Bar import Bar
 

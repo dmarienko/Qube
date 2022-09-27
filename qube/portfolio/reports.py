@@ -8,14 +8,12 @@ import matplotlib
 import seaborn as sns
 from matplotlib import pyplot as plt
 
+from qube.charting.highcharts.core import serialize, union_charts
+from qube.charting.plot_helpers import subplot
+from qube.configs.Properties import get_root_dir
 from qube.portfolio.performance import *
 from qube.portfolio.performance import calculate_total_pnl
-from qube.charting.plot_helpers import subplot
-from qube.datasource.DataSource import DataSource
 from qube.simulator.SignalTester import SimulationResult
-from qube.utils import QubeLogger
-from qube.configs.Properties import get_root_dir
-from qube.charting.highcharts.core import serialize, union_charts
 from qube.utils.utils import runtime_env
 
 TPL_EXTENSION = '.tpl'
@@ -54,8 +52,7 @@ def comparison_report_tearsheet(pfl_list, meta=None):
 def tearsheet(portfolio: Union[pd.DataFrame, SimulationResult], init_cash, risk_free=0.0,
               rolling_sharpe_window=DAILY,
               account_transactions=True,
-              performance_statistics_period=DAILY,
-              bm_datasource=None, bm=None, ds_config_path=None,
+              performance_statistics_period=DAILY_365,
               figsize=(9, 8),
               template='simple_report', handlers=None,
               meta=None,
@@ -69,9 +66,6 @@ def tearsheet(portfolio: Union[pd.DataFrame, SimulationResult], init_cash, risk_
     :param rolling_sharpe_window: window size for rolling sharpe (252 days by default)
     :param account_transactions: if True and portfolio contains _Commissions column commissions included in equity
     :param performance_statistics_period: annualization period for performance statistics (default 252)
-    :param bm: benchmark symbol
-    :param bm_datasource: benchmark datasource
-    :param ds_config_path: benchmark datasource configuration
     :param figsize: default figure size for equity plot
     :param template: report's template
     :param handlers:
@@ -87,33 +81,10 @@ def tearsheet(portfolio: Union[pd.DataFrame, SimulationResult], init_cash, risk_
     if hasattr(portfolio, 'portfolio'):
         portfolio = portfolio.portfolio
 
-    benchmark = None
-    if bm is not None:
-        ds = DataSource(bm_datasource, config_path=ds_config_path)
-        try:
-            benchmark = ds.load_data(bm, start=portfolio.index[0], end=portfolio.index[-1]).get(bm.upper())
-        except:
-            QubeLogger.getLogger('qube.portfolio.reports').warn(
-                'Unable to load benchmark data for %s from %s ' % (bm, bm_datasource)
-            )
-        finally:
-            ds.close()
-
-    # checked benchmark is not empty and has enough data
-    _bm_tol = pd.Timedelta('1D')
-    if benchmark is None or len(benchmark) < 1 or \
-            benchmark.index[0] - portfolio.index[0] > _bm_tol or \
-            portfolio.index[-1] - benchmark.index[-1] > _bm_tol:
-        benchmark = None
-
     sheet = portfolio_stats(portfolio, init_cash, risk_free=risk_free,
                             rolling_sharpe_window=rolling_sharpe_window,
                             account_transactions=account_transactions,
-                            performance_statistics_period=performance_statistics_period,
-                            benchmark=benchmark, **kwargs)
-    # Preparation sheet
-    if benchmark is not None and 'behcmark_compound' in sheet:
-        sheet['benchmark_gain'] = init_cash * (1 + sheet['behcmark_compound'])[-1]
+                            performance_statistics_period=performance_statistics_period, **kwargs)
 
     if meta is not None:
         sheet['meta'] = meta
@@ -135,7 +106,6 @@ def tearsheet(portfolio: Union[pd.DataFrame, SimulationResult], init_cash, risk_
             handlers = {'chart': _mpl_chart}
 
     template_body = _get_template_by_name(template)
-
     report_string = report_templator(sheet, template_body, handlers)
 
     return _display_report(report_string, highcharts, **kwargs)
