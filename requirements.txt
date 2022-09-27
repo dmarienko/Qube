@@ -22,3 +22,4 @@ plotly==5.8.0
 numba
 seaborn
 rich
+pyyaml

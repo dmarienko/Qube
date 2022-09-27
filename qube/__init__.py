@@ -37,7 +37,8 @@ if runtime_env() in ['notebook', 'shell']:
             ('axes.grid', True),
             ('axes.labelsize', 'large'),
             ('axes.labelcolor', 'green'),
-            ('axes.prop_cycle', cycler('color', ['#449AcD', 'g', '#f62841', 'y', '#088487', '#E24A33', '#f01010'])),
+            ('axes.prop_cycle', cycler('color', ['#08F7FE', '#00ff41', '#FE53BB', '#F5D300', '#449AcD', 'g',
+                                                 '#f62841', 'y', '#088487', '#E24A33', '#f01010'])),
             ('legend.fontsize', 'small'),
             ('legend.fancybox', False),
             ('legend.edgecolor', '#305030'),
@@ -54,11 +55,12 @@ if runtime_env() in ['notebook', 'shell']:
             ('grid.linestyle', '--'),
             ('grid.linewidth', 0.5),
             ('grid.alpha', 0.8),
-            ('figure.figsize', [8.0, 5.0]),
+            ('figure.figsize', [12.0, 5.0]),
             ('figure.dpi', 80.0),
-            ('figure.facecolor', '#000000'),
+            ('figure.facecolor', '#050505'),
             ('figure.edgecolor', (1, 1, 1, 0)),
-            ('figure.subplot.bottom', 0.125)
+            ('figure.subplot.bottom', 0.125),
+            ('savefig.facecolor', '#000000'),
         ]
 
         LIGHT_MPL_THEME = [
