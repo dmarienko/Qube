@@ -1,11 +1,10 @@
-# There is list of required packages for IRA
+# There is list of required packages for Qube
 numpy
 pandas
 pandas-datareader
 sklearn
 qpython
 matplotlib==3.2.0
-croniter<0.3.20
 statsmodels
 pymongo
 nose2
@@ -13,13 +12,10 @@ flask
 patool
 pymemcache
 airspeed
-quandl
-slackclient
 flask_jsonpify
 ntplib
 bs4
 dill
-psutil
 sortedcontainers
 cython
 plotly==5.8.0

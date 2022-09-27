@@ -4,7 +4,6 @@ _CONNECTORS_LOOKUP = {
     'yahoo': 'YahooConnector',
     'kdb': 'KdbConnector',
     'kdb_connector': 'KdbConnector',
-    'quandl': 'QuandlConnector',
     'dukas_outlook': 'DukasOutlookConnector',
 }
 

@@ -3,19 +3,68 @@ from qube.utils.utils import version, runtime_env
 
 if runtime_env() in ['notebook', 'shell']:
 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     # -- all imports below will appear in notebook after calling %%alphalab magic ---
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    # - some common stuff -
     import numpy as np
     import pandas as pd
+    import datetime
+    from datetime import time, timedelta
+    from tqdm.auto import tqdm
 
-    from qube.simulator import SignalTester
-    from qube.simulator.Brokerage import (
-        GenericStockBrokerInfo, GenericForexBrokerInfo, GenericCryptoBrokerInfo, GenericCryptoFuturesBrokerInfo
+    from qube.datasource import DataSource
+    from qube.datasource.controllers.MongoController import MongoController
+
+    # - TA stuff and indicators -
+    from qube.quantitative.ta.indicators import (
+        ema, dema, tema, kama, zlema, sma, jma, wma, ema_time, pivot_point, lrsi, rsi,
+        adx, atr, rolling_atr, rolling_rank, rolling_series_slope,
+        holt_winters_second_order_ewma, series_halflife, running_view, smooth,
+        bollinger, bollinger_atr, detrend, moving_detrend, moving_ols,
+        rolling_std_with_mean, macd, trend_detector, fractals, denoised_trend,
+        stochastic, laguerre_filter, psar
+    )
+    from qube.quantitative.ta.swings.swings_splitter import (
+        find_movements, find_movements_hilo
+    )
+    from qube.series.BarSeries import BarSeries
+    from qube.series.Quote import Quote
+
+    # - portfolio analysis -
+    from qube.portfolio.reports import tearsheet, tearsheets
+    from qube.portfolio.performance import split_cumulative_pnl, portfolio_stats
+    from qube.portfolio.allocating import (
+        runnig_portfolio_allocator, tang_portfolio, gmv_portfolio, effective_portfolio
     )
 
-    from qube.utils.utils import add_project_to_system_path
-    from qube.datasource.controllers.MongoController import MongoController
+    # - simulator stuff -
+    from qube.simulator.SignalTester import SignalTester
+    from qube.simulator.utils import (
+        shift_signals, rolling_forward_test_split, permutate_params
+    )
+    from qube.portfolio.Instrument import Instrument
+    from qube.portfolio.Position import Position, ForexPosition, CryptoPosition, CryptoFuturesPosition
+    from qube.simulator.Brokerage import (
+        GenericStockBrokerInfo, GenericForexBrokerInfo, GenericCryptoBrokerInfo,
+        GenericCryptoFuturesBrokerInfo
+    )
+
+    # - charting stuff -
+    from matplotlib import pyplot as plt
+    from qube.charting.plot_helpers import fig, multiplot, smultiplot, subplot, plot_pacf, plot_acf, zoomx
+    from qube.charting.mpl_finance import ohlc_plot
+    from qube.charting.lookinglass import LookingGlass
+
+    # - utils -
+    from qube.quantitative.tools import (
+        isscalar, nans, apply_to_frame, ohlc_resample, scols, srows, drop_duplicated_indexes,
+        retain_columns_and_join
+    )
     from qube.utils.nb_functions import *
-    from qube.utils.ui_utils import green, yellow, cyan, magenta
+    from qube.utils.utils import (terminal, mstruct, add_project_to_system_path, dict2struct, urange)
+    from qube.utils.ui_utils import (green, yellow, cyan, magenta, white, blue, red)
 
     # setup short numpy output format
     np_fmt_short()
@@ -29,7 +78,7 @@ if runtime_env() in ['notebook', 'shell']:
            {green("   .+-------+")} 
            {green(" .' :     .'|")}   {yellow("QUBE")} | {cyan("Quantitative Backtesting Environment")}
            {green("+-------+'  |")}  
-           {green("|   : * |   |")}   (c) 2022,  ver. {magenta(version().rstrip())}
+           {green("|   : ") + red("*") + green(" |   |")}   (c) 2022,  ver. {magenta(version().rstrip())}
            {green("|  ,+---+---+")} 
            {green("|.'     | .' ")}   
            {green("+-------+'   ")} ''')
