@@ -50,7 +50,8 @@ def version():
         with open(buildFile) as f:
             return f.read()
     else:
-        return 'undefined'
+        from qube import __version__
+        return __version__
 
 
 def runtime_env():

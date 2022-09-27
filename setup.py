@@ -1,19 +1,34 @@
 import setuptools
+import codecs
+import os.path
 
-VERSION = "0.1.0"
+
+def read(rel_path):
+    here = os.path.abspath(os.path.dirname(__file__))
+    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+        return fp.read()
+
+
+def get_version(rel_path):
+    for line in read(rel_path).splitlines():
+        if line.startswith('__version__'):
+            delim = '"' if '"' in line else "'"
+            return line.split(delim)[1]
+    else:
+        return "Undefined"
+
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-with open('build.txt', 'wt') as f:
-    f.write(VERSION)
 
 setuptools.setup(
     name="CQube",
-    version=VERSION,
+    version=get_version("qube/__init__.py"),
     author="Dmitry Marienko",
     author_email="dmitry.ema@gmail.com",
     description="Qube",
