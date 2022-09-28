@@ -8,10 +8,18 @@ from typing import List, Union, Dict
 import numpy as np
 import pandas as pd
 
-from qube.quantitative.tools import infer_series_frequency
+from qube import runtime_env
 from qube.datasource import DataSource
+from qube.portfolio.commissions import (
+    TransactionCostsCalculator, ZeroTCC, BinanceRatesCommon, WooXRatesCommon,
+    StockTCC, ForexTCC, BitmexTCC, BinanceCOINM_TCC_VIP0, FxcmTCC, FTXRatesCommon
+)
 from qube.portfolio.performance import split_cumulative_pnl
-from qube.simulator.Brokerage import BrokerInfo
+from qube.quantitative.tools import infer_series_frequency
+from qube.simulator.Brokerage import (
+    BrokerInfo, GenericStockBrokerInfo, GenericForexBrokerInfo,
+    GenericCryptoBrokerInfo, GenericCryptoFuturesBrokerInfo
+)
 from qube.utils.DateUtils import DateUtils
 
 
@@ -504,5 +512,112 @@ def permutate_params(parameters: dict,
         if conditions_met:
             result.append(params_set)
 
-    # if we need to follow sklearn rules we should wrap every non iterable as list
+    # if we need to follow sklearn rules we should wrap every noniterable as list
     return _wrap_single_list(result) if wrap_as_list else result
+
+
+def __create_brokerage_instances(spread: Union[dict, float], tcc: TransactionCostsCalculator = None) -> dict:
+    """
+    Some predefined list of broerages
+    """
+
+    def _binance_generator(broker_class, mtype, currencies):
+        def _f(_cl, _t, _i, _c):
+            return lambda: _cl(spread=spread, tcc=BinanceRatesCommon(_t, _i, _c))
+
+        return {f'binance_{mtype}_vip{i}_{c.lower()}': _f(broker_class, mtype, f'vip{i}', c.upper()) for i in range(10)
+                for c in currencies}
+
+    def _woox_generator(broker_class, mtype, currencies):
+        def _f(_cl, _t, _i, _c):
+            return lambda: _cl(spread=spread, tcc=WooXRatesCommon(_t, _i, _c))
+
+        return {f'woox_{mtype}_t{i}_{c.lower()}': _f(broker_class, mtype, f't{i}', c.upper()) for i in range(7)
+                for c in currencies}
+
+    def _ftx_generator(broker_class, currencies):
+        def _f(_cl, _i, _c):
+            return lambda: _cl(spread=spread, tcc=FTXRatesCommon(None, _i, _c))
+
+        return {f'ftx_t{i+1}_{c.lower()}': _f(broker_class, f't{i+1}', c.upper()) for i in range(6)
+                for c in currencies}
+
+    return {
+        'stock': lambda: GenericStockBrokerInfo(spread=spread, tcc=StockTCC(0.05 / 100) if tcc is None else tcc),
+        'forex': lambda: GenericForexBrokerInfo(spread=spread,
+                                                tcc=ForexTCC(35 / 1e6, 35 / 1e6) if tcc is None else tcc),
+        'crypto': lambda: GenericCryptoBrokerInfo(spread=spread, tcc=ZeroTCC() if tcc is None else tcc),
+        'crypto_futures': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=ZeroTCC() if tcc is None else tcc),
+
+        # --- some predefined ---
+        'bitmex': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=BitmexTCC()),
+        'bitmex_vip': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=BitmexTCC(0.03 / 100, -0.01 / 100)),
+        'binance_cm_vip0': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=BinanceCOINM_TCC_VIP0()),
+
+        # - Binance spot
+        **_binance_generator(GenericCryptoBrokerInfo, 'spot', ['USDT', 'BNB']),
+
+        # - Binance um
+        **_binance_generator(GenericCryptoFuturesBrokerInfo, 'um', ['USDT', 'USDT_BNB', 'BUSD', 'BUSD_BNB']),
+
+        # - WooX spot
+        **_woox_generator(GenericCryptoBrokerInfo, 'spot', ['USDT']),
+
+        # - WooX spot
+        **_woox_generator(GenericCryptoFuturesBrokerInfo, 'futures', ['USDT']),
+
+        # - FTX
+        **_ftx_generator(GenericCryptoFuturesBrokerInfo, ['USD']),
+
+        'dukas': lambda: GenericForexBrokerInfo(spread=spread, tcc=ForexTCC(35 / 1e6, 35 / 1e6)),
+        'dukas_premium': lambda: GenericForexBrokerInfo(spread=spread, tcc=ForexTCC(17.5 / 1e6, 17.5 / 1e6)),
+        'fxcm': lambda: GenericForexBrokerInfo(spread=spread, tcc=FxcmTCC()),
+    }
+
+
+def __instantiate_simulated_broker(broker, spread: Union[dict, float],
+                                   tcc: TransactionCostsCalculator = None) -> BrokerInfo:
+    if isinstance(broker, str):
+        # for general brokers we require implicit spreads here
+        if spread is None:
+            raise ValueError("Spread policy must be specified ! You need pass either fixed spread or dictionary")
+
+        predefined_brokers = __create_brokerage_instances(spread, tcc)
+
+        brk_ctor = predefined_brokers.get(broker)
+        if brk_ctor is None:
+            raise ValueError(
+                f"Unknown broker type '{broker}'\nList of supported brokers: [{','.join(predefined_brokers.keys())}]")
+
+        # instantiate broker
+        broker = brk_ctor()
+
+    return broker
+
+
+def ls_brokers():
+    """
+    List of simulated brokers supported by default
+    """
+    return [f'{k}({str(v().tcc)})' for k, v in __create_brokerage_instances(0, None).items()]
+
+
+def _progress_bar(description='[Backtest]'):
+    """
+    Default progress bar (based on tqdm)
+    """
+    if runtime_env() == 'notebook':
+        from tqdm.notebook import tqdm
+    else:
+        from tqdm import tqdm
+
+    class __MyProgress:
+        def __init__(self, descr):
+            self.p = tqdm(total=100, unit_divisor=1, unit_scale=1, unit=' quotes', desc=descr)
+
+        def __call__(self, i, label=None):
+            d = i - self.p.n
+            if d > 0:
+                self.p.update(d)
+
+    return __MyProgress(description)

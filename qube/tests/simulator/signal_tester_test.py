@@ -9,7 +9,7 @@ from qube.datasource import DataSource
 from qube.portfolio.PortfolioLogger import PortfolioLogger
 from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo, GenericForexBrokerInfo
-from qube.simulator.SignalTester import ExecutionLogger, Tracker
+from qube.simulator.core import Tracker, ExecutionLogger
 from qube.simulator.utils import convert_ohlc_to_ticks, load_tick_price_block
 from qube.tests.simulator.utilities import MockDataSource, gen_pos, cumulative_pnl_calcs_eod, TickMockDataSource
 from qube.tests.simulator.utilities import cross_ma
@@ -160,7 +160,7 @@ class TestSimulator(unittest.TestCase):
 
         sim = SignalTester(GenericStockBrokerInfo(spread=0), ds_daily)
         W = sim.run_signals(positions, portfolio_logger=PortfolioLogger(1), tracker=ITracker(True))
-        equity = W.equity()
+        equity = W.equity(account_transactions=False)
 
         # print(pfl.tail(20))
 

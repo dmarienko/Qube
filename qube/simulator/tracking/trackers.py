@@ -8,7 +8,7 @@ import pandas as pd
 
 from qube.series.Indicators import ATR
 from qube.series.Quote import Quote
-from qube.simulator.SignalTester import Tracker
+from qube.simulator.core import Tracker
 from qube.utils.utils import mstruct
 
 

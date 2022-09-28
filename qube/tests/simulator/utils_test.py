@@ -9,11 +9,10 @@ from qube.portfolio.PortfolioLogger import PortfolioLogger
 from qube.simulator import SignalTester
 from qube.simulator import utils
 from qube.simulator.Brokerage import GenericStockBrokerInfo
-from qube.simulator.utils import merge_portfolio_log_chunks
+from qube.simulator.utils import merge_portfolio_log_chunks, ls_brokers
 from qube.simulator.utils import rolling_forward_test_split
 from qube.tests.simulator.utilities import cross_ma
 from qube.utils.DateUtils import DateUtils
-from qube.utils.nb_functions import ls_brokers
 
 
 class SignalsUtilTest(unittest.TestCase):

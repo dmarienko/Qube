@@ -5,7 +5,7 @@ import pandas as pd
 
 from qube.quantitative.tools import scols, srows
 from qube.datasource import DataSource
-from qube.simulator.SignalTester import ExecutionLogger
+from qube.simulator.core import ExecutionLogger
 from qube.simulator.utils import shift_signals
 from qube.utils.DateUtils import DateUtils
 

@@ -13,6 +13,7 @@ from typing import Union, Dict, List, Tuple
 import numpy as np
 
 from qube.datasource.controllers.MemcacheController import MemcacheController
+from qube.simulator.core import DB_SIMULATION_RESULTS
 from qube.utils.nb_functions import z_save
 from qube.utils.ui_utils import red, yellow, blue, ui_progress_bar
 from qube.utils.utils import mstruct, runtime_env
@@ -147,7 +148,7 @@ class Task:
                                    result=result)
 
         if self.save_to_storage:
-            z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname='simdb')
+            z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname=DB_SIMULATION_RESULTS)
 
         return result_to_return
 
@@ -301,3 +302,5 @@ def ls_running_tasks(cleanup=False, only_finished=True, details=False):
 
     if cleanup:
         rinf.cleanup()
+
+    rinf.close()

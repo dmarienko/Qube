@@ -10,9 +10,9 @@ from sklearn.pipeline import Pipeline
 
 from qube.learn.core.base import MarketDataComposer
 from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
-from qube.simulator.SignalTester import Tracker, SimulationResult
+from qube.simulator.core import Tracker, SimulationResult
 from qube.simulator.multiproc import Task, RunningInfoManager
-from qube.utils.nb_functions import z_backtest
+from qube.simulator.backtester import backtest
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import mstruct, runtime_env
 
@@ -143,7 +143,7 @@ def _proc_run(s: SimSetup, data, start, stop, broker, spreads, progress, tcc: Tr
     """
     TODO: need to be running in separate process
     """
-    b = z_backtest(
+    b = backtest(
         s.get_signals(data, start, stop),
         data, broker, spread=spreads, name=s.name, execution_logger=True,
         trackers=s.trackers, progress=progress,
@@ -362,7 +362,7 @@ class _SimulationTrackerTask(Task):
         data = self.loader(self.instrument, start=self.start, end=self.stop).ticks()
 
         s = _recognize({f"{task_name}.{t_id}": tracker_instance}, data, run_name)[0]
-        sim_result = z_backtest(
+        sim_result = backtest(
             s.get_signals(data, self.start, self.stop), data, self.broker,
             spread=self.spreads, name=s.name, execution_logger=True, trackers=s.trackers,
             progress=_InfoProgress(run_name, run_id, t_id, task_name, ri),

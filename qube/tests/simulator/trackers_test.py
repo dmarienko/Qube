@@ -8,10 +8,11 @@ from qube.utils.utils import mstruct
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 500)
 
-from qube.utils.nb_functions import z_backtest
+from qube.simulator.backtester import backtest
 from qube.simulator.tracking.trackers import (TakeStopTracker, DispatchTracker, PipelineTracker,
-                                              Tracker, TimeExpirationTracker, TriggeredOrdersTracker,
+                                              TimeExpirationTracker, TriggeredOrdersTracker,
                                               TriggerOrder, MultiTakeStopTracker, SignalBarTracker)
+from qube.simulator.core import Tracker
 
 
 def _read_csv_ohlc(symbol):
@@ -85,8 +86,8 @@ class Trackers_test(unittest.TestCase):
             '2020-08-17 23:19:59': {'EURUSD': 0},
         })
 
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True,
-                       trackers=DispatchTracker(
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True,
+                     trackers=DispatchTracker(
                            {
                                'regime:trend': _Test_StopTakeTracker(10000, 50, None, 1e-5),
                                'regime:mr': PipelineTracker(
@@ -95,7 +96,7 @@ class Trackers_test(unittest.TestCase):
                                ),
                                'empty': None
                            }, None, flat_position_on_activate=True, debug=True)
-                       )
+                     )
 
         print(p.executions)
         print(p.trackers_stat)
@@ -120,7 +121,7 @@ class Trackers_test(unittest.TestCase):
         })
 
         tracker = _Test_SignalBarTracker('5m', 1e-5, impr='improve')
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=tracker)
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=tracker)
 
         print(p.executions)
         np.testing.assert_array_almost_equal(
@@ -188,7 +189,7 @@ class Trackers_test(unittest.TestCase):
         })
 
         track = StopOrdersTestTracker(1e-5)
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=track)
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=track)
 
         print(p.executions)
         print(p.trackers_stat)
@@ -209,8 +210,8 @@ class Trackers_test(unittest.TestCase):
             '2020-08-17 00:22:00': {'RM1': 0},
         })
 
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True,
-                       trackers=_Test_StopTakeTracker(10000, None, 16, 1))
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True,
+                     trackers=_Test_StopTakeTracker(10000, None, 16, 1))
 
         print(p.executions)
         print(p.trackers_stat)
@@ -264,8 +265,8 @@ class Trackers_test(unittest.TestCase):
             '2020-08-17 18:00:00': {'EURUSD': 0},
         })
 
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True,
-                       trackers=_Test_MultiTakeTracker(
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True,
+                     trackers=_Test_MultiTakeTracker(
                            10000, 100, [
                                (50, 1 / 3, 'close 1/3'),  # close 1/3 in 100 pips
                                (50, 1 / 2, 'close 2/3'),  # close 1/2 in another 100 pips
@@ -288,12 +289,12 @@ class Trackers_test(unittest.TestCase):
             '2020-08-17 00:22:00': {'RM1': 0},
         })
 
-        p1 = z_backtest(s, data, 'forex', spread=0, execution_logger=True,
-                        trackers=_Test_MultiTakeTracker(
+        p1 = backtest(s, data, 'forex', spread=0, execution_logger=True,
+                      trackers=_Test_MultiTakeTracker(
                             10000, None, [
                                 (16, 1, 'CLOSE ALL'),  # close 1/3 in 100 pips
                             ], 1)
-                        )
+                      )
         print("- As Single take/stop - - - - - - - - -")
         print(p1.executions)
         print("- - - - - - - - - -")
@@ -363,7 +364,7 @@ class Trackers_test(unittest.TestCase):
         })
 
         track = StopOrdersTestMultiTracker(1e-5)
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=track)
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=track)
 
         print(p.executions)
         print(p.trackers_stat)
@@ -451,7 +452,7 @@ class Trackers_test(unittest.TestCase):
         })
 
         track = LimitOrdersTestTracker(1e-5)
-        p = z_backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=track)
+        p = backtest(s, data, 'forex', spread=0, execution_logger=True, trackers=track)
 
         print(p.executions)
         print(p.trackers_stat)

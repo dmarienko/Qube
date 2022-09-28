@@ -2,7 +2,7 @@
    Misc graphics handy utilitites to be used in interactive analysis
 """
 import itertools as it
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,7 @@ try:
     import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
     import matplotlib.ticker as mticker
+    from matplotlib.lines import Line2D
 except:
     print(" >>> Can't import matplotlib modules in qube charting modlue")
 
@@ -387,7 +388,7 @@ def plot_trends(trends, uc='w--', dc='c--', lw=0.7, ms=5, fmt='%H:%M'):
     """
     Plot find_movements function output as trend lines on chart
 
-    >>> from qube.analysis import find_movements
+    >>> from qube.quantitative.ta.swings.swings_splitter import find_movements
     >>>
     >>> tx = pd.Series(np.random.randn(500).cumsum() + 100, index=pd.date_range('2000-01-01', periods=500))
     >>> trends = find_movements(tx, np.inf, use_prev_movement_size_for_percentage=False,
@@ -457,5 +458,45 @@ def plot_fractals(frs: pd.DataFrame, uc='y', lc='w'):
     """
     if not (isinstance(frs, pd.DataFrame) and all(frs.columns.isin(['L', 'U']))):
         raise ValueError('Wrong input data: should be pd.DataFrame amd contains "L" and "U" columns !')
-    [plt.plot(t, v, marker=6, c=uc) for t,v in frs.L.dropna().iteritems()];
-    [plt.plot(t, v, marker=7, c=lc) for t,v in frs.U.dropna().iteritems()];
+    [plt.plot(t, v, marker=6, c=uc) for t, v in frs.L.dropna().iteritems()];
+    [plt.plot(t, v, marker=7, c=lc) for t, v in frs.U.dropna().iteritems()];
+
+
+def glow_effects(ax: Optional[plt.Axes] = None) -> None:
+    """Add a glow effect to the lines in an axis object and an 'underglow' effect below the line."""
+    make_lines_glow(ax=ax)
+
+
+def make_lines_glow(ax: Optional[plt.Axes] = None,
+                    n_glow_lines: int = 10, diff_linewidth: float = 1.05,
+                    alpha_line: float = 0.3, lines: Union[Line2D, List[Line2D]] = None) -> None:
+    """Add a glow effect to the lines in an axis object.
+    Each existing line is redrawn several times with increasing width and low alpha to create the glow effect.
+    """
+    if not ax:
+        ax = plt.gca()
+
+    lines = ax.get_lines() if lines is None else lines
+    lines = [lines] if isinstance(lines, Line2D) else lines
+    alpha_value = alpha_line / n_glow_lines
+
+    for line in lines:
+        data = line.get_data(orig=False)
+        linewidth = line.get_linewidth()
+
+        try:
+            step_type = line.get_drawstyle().split('-')[1]
+        except:
+            step_type = None
+
+        for n in range(1, n_glow_lines + 1):
+            if step_type:
+                glow_line, = ax.step(*data)
+            else:
+                glow_line, = ax.plot(*data)
+            # line properties are copied as seen in this solution: https://stackoverflow.com/a/54688412/3240855
+            glow_line.update_from(line)
+
+            glow_line.set_alpha(alpha_value)
+            glow_line.set_linewidth(linewidth + (diff_linewidth * n))
+            glow_line.is_glow_line = True  # mark the glow lines, to disregard them in the underglow function.

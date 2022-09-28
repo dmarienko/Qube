@@ -10,6 +10,7 @@ from qube.utils import QubeLogger
 __logger = QubeLogger.getLogger(__name__)
 
 _ent0 = lambda c1: {'USDT': c1}
+_entusd0 = lambda c1: {'USD': c1}
 _ent1 = lambda c1, c2: {'USDT': c1, 'BNB': c2}
 _ent2 = lambda c1, c2, c3, c4: {'USDT': c1, 'USDT_BNB': c2, 'BUSD': c3, 'BUSD_BNB': c4}
 
@@ -72,6 +73,16 @@ _WOOX_FUTURES_FEES = {
 _WOOX_FEES = {
     'spot': _WOOX_SPOT_FEES,
     'futures': _WOOX_FUTURES_FEES
+}
+
+_FTX_SPOT_FUTURES_FEES = {
+    #              maker taker
+    't1': _entusd0([0.020, 0.070]),
+    't2': _entusd0([0.015, 0.060]),
+    't3': _entusd0([0.010, 0.055]),
+    't4': _entusd0([0.005, 0.050]),
+    't5': _entusd0([0.000, 0.045]),
+    't6': _entusd0([0.000, 0.040]),
 }
 
 
@@ -146,6 +157,30 @@ class WooXRatesCommon(TransactionCostsCalculator):
 
         if len(rates) < 2:
             raise ValueError(f"Incorrect rates data for {asset_type} / {fees_currency} on WooX")
+
+        super().__init__(maker=rates[0] / 100, taker=rates[1] / 100, )
+
+
+class FTXRatesCommon(TransactionCostsCalculator):
+    """
+    Some generic helper for rates
+    """
+
+    def __init__(self, asset_type, level, fees_currency='USD'):
+        fees_data = _FTX_SPOT_FUTURES_FEES
+        fees = fees_data.get(level)
+        if not fees:
+            raise ValueError(f"Can't find fee rates data for {asset_type} | {level} on FTX")
+
+        if isinstance(fees, dict):
+            rates = fees.get(fees_currency)
+            if rates is None:
+                raise ValueError(f"Can't find {asset_type} rates data for {fees_currency} on FTX")
+        else:
+            rates = fees
+
+        if len(rates) < 2:
+            raise ValueError(f"Incorrect rates data for {asset_type} / {fees_currency} on FTX")
 
         super().__init__(maker=rates[0] / 100, taker=rates[1] / 100, )
 

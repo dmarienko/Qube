@@ -48,12 +48,10 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.simulator.multisim import simulation, Market
     from qube.simulator.multiproc import ls_running_tasks, run_tasks
     from qube.simulator.management import ls_simulations
-    from qube.simulator.Brokerage import (
-        GenericStockBrokerInfo, GenericForexBrokerInfo, GenericCryptoBrokerInfo,
-        GenericCryptoFuturesBrokerInfo
-    )
+    from qube.simulator.utils import ls_brokers
+    from qube.simulator.backtester import backtest_signals_inplace, backtest
     from qube.simulator.tracking.trackers import (
-        Tracker, FixedTrader, FixedPctTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
+        FixedTrader, FixedPctTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
         MultiTakeStopTracker, SignalBarTracker,
         TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker
     )
@@ -70,7 +68,10 @@ if runtime_env() in ['notebook', 'shell']:
 
     # - - - - Charting stuff - - - -
     from matplotlib import pyplot as plt
-    from qube.charting.plot_helpers import fig, multiplot, smultiplot, subplot, plot_pacf, plot_acf, zoomx
+    from qube.charting.plot_helpers import (
+        fig, multiplot, smultiplot, subplot, sbp, plot_pacf, plot_acf, zoomx, glow_effects,
+        plot_trends, plot_fractals
+    )
     from qube.charting.mpl_finance import ohlc_plot
     from qube.charting.lookinglass import LookingGlass
 

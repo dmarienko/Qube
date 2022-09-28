@@ -7,8 +7,9 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 
+from qube.simulator.core import DB_SIMULATION_RESULTS
 from qube.simulator.multisim import MultiResults
-from qube.utils.nb_functions import z_load, z_save, z_ls, z_del
+from qube.utils.nb_functions import z_load, z_save, z_ls, z_del, z_ld
 from qube.utils.ui_utils import red, green
 from qube.utils.utils import mstruct, runtime_env
 
@@ -35,7 +36,7 @@ class SimulationRunData:
         """
         simres = []
         for k, r in tqdm(self.p.items()):
-            sd = z_load(r.path, host=self.host)['data']
+            sd = z_ld(r.path, host=self.host, dbname=DB_SIMULATION_RESULTS)
             if sd:
                 simres.append(sd.result)
         return MultiResults(simres, self.prj, '', '', '')
@@ -73,12 +74,12 @@ class SimulationRunData:
                             mean_return=prf.mean_return,
                             commissions=prf.broker_commissions,
                         )
-                        z_save(r.path, sd, host=self.host)
+                        z_save(r.path, sd, host=self.host, dbname=DB_SIMULATION_RESULTS)
                 except Exception as exc:
                     print(f'>>> Exception in processing {r.path}: {str(exc)}')
 
     def load(self, t_id) -> mstruct:
-        return z_load(f'runs/{self.prj}/{t_id}/{self.run_id}', host=self.host)['data']
+        return z_ld(f'runs/{self.prj}/{t_id}/{self.run_id}', host=self.host, dbname=DB_SIMULATION_RESULTS)
 
     def __getitem__(self, t_id):
         return self.load(t_id)
@@ -113,7 +114,7 @@ class SimulationRunData:
         """
         report = {}
         for k, r in tqdm(self.p.items()):
-            sd = z_load(r.path, host=self.host)['data']
+            sd = z_ld(r.path, host=self.host, dbname=DB_SIMULATION_RESULTS)
             if sd is None or 'performance' not in dir(sd): continue
             p = sd.performance
 

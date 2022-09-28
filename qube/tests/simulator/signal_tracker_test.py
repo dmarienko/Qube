@@ -11,7 +11,7 @@ from qube.portfolio.commissions import TransactionCostsCalculator
 from qube.series.Indicators import ATR
 from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo
-from qube.simulator.SignalTester import ExecutionLogger, Tracker
+from qube.simulator.core import Tracker, ExecutionLogger
 from qube.tests.simulator.utilities import cross_ma_signals_generator, portfolio_from_executions
 
 

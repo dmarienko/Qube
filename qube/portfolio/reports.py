@@ -13,7 +13,7 @@ from qube.charting.plot_helpers import subplot
 from qube.configs.Properties import get_root_dir
 from qube.portfolio.performance import *
 from qube.portfolio.performance import calculate_total_pnl
-from qube.simulator.SignalTester import SimulationResult
+from qube.simulator.core import SimulationResult
 from qube.utils.utils import runtime_env
 
 TPL_EXTENSION = '.tpl'

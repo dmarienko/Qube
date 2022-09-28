@@ -6,7 +6,7 @@ from qube.datasource.InMemoryDataSource import InMemoryDataSource
 from qube.portfolio.PortfolioLogger import PortfolioLogger
 from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo
-from qube.simulator.SignalTester import ExecutionLogger
+from qube.simulator.core import ExecutionLogger
 from qube.simulator.utils import split_signals
 from qube.tests.simulator.utilities import cross_ma, cumulative_pnl_validation_eod
 from qube.utils.DateUtils import DateUtils

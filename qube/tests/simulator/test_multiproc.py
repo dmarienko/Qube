@@ -48,3 +48,4 @@ class MultiProcTest(unittest.TestCase):
         ri.del_run_id(run_id)
         for r in res:
             print(r.run_id, r.task_id, r.result)
+        ri.close()
