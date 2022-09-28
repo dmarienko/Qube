@@ -41,8 +41,7 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(exclude=['tests']),
     package_data={
-        'configs': ['config-default/*.*'],
-        'portfolio': ['report_templates/*.*']
+        '': ['*.json', '*.csv'],
     },
     python_requires='>=3.6',
     # setup_requires=['setuptools_scm'],
