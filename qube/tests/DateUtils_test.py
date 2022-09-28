@@ -53,9 +53,9 @@ class TestDateUtils(unittest.TestCase):
 
     def test_accepts_diff_types(self):
         dt = datetime(2012, 11, 12, 10, 30, 35)
-        self.assertEquals(DateUtils.get_datetime(dt), dt)
+        self.assertEqual(DateUtils.get_datetime(dt), dt)
 
-        self.assertEquals(DateUtils.get_as_string('2016-01-01', DateUtils.DEFAULT_DATE_FORMAT), '2016-01-01')
+        self.assertEqual(DateUtils.get_as_string('2016-01-01', DateUtils.DEFAULT_DATE_FORMAT), '2016-01-01')
 
     def test_kdb(self):
         self.assertEqual(DateUtils.get_as_string(DateUtils.get_datetime('2016.01.01D01:30:00')), '2016-01-01 01:30:00')
@@ -76,34 +76,34 @@ class TestDateUtils(unittest.TestCase):
         self.assertEqual(DateUtils.format_kdb_datetime_usec('2015-10-23 10:23'), '2015.10.23D10:23:00.000000')
 
     def testRoundDownTime(self):
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 23), units='minutes')),
             "2015-10-25 10:00:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), units='minutes')),
             "2015-10-25 10:00:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), units='minutes')),
             "2015-10-25 10:00:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), 1, 'minutes')),
             "2015-10-25 10:01:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), 5, 'minutes')),
             "2015-10-25 10:05:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), -5, 'minutes')),
             "2015-10-25 10:00:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), -24, 'hours')),
             "2015-10-25 00:00:00")
-        self.assertEquals(
+        self.assertEqual(
             DateUtils.get_as_string(DateUtils.round_time_by(datetime(2015, 10, 25, 10, 00, 31), -10, 'seconds')),
             "2015-10-25 10:00:30")
 
     def testGetList(self):
-        self.assertEquals(DateUtils.get_datetime_ls(['2000-01-01 10:30', '2009-11-23']),
-                          [datetime(2000, 1, 1, 10, 30), datetime(2009, 11, 23, 0, 0)])
+        self.assertEqual(DateUtils.get_datetime_ls(['2000-01-01 10:30', '2009-11-23']),
+                         [datetime(2000, 1, 1, 10, 30), datetime(2009, 11, 23, 0, 0)])
 
     def testSplitOnIntervals(self):
         self.assertEqual(

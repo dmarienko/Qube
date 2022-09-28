@@ -10,8 +10,8 @@ import pandas as pd
 import requests
 
 from qube.configs import Properties
-from qube.utils import QubeLogger
 from qube.datasource.controllers.MongoController import MongoController
+from qube.utils import QubeLogger
 
 __logger = QubeLogger.getLogger(__name__)
 
@@ -42,12 +42,10 @@ def reload_pyx_module():
 def version():
     """
     Get current version of framework.
-    
-    :return:
     """
-    buildFile = Properties.get_formatted_path("qube/build.txt")
-    if os.path.exists(buildFile):
-        with open(buildFile) as f:
+    build_file = Properties.get_formatted_path("qube/build.txt")
+    if os.path.exists(build_file):
+        with open(build_file) as f:
             return f.read()
     else:
         from qube import __version__

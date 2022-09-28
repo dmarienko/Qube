@@ -405,7 +405,7 @@ class CryptoFuturesPosition(CryptoPosition):
 
             usd_conv_rate = 1.0
             if self.quantity != 0:
-                new_cost += qty_closing * self._cost_quoted / quantity
+                new_cost += float(qty_closing) * self._cost_quoted / quantity
                 deal_pnl = (1 / exec_price - (1 / (self._cost_quoted / self.quantity))) * qty_closing * exec_price
 
             # turnover info

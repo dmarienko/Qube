@@ -98,7 +98,7 @@ def cross_ma(data, instr, amnt=100000, p_fast=10, p_slow=50):
     long_pos = round(amnt / closes[slow < fast], 0)
     short_pos = -round(amnt / closes[slow >= fast], 0)
 
-    positions = long_pos.append(short_pos).sort_index()
+    positions = srows(long_pos, short_pos)
     # positions.index = positions.index + pd.DateOffset(hours=15, minutes=59)
     positions.index = positions.index + pd.DateOffset(hours=16, minutes=0)
     positions.name = instr  # setup series name
@@ -113,6 +113,6 @@ def cross_ma_signals_generator(data, instr, p_fast=10, p_slow=50):
     long_pos = pd.Series(+1, closes[(fast > slow) & (fast.shift(1) <= slow.shift(1))].index)
     short_pos = pd.Series(-1, closes[(fast < slow) & (fast.shift(1) >= slow.shift(1))].index)
 
-    positions = shift_signals(long_pos.append(short_pos).sort_index(), '16h')
+    positions = shift_signals(srows(long_pos, short_pos), '16h')
     positions.name = instr  # setup series name
     return positions

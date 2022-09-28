@@ -11,7 +11,7 @@ from qube.configs.Properties import get_root_dir
 class CointTest(unittest.TestCase):
 
     def test_johansen(self):
-        data = pd.read_csv(join(get_root_dir(), 'qube/tests/quantitative/coint_test.csv'), delimiter=',', header=0)
+        data = pd.read_csv(join(get_root_dir(), 'tests/quantitative/coint_test.csv'), delimiter=',', header=0)
         result = johansen(data.values, 0, 9, trace=True)
 
         test_1 = np.array([

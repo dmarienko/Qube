@@ -181,7 +181,7 @@ class MarketDataComposer(BaseEstimator):
         self.best_score_ = {}
 
         for symbol, xp in self.selector.iterate(X):
-            # propagate market info meta data to be passed to fit method of all qlearn estimators
+            # propagate market info meta-data to be passed to fit method of all qlearn estimators
             n_fit_params = self.__prepare_market_info_data(symbol, fit_params)
 
             # in case we still have nothing we need to feed it by some values
@@ -271,7 +271,6 @@ class MarketDataComposer(BaseEstimator):
             )
         for symbol, xp in self.selector.iterate(x):
             yh = self.__get_prediction(symbol, xp)
-            return_series = forwards_calculator.get_forward_returns(xp, yh, MarketInfo(symbol, self.column))
             rets[symbol] = forwards_calculator.get_forward_returns(xp, yh, MarketInfo(symbol, self.column))
 
         return make_dataframe_from_dict(rets, 'frame')

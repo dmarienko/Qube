@@ -36,12 +36,13 @@ setuptools.setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
+        "License :: OSI Approved :: BSD 2-Clause License",
         "Operating System :: OS Independent",
     ],
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
-    setup_requires=['setuptools_scm'],
+    # setup_requires=['setuptools_scm'],
+    keywords=["quantitative", "backtesting", "backtester", "quantitative finance"],
     include_package_data=True,
     install_requires=required
 )

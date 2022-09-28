@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import numpy as np
-from pandas.util.testing import assert_frame_equal
+from pandas.testing import assert_frame_equal
 
 from qube.series.BarSeries import BarSeries, PriceType
 from qube.series.Quote import Quote

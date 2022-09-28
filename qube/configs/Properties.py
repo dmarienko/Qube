@@ -76,7 +76,7 @@ def get_config_path_env(file_name, env, is_properties=False):
     if env not in (TEST_ENV, DEFAULT_ENV,) and QUBE_CONF_FOLDER_VAR in os.environ:
         config_folder = os.environ[QUBE_CONF_FOLDER_VAR]
     else:
-        config_folder = join(get_root_dir(), 'qube/configs', 'config-' + env.lower())
+        config_folder = join(get_root_dir(), 'configs', 'config-' + env.lower())
     result = join(config_folder, file_name)
     result = result if not is_properties or result.endswith(".json") else result + ".json"
     if env not in (TEST_ENV, DEFAULT_ENV,):  # env var is set

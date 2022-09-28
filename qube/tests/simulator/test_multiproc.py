@@ -32,6 +32,7 @@ class TestCalcTask(Task):
 class MultiProcTest(unittest.TestCase):
 
     def test_run_tasks(self):
+        # - this requires runnig memcached
         run_id, res = run_tasks('Just test',
                                 {
                                     '1': TestCalcTask(str, 'some test stub 1').save(False),

@@ -1,2 +1,11 @@
-# CQube
-Community version of quantitative backtesting framework
+# QUBE
+
+        .+-------+
+      .' :     .'|        QUBE | Quantitative Backtesting Environment
+     +-------+'  |             | (Community version) 
+     |   : * |   |        
+     |  ,+---+---+ 
+     |.'     | .' 
+     +-------+'
+
+Community version of Quantitative Backtesting Framework

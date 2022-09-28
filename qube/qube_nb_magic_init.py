@@ -7,7 +7,7 @@ if runtime_env() in ['notebook', 'shell']:
     # -- all imports below will appear in notebook after calling %%alphalab magic ---
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    # - some common stuff -
+    # - - - - Common stuff - - - -
     import numpy as np
     import pandas as pd
     import datetime
@@ -17,7 +17,7 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.datasource import DataSource
     from qube.datasource.controllers.MongoController import MongoController
 
-    # - TA stuff and indicators -
+    # - - - - TA stuff and indicators - - - -
     from qube.quantitative.ta.indicators import (
         ema, dema, tema, kama, zlema, sma, jma, wma, ema_time, pivot_point, lrsi, rsi,
         adx, atr, rolling_atr, rolling_rank, rolling_series_slope,
@@ -32,32 +32,49 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.series.BarSeries import BarSeries
     from qube.series.Quote import Quote
 
-    # - portfolio analysis -
+    # - - - - Portfolio analysis - - - -
     from qube.portfolio.reports import tearsheet, tearsheets
     from qube.portfolio.performance import split_cumulative_pnl, portfolio_stats
     from qube.portfolio.allocating import (
         runnig_portfolio_allocator, tang_portfolio, gmv_portfolio, effective_portfolio
     )
 
-    # - simulator stuff -
-    from qube.simulator.SignalTester import SignalTester
+    # - - - - Simulator stuff - - - -
     from qube.simulator.utils import (
         shift_signals, rolling_forward_test_split, permutate_params
     )
     from qube.portfolio.Instrument import Instrument
     from qube.portfolio.Position import Position, ForexPosition, CryptoPosition, CryptoFuturesPosition
+    from qube.simulator.multisim import simulation, Market
+    from qube.simulator.multiproc import ls_running_tasks, run_tasks
+    from qube.simulator.management import ls_simulations
     from qube.simulator.Brokerage import (
         GenericStockBrokerInfo, GenericForexBrokerInfo, GenericCryptoBrokerInfo,
         GenericCryptoFuturesBrokerInfo
     )
+    from qube.simulator.tracking.trackers import (
+        Tracker, FixedTrader, FixedPctTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
+        MultiTakeStopTracker, SignalBarTracker,
+        TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker
+    )
 
-    # - charting stuff -
+    # - - - - Learn stuff - - - -
+    from qube.learn.core.pickers import SingleInstrumentPicker, PortfolioPicker
+    from qube.learn.core.operations import Imply, And, Or, Neg
+    from qube.learn.core.metrics import (
+        ForwardDirectionScoring, ForwardReturnsSharpeScoring, ReverseSignalsSharpeScoring, ForwardReturnsCalculator
+    )
+    from qube.learn.core.utils import ls_params, debug_output
+    from qube.learn.core.base import signal_generator, SingleInstrumentComposer, PortfolioComposer
+    from qube.learn.core.mlhelpers import gridsearch
+
+    # - - - - Charting stuff - - - -
     from matplotlib import pyplot as plt
     from qube.charting.plot_helpers import fig, multiplot, smultiplot, subplot, plot_pacf, plot_acf, zoomx
     from qube.charting.mpl_finance import ohlc_plot
     from qube.charting.lookinglass import LookingGlass
 
-    # - utils -
+    # - - - - Utils - - - -
     from qube.quantitative.tools import (
         isscalar, nans, apply_to_frame, ohlc_resample, scols, srows, drop_duplicated_indexes,
         retain_columns_and_join

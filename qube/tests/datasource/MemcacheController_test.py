@@ -12,6 +12,7 @@ class MemcacheControllerTest(unittest.TestCase):
         self.memcache.delete_data('progress_1')
         self.memcache.delete_data('intval')
         self.memcache.delete_data('testappend')
+        self.memcache.close()
 
     def test_memcache_dict(self):
         # test dict

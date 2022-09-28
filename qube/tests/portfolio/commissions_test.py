@@ -13,7 +13,7 @@ from qube.configs.Properties import get_root_dir
 class CommissionsTest(unittest.TestCase):
 
     def test_crypto_commissions(self):
-        portfolio = pd.read_csv(join(get_root_dir(), r'qube/tests/data/portfolios/crypto_portfolio.csv'),
+        portfolio = pd.read_csv(join(get_root_dir(), r'tests/data/portfolios/crypto_portfolio.csv'),
                                 index_col='Date', parse_dates=True)
         calculator = commissions.get_calculator('hitbtc')
         self.assertAlmostEqual(0.0112331778, commissions.get_total_commissions(calculator.calculate(portfolio)))
@@ -22,7 +22,7 @@ class CommissionsTest(unittest.TestCase):
         self.assertAlmostEqual(0.0224663556, commissions.get_total_commissions(calculator.calculate(portfolio)))
 
     def test_dukas_commissions(self):
-        portfolio = pd.read_csv(join(get_root_dir(), r'qube/tests/data/portfolios/dukas_portfolio.csv'),
+        portfolio = pd.read_csv(join(get_root_dir(), r'tests/data/portfolios/dukas_portfolio.csv'),
                                 index_col='Date', parse_dates=True)
         calculator = commissions.get_calculator('dukas')
         self.assertAlmostEqual(2.1681414617, commissions.get_total_commissions(calculator.calculate(portfolio)))

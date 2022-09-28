@@ -47,7 +47,7 @@ class PortfolioStatsTests(unittest.TestCase):
         self.assertTrue(np.isnan(sortino_ratio(zero_returns, 0.0)))
 
     def test_stat_sheet(self):
-        portfolio = pd.read_csv(join(get_root_dir(), 'qube/tests/data/portfolios/portfolio1.csv'), index_col='Date',
+        portfolio = pd.read_csv(join(get_root_dir(), 'tests/data/portfolios/portfolio1.csv'), index_col='Date',
                                 parse_dates=True)
 
         sheet = portfolio_stats(portfolio, 100000, commissions='dukas')

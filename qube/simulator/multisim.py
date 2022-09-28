@@ -379,8 +379,9 @@ class Market:
     def __init__(self, broker, start, stop, spreads,
                  data_loader: _LoaderCallable,
                  tcc: TransactionCostsCalculator = ZeroTCC()):
-        self.market_description = mstruct(broker=broker, tcc=tcc, loader=data_loader, start=start, stop=stop,
-                                          spreads=spreads)
+        self.market_description = mstruct(
+            broker=broker, tcc=tcc, loader=data_loader, start=start, stop=stop, spreads=spreads
+        )
 
     def new_simulation(self, instrument, tracker, *tracker_args, **tracker_kwargs):
         return _SimulationTrackerTask(instrument, self.market_description, tracker, *tracker_args, **tracker_kwargs)

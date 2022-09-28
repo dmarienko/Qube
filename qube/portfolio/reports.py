@@ -17,7 +17,7 @@ from qube.simulator.SignalTester import SimulationResult
 from qube.utils.utils import runtime_env
 
 TPL_EXTENSION = '.tpl'
-TPL_DIR = 'qube/portfolio/reports_templates/'
+TPL_DIR = 'portfolio/reports_templates/'
 
 
 def report_templator(sheet, template, handlers=None):

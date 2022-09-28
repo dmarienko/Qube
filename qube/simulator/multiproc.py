@@ -130,7 +130,7 @@ class Task:
             # run task
             result = self.run(obj, run_name, run_id, t_id, task_name, ri)
         except Exception as exc:
-            # let's show bit more info about exception here
+            # let's show more info about exception here
             import traceback
             stack_trace = traceback.format_exc()
             err = f"{run_name}/{task_name}: {str(exc)} | {stack_trace}"
@@ -147,7 +147,7 @@ class Task:
                                    result=result)
 
         if self.save_to_storage:
-            z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return)
+            z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname='simdb')
 
         return result_to_return
 

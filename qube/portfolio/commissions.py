@@ -345,7 +345,7 @@ class ICommissionsCalculator:
 class DukasCommissionsCalculator(ICommissionsCalculator):
     def calculate(self, pfl_log, exec_log: pd.DataFrame = None):
         traded_volume = DukasCommissionsCalculator._calculate_traded_volume(pfl_log, exec_log)
-        total_commissions = pd.Series(index=pfl_log.index).fillna(0)
+        total_commissions = pd.Series(0.0, index=pfl_log.index)
         dukas_outlook_df = DataSource('dukas_outlook').load_data()
         for exec_type in traded_volume:
             for instrument, instrument_volume in traded_volume[exec_type].items():
@@ -372,7 +372,7 @@ class CryptoCurrencyCommissionsCalculator(ICommissionsCalculator):
         self.broker_name = broker_name
 
     def calculate(self, pfl_log, exec_log: pd.DataFrame = None):
-        total_commission = pd.Series(index=pfl_log.index).fillna(0)
+        total_commission = pd.Series(0.0, index=pfl_log.index)
         traded_volume = CryptoCurrencyCommissionsCalculator._calculate_traded_volume(pfl_log, exec_log,
                                                                                      self.__is_futures())
         for exec_type in traded_volume:

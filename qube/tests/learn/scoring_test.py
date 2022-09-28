@@ -43,7 +43,6 @@ class ScoringTests(unittest.TestCase):
 
     def test_scorer(self):
         data = pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time'])
-        # data = pd.read_csv('data/EURUSD.csv', parse_dates=True, index_col=['time'])
         debug_output(data, 'Test OHLC')
 
         # wor = make_pipeline(_WeekOpenRange('4Min', 0.25), _RangeBreakoutDetector().fillna(0).as_classifier())
