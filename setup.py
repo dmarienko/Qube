@@ -39,7 +39,11 @@ setuptools.setup(
         "License :: OSI Approved :: BSD 2-Clause License",
         "Operating System :: OS Independent",
     ],
-    packages=setuptools.find_packages(),
+    packages=setuptools.find_packages(exclude=['tests']),
+    package_data={
+        'configs': ['config-default/*.*'],
+        'portfolio': ['report_templates/*.*']
+    },
     python_requires='>=3.6',
     # setup_requires=['setuptools_scm'],
     keywords=["quantitative", "backtesting", "backtester", "quantitative finance"],
