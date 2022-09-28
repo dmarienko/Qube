@@ -112,7 +112,7 @@ if runtime_env() in ['notebook', 'shell']:
             import matplotlib
             import plotly.io as pio
 
-            tpl_path = os.path.join(get_root_dir(), "qube/qube_nb_magic_init.py")
+            tpl_path = os.path.join(get_root_dir(), "qube_nb_magic_init.py")
             with open(tpl_path, 'r') as myfile:
                 s = myfile.read()
                 
