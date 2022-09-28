@@ -237,7 +237,7 @@ class _InstrumentTrack(_TradingService):
             # store last trading time in tracker
             self.last_trade_time = signal_time
 
-            # execute trade (by default we using market orders)
+            # execute trade (by default we are using market orders)
             return self.position.update_position_bid_ask(
                 signal_time, processed_signal, self.bid, self.ask, **self.get_aux_quote(),
                 comment='', crossed_market=True

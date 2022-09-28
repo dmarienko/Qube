@@ -1,7 +1,7 @@
 import base64
 import os
-from ctypes import Union
 from io import BytesIO
+from typing import Union
 
 import airspeed
 import matplotlib
