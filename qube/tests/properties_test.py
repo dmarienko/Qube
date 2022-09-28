@@ -18,5 +18,5 @@ class PropertiesTest(unittest.TestCase):
 
         if os.name == 'nt':
             self.assertEqual(
-                Properties.get_properties(os.path.join(Properties.get_root_dir(), 'qube\\tests/qube_props_test.json')),
+                Properties.get_properties(os.path.join(Properties.get_root_dir(), 'tests\\qube_props_test.json')),
                 {"test1": "hello", "test2": "world"})

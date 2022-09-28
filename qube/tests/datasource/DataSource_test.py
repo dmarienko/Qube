@@ -58,9 +58,9 @@ class TestDataSource(TestCase):
         self.__assert_series(sers['AAPL'], '2016-12-01', 109.49, '2016-12-02', 109.90)
 
         # also check if resulting dict has same order
-        self.assertEquals(len(sers), 2)
-        self.assertEquals(list(sers.keys())[0], 'MSFT')
-        self.assertEquals(list(sers.keys())[1], 'AAPL')
+        self.assertEqual(len(sers), 2)
+        self.assertEqual(list(sers.keys())[0], 'MSFT')
+        self.assertEqual(list(sers.keys())[1], 'AAPL')
 
     def testInMemoryDataSource(self):
         ds = InMemoryDataSource({'msft': pd.DataFrame()})
@@ -75,7 +75,7 @@ class TestDataSource(TestCase):
     def testTimezone(self):
         ds = datasource.DataSource('test::csv_single.timezone', self.DS_CFG_PATH)
         ser = ds.load_data(['IBB'])
-        self.assertEquals(ser['IBB'].shape, (267, 5))
+        self.assertEqual(ser['IBB'].shape, (267, 5))
         # todo assert dates adjusted with timezone
 
     def test_ds_data_nback(self):

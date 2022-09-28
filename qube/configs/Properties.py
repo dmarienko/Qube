@@ -2,7 +2,8 @@ import json
 import os
 
 import sys
-from os.path import expanduser
+from os.path import expanduser, split, join, exists, isfile
+from pathlib import Path
 
 QUBE_ENV_VAR = 'QUBE_ENV'
 QUBE_CONF_FOLDER_VAR = 'QUBE_CONF_FOLDER'
@@ -13,7 +14,8 @@ __json_to_props = dict()
 
 
 def get_root_dir():
-    return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return str(Path(__file__).absolute().parent.parent)
+    # return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def get_properties(json_path, is_refresh=False):
@@ -31,11 +33,14 @@ def get_formatted_path(file_path, relative_folder: str = None):
         return file_path
     # relative path from qube sources context
     if any(file_path.replace('\\', '/').startswith(x) for x in ['qube/']):
-        return os.path.join(get_root_dir(), file_path)
+        return join(get_root_dir(), *Path(file_path).parts[1:])
+
     elif relative_folder:  # relative from specified folder
-        return os.path.join(expanduser(relative_folder), file_path)
+        return join(expanduser(relative_folder), file_path)
+
     elif QUBE_CONF_FOLDER_VAR in os.environ:  # relative from server config folder
-        return os.path.join(os.environ[QUBE_CONF_FOLDER_VAR], file_path)
+        return join(os.environ[QUBE_CONF_FOLDER_VAR], file_path)
+
     else:  # relative path from running context
         return file_path
 
@@ -71,11 +76,11 @@ def get_config_path_env(file_name, env, is_properties=False):
     if env not in (TEST_ENV, DEFAULT_ENV,) and QUBE_CONF_FOLDER_VAR in os.environ:
         config_folder = os.environ[QUBE_CONF_FOLDER_VAR]
     else:
-        config_folder = os.path.join(get_root_dir(), 'qube/configs', 'config-' + env.lower())
-    result = os.path.join(config_folder, file_name)
+        config_folder = join(get_root_dir(), 'qube/configs', 'config-' + env.lower())
+    result = join(config_folder, file_name)
     result = result if not is_properties or result.endswith(".json") else result + ".json"
     if env not in (TEST_ENV, DEFAULT_ENV,):  # env var is set
-        if os.path.exists(result) and os.path.isfile(result):  # config exists for env
+        if exists(result) and isfile(result):  # config exists for env
             return result
         else:  # otherwise getting default
             return get_config_path_env(file_name, DEFAULT_ENV)
