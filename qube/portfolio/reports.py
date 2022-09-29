@@ -17,7 +17,7 @@ from qube.simulator.core import SimulationResult
 from qube.utils.utils import runtime_env
 
 TPL_EXTENSION = '.tpl'
-TPL_DIR = 'portfolio/reports_templates/'
+TPL_DIR = 'portfolio/report_templates/'
 
 
 def report_templator(sheet, template, handlers=None):
