@@ -24,3 +24,4 @@ seaborn
 rich
 pyyaml
 requests
+tqdm

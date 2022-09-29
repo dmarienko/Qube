@@ -30,10 +30,11 @@ setuptools.setup(
     description="Qube",
     long_description="Quantitative Backtesting Environment",
     long_description_content_type="text/markdown",
-    url="https://github.com/dmarienko/CQube",
+    url="https://github.com/dmarienko/Qube",
     project_urls={
-        "Bug Tracker": "https://github.com/dmarienko/CQube/issues",
+        "Bug Tracker": "https://github.com/dmarienko/Qube/issues",
     },
+    scripts=['bin/booster'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD 2-Clause License",

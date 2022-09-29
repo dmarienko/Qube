@@ -1,0 +1,41 @@
+# ============================================================================
+x-runner: &runner-15-cores
+    spreads: 0
+    max_cpus: 15
+    max_tasks_per_proc: 10
+
+x-symbols: &binance-perp-futures
+  [ 'BINANCEF:BTCUSDT', 'BINANCEF:ETHUSDT', 'BINANCEF:BNBUSDT', 'BINANCEF:LTCUSDT' ]
+
+# ============================================================================
+x-param-variations: &param_variations
+    capital: 5000
+    max_cap_in_risk: 1
+    risk_reward_ratio: [ 1.0, 0.67 ]
+    timeframe: "15Min"
+    fast_period: [ 16, 32 ]
+    slow_period: [ 48, 96 ]
+
+Experiment1:
+    config:
+        project: BooTest
+        description: Testing experiment for crossing movings
+        instrument: *binance-perp-futures
+        capital: 5000
+        broker: 'binance_um_vip0_usdt'
+        start_date: "2020-01-01"
+        end_date: "2021-06-01"
+    
+    portfolio:
+        <<: *runner-15-cores
+        task: qube.examples.strategies.test_strategies.TestTrader
+        parameters:
+            <<: *param_variations
+
+        conditions: '[lambda fast_period, slow_period: fast_period < slow_period]'
+        
+    
+    
+    
+    
+        

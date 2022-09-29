@@ -1,0 +1,164 @@
+#!/usr/bin/env python
+import argparse
+import re
+import sys
+from os.path import expanduser, exists, join, abspath
+
+import yaml
+
+from qube.booster import __version__ as VERSION
+from qube.booster.core import Booster
+from qube.utils.ui_utils import red, green, yellow, blue
+from qube.utils.utils import add_project_to_system_path
+
+add_project_to_system_path()
+
+# default path where configs are stored
+_DEFAULT_CONFIG_PATH = '/var/appliedalpha/booster/'
+_DEFAULT_CONFIG_FILE = f'{_DEFAULT_CONFIG_PATH}/booster.yml'
+
+
+def install_new_path(project, path_to_config, description):
+    # temp: using abs path to config
+    a_path = abspath(path_to_config)
+
+    with open(_DEFAULT_CONFIG_FILE, 'r') as stream:
+        try:
+            cfg = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise ValueError(exc)
+
+    if project in cfg['entries']:
+        print(red(f'Existing record for {project} "{cfg["entries"][project]}" --(replacing by)--> "{a_path}"'))
+
+    # update config
+    with open(_DEFAULT_CONFIG_FILE, 'w') as stream:
+        cfg['entries'][project] = {
+            'path': a_path,
+            'description': description
+        }
+        yaml.safe_dump(cfg, stream)
+
+
+def split_comma_sep(ax):
+    if ',' in ax:
+        return [a.strip() for a in ax.split(',') if a.strip()]
+    return [ax]
+
+
+def main(config, command, *args):
+    if command == 'progress':
+        try:
+            import qlearn as q
+            _dtls = 'details' in args
+            _clnp = 'cleanup' in args
+            q.ls_running_tasks(cleanup=_clnp, details=_dtls)
+        except:
+            print(red('Error showing qlearn progress: check if you have qlearn installed'))
+        return
+
+    # check config
+    config = config if config.endswith('.yml') or config.endswith('.yaml') else config + '.yml'
+    fpath = expanduser(config)
+    if not exists(fpath):
+        fpath = join(_DEFAULT_CONFIG_PATH, fpath)
+        if not exists(fpath):
+            print(red(f" >>> Can't find specified config file from '{config}'\n"))
+            sys.exit(2)
+
+    print(blue(f" >>> Using config from {yellow(fpath)} \n"))
+    boo = Booster(fpath)
+
+    if command == 'show':
+        boo.show(args[0])
+
+    elif command == 'install':
+        install_new_path(args[0], fpath, args[1] if len(args) > 1 else '')
+
+    elif command in ['ls', 'list']:
+        boo.ls()
+
+    elif command in ['runx']:
+        options = args[1] if len(args) > 1 else ''
+        _run = not 'norun' in options
+        _stats = not 'nostats' in options
+        _run, _stats = (False, False) if 'refresh' in options else (_run, _stats)
+        for a in split_comma_sep(args[0]):
+            boo.task_portfolio(a, run=_run, stats=_stats)
+
+    elif command in ['del', 'delete']:
+        target = args[1] if len(args) > 1 else None
+        for a in split_comma_sep(args[0]):
+            boo.task_delete(a, target=target)
+
+    elif command in ['clean']:
+        if len(args) < 2:
+            print(red(' >>> condition and entry must be specified: ') + green(
+                "booster clean 'min_sharpe=1' XXX15M -c config.yml"))
+            sys.exit(2)
+
+        if '?' in args[0]:
+            print('Allowed cleaning criterion: "min_sharpe, min_gain, min_qr, min_execs"')
+            sys.exit(2)
+
+        try:
+            conds = eval(f"mstruct({args[0]}).to_dict()")
+            # print(args[1], args[0], ' --> ', conds)
+            for a in split_comma_sep(args[1]):
+                boo.task_clean(a, **conds)
+        except Exception as e:
+            import traceback
+            trace = traceback.format_exc()
+            print(red(str(e)), trace)
+            sys.exit(2)
+
+    elif command in ['optimize', 'run']:
+        for a in split_comma_sep(args[0]):
+            boo.task_optimizations(a)
+
+    elif command in ['stats']:
+        for a in split_comma_sep(args[0]):
+            boo.task_stats(a)
+
+    elif command in ['runoos']:
+        # run blended model on OOS interval - for update on recent market data
+        for a in split_comma_sep(args[0]):
+            boo.task_run_oos(a, insample_only=False, replace=True)
+
+    elif command in ['blend']:
+        eid = args[0]
+        force_calc = False
+        skip_tuning = False
+
+        if len(args) > 1:
+            for a in args[1:]:
+                if a.startswith('notuning') or a.startswith('skiptuning'):
+                    skip_tuning = True
+                elif a.startswith('recalc'):
+                    force_calc = True
+
+        _any_found = False
+        for e in boo.get_all_entries():
+            if re.match(eid, e):
+                _any_found = True
+                boo.task_blender(e, skip_tuning=skip_tuning, force_performace_calculations=force_calc)
+        if not _any_found:
+            print(f">>> No entries are found for provided pattern !")
+
+    elif command in ['report', 'rep']:
+        boo.show_blend_report(args[0])
+    else:
+        print(f">>> Unrecognized command {command}")
+
+
+if __name__ == '__main__':
+    print(f"\n >>> {green('Qube Experiments Booster')} utility ver. {red(VERSION)}\n")
+    parser = argparse.ArgumentParser(description='Booster cli')
+
+    parser.add_argument('command', type=str, nargs='+',
+                        help='booster command: show|ls|run|runoos|blend|rep|del|stats|clean|progress')
+    parser.add_argument('-c', type=str, dest='config', help='configuration yaml file')
+    args = parser.parse_args()
+    # print(args)
+
+    main(args.config, args.command[0], *args.command[1:] if len(args.command) > 1 else [])
