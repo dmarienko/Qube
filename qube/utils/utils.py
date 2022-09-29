@@ -186,7 +186,7 @@ def is_localhost(host):
 def _get_remote_host_info(host: str):
     sc_props = Properties.get_main_properties()['services-controller']
     host = Properties.get_main_properties()['host_alias'].get(host.lower(), host)
-    return host, sc_props['sc_port']
+    return host, sc_props['port']
 
 
 def urange(start, stop, step, units=None, none=False):

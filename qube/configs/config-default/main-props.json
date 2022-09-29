@@ -3,6 +3,12 @@
 		"memcached_port": 11211,
 		"key_prefix": "tests"
 	},
+	"services-controller":{
+		"host" : "localhost",
+		"port": 4444,
+		"log": "/var/log/qube/qube-services-controller.log",
+		"log_level": "INFO"
+	},
 	"mongo": {
 		"default_mongourl": "mongodb://localhost:27017/",
 		"default_db_name": "simdb",
