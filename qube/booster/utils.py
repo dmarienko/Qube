@@ -4,13 +4,14 @@
 import pandas as pd
 from tqdm.auto import tqdm
 
-from qube.booster.core import BOOSTER_DB
 from qube.portfolio.allocating import tang_portfolio
 from qube.quantitative.tools import scols
 from qube.simulator.SignalTester import SimulationResult
 from qube.utils.nb_functions import z_ls, z_del
 from qube.utils.ui_utils import red, green
 from qube.utils.utils import mstruct
+
+BOOSTER_DB = "booster"
 
 
 def class_import(name):

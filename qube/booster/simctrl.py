@@ -9,8 +9,7 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-from qube.booster.core import BOOSTER_DB
-from qube.booster.utils import class_import, short_performace_report
+from qube.booster.utils import class_import, short_performace_report, BOOSTER_DB
 from qube.datasource.loaders import load_data
 from qube.portfolio.reports import tearsheet
 from qube.simulator import simulation

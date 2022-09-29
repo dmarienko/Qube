@@ -14,7 +14,7 @@ from tqdm.auto import tqdm
 from qube.booster.simctrl import OCtrl
 from qube.booster.utils import (
     rm_sim_data, rm_blend_data, check_model_already_exists, class_import, calculate_weights, short_performace_report,
-    average_trades_per_period
+    average_trades_per_period, BOOSTER_DB
 )
 from qube.datasource.loaders import load_data, get_data_time_range
 from qube.quantitative.tools import srows, scols
@@ -35,7 +35,6 @@ DEFAULT_STATS_PERIOD = 365
 
 LOGGER_FOLDER = '/var/log/booster/'
 LOG_FORMAT = "%(asctime)s [%(levelname)s] - %(message)s"
-BOOSTER_DB = "booster"
 
 
 # some helpers on mstruct
