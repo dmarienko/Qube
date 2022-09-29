@@ -13,5 +13,8 @@
 		"default_mongourl": "mongodb://localhost:27017/",
 		"default_db_name": "simdb",
 		"selection_timeout_ms": 5000
+	},
+	"host_aliases": {
+		"localhost":  "localhost"
 	}
 }
