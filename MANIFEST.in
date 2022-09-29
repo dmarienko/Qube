@@ -1,0 +1,2 @@
+include qube/configs/config-default/*
+include qube/portfolio/report_templates/*

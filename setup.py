@@ -39,7 +39,7 @@ setuptools.setup(
         "License :: OSI Approved :: BSD 2-Clause License",
         "Operating System :: OS Independent",
     ],
-    packages=setuptools.find_packages(exclude=['tests']),
+    packages=setuptools.find_packages(exclude=['qube/tests']),
     package_data={
         '': ['*.json', '*.csv'],
     },
