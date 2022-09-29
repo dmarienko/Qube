@@ -23,7 +23,7 @@ with open('requirements.txt') as f:
 
 
 setuptools.setup(
-    name="CQube",
+    name="Qube",
     version=get_version("qube/__init__.py"),
     author="Dmitry Marienko",
     author_email="dmitry.ema@gmail.com",
