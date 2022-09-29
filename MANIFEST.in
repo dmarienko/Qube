@@ -1,5 +1,4 @@
 include qube/configs/config-default/*
 include qube/portfolio/report_templates/*
-exclude qube/tests/*
-recursive-exclude qube/tests *
-recursive-exclude tests *
+prune tests/
+prune qube/tests/
