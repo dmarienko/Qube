@@ -88,14 +88,14 @@ class Trackers_test(unittest.TestCase):
 
         p = backtest(s, data, 'forex', spread=0, execution_logger=True,
                      trackers=DispatchTracker(
-                           {
-                               'regime:trend': _Test_StopTakeTracker(10000, 50, None, 1e-5),
-                               'regime:mr': PipelineTracker(
-                                   TimeExpirationTracker('1h', True),
-                                   _Test_NoRiskManagementTracker(777)
-                               ),
-                               'empty': None
-                           }, None, flat_position_on_activate=True, debug=True)
+                         {
+                             'regime:trend': _Test_StopTakeTracker(10000, 50, None, 1e-5),
+                             'regime:mr': PipelineTracker(
+                                 TimeExpirationTracker('1h', True),
+                                 _Test_NoRiskManagementTracker(777)
+                             ),
+                             'empty': None
+                         }, None, flat_position_on_activate=True, debug=True)
                      )
 
         print(p.executions)
@@ -267,11 +267,11 @@ class Trackers_test(unittest.TestCase):
 
         p = backtest(s, data, 'forex', spread=0, execution_logger=True,
                      trackers=_Test_MultiTakeTracker(
-                           10000, 100, [
-                               (50, 1 / 3, 'close 1/3'),  # close 1/3 in 100 pips
-                               (50, 1 / 2, 'close 2/3'),  # close 1/2 in another 100 pips
-                               (50, 1, 'close 3/3')  # close rest in another 100 pips
-                           ], 0.00001))
+                         10000, 100, [
+                             (50, 1 / 3, 'close 1/3'),  # close 1/3 in 100 pips
+                             (50, 1 / 2, 'close 2/3'),  # close 1/2 in another 100 pips
+                             (50, 1, 'close 3/3')  # close rest in another 100 pips
+                         ], 0.00001))
 
         print(p.executions)
         print("- - - - - - - - - -")
@@ -291,9 +291,9 @@ class Trackers_test(unittest.TestCase):
 
         p1 = backtest(s, data, 'forex', spread=0, execution_logger=True,
                       trackers=_Test_MultiTakeTracker(
-                            10000, None, [
-                                (16, 1, 'CLOSE ALL'),  # close 1/3 in 100 pips
-                            ], 1)
+                          10000, None, [
+                              (16, 1, 'CLOSE ALL'),  # close 1/3 in 100 pips
+                          ], 1)
                       )
         print("- As Single take/stop - - - - - - - - -")
         print(p1.executions)

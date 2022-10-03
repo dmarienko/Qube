@@ -21,8 +21,9 @@ def debug_output(data, name, start=3, end=3, time_info=True):
         sep = ' -' * 50
         print(hdr[:len(sep)])
         print(data.head(start).to_string(header=True))
-        print(' \t ...  ')
-        print(data.tail(end).to_string(header=False))
+        if start < len(data):
+            print(' \t ...  ')
+            print(data.tail(end).to_string(header=False))
         print(sep)
     else:
         print(data)

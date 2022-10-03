@@ -613,34 +613,34 @@ class FixedRiskTrader(TakeStopTracker):
             self.fixed_take = abs(take) * tick_size
             self.fixed_stop = abs(stop) * tick_size
 
-    def _can_change_risks_for(self, signal):
-        can_stop, can_take = False, False
+    def _can_modify_risks_for(self, signal):
+        can_modify_stop, can_modify_take = False, False
         if signal > 0:
-            can_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
-            can_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
+            can_modify_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
+            can_modify_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
         elif signal < 0:
-            can_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
-            can_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
-        return can_stop, can_take
+            can_modify_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
+            can_modify_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
+        return can_modify_stop, can_modify_take
 
     def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
-        can_change_stop, can_change_take = self._can_change_risks_for(signal)
+        stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(signal)
 
-        if signal > 0:
-            if can_change_stop:
+        # - if we can change stop loss level
+        if stop_can_be_changed:
+            if signal > 0:
                 self.stop_at(signal_time,
                              ask * (1 - self.fixed_stop) if self.in_percentage else (ask - self.fixed_stop))
-
-            if can_change_take:
-                self.take_at(signal_time,
-                             ask * (1 + self.fixed_take) if self.in_percentage else (ask + self.fixed_take))
-
-        elif signal < 0:
-            if can_change_stop:
+            elif signal < 0:
                 self.stop_at(signal_time,
                              bid * (1 + self.fixed_stop) if self.in_percentage else (bid + self.fixed_stop))
 
-            if can_change_take:
+        # - if we can change take level
+        if take_can_be_changed:
+            if signal > 0:
+                self.take_at(signal_time,
+                             ask * (1 + self.fixed_take) if self.in_percentage else (ask + self.fixed_take))
+            elif signal < 0:
                 self.take_at(signal_time,
                              bid * (1 - self.fixed_take) if self.in_percentage else (bid - self.fixed_take))
 
@@ -823,13 +823,17 @@ class ATRTracker(TakeStopTracker):
     """
 
     def __init__(self, size, timeframe, period, take_target, stop_risk, atr_smoother='sma',
-                 debug=False, take_by_limit_orders=True):
-        super().__init__(debug, take_by_limit_orders=take_by_limit_orders)
+                 debug=False,
+                 take_by_limit_orders=True,
+                 accurate_stops=False,
+                 reset_risks_on_repeated_signals=False):
+        super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
         self.timeframe = timeframe
         self.period = period
         self.position_size = size
         self.take_target = take_target
         self.stop_risk = stop_risk
+        self.reset_risks_on_repeated_signals = reset_risks_on_repeated_signals
         self.atr_smoother = atr_smoother
 
     def initialize(self):
@@ -837,28 +841,41 @@ class ATRTracker(TakeStopTracker):
         self.ohlc = self.get_ohlc_series(self.timeframe)
         self.ohlc.attach(self.atr)
 
-    def on_signal(self, signal_time, signal_qty, quote_time, bid, ask, bid_size, ask_size):
+    def _can_modify_risks_for(self, signal):
+        can_modify_stop, can_modify_take = False, False
+        if signal > 0:
+            can_modify_stop = self.stop_risk > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
+            can_modify_take = self.take_target > 0 and (not self.take or self.reset_risks_on_repeated_signals)
+        elif signal < 0:
+            can_modify_stop = self.stop_risk > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
+            can_modify_take = self.take_target > 0 and (not self.take or self.reset_risks_on_repeated_signals)
+        return can_modify_stop, can_modify_take
+
+    def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
         av = self.atr[1]
         if av is None or not np.isfinite(av):
             # skip if ATR is not calculated yet
             return None
 
-        if signal_qty > 0:
-            if self.stop_risk > 0:
+        stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(signal)
+        if stop_can_be_changed:
+            if signal > 0:
+                # self.debug(f"Stop long ATR is : {av}")
                 self.stop_at(signal_time, ask - self.stop_risk * av)
-
-            if self.take_target > 0:
-                self.take_at(signal_time, ask + self.take_target * av)
-
-        elif signal_qty < 0:
-            if self.stop_risk > 0:
+            elif signal < 0:
+                # self.debug(f"Stop short ATR is : {av}")
                 self.stop_at(signal_time, bid + self.stop_risk * av)
 
-            if self.take_target > 0:
+        if take_can_be_changed:
+            if signal > 0:
+                # self.debug(f"Take long ATR is : {av}")
+                self.take_at(signal_time, ask + self.take_target * av)
+            elif signal < 0:
+                # self.debug(f"Take short ATR is : {av}")
                 self.take_at(signal_time, bid - self.take_target * av)
 
         # call super method
-        return signal_qty * self.position_size
+        return signal * self.position_size
 
 
 class SignalBarTracker(TriggeredOrdersTracker):

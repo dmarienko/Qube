@@ -10,7 +10,17 @@ from qube.learn.core.base import MarketDataComposer
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
 from qube.simulator.multisim import simulation
-from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader
+from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker
+
+
+def _read_csv_ohlc(symbol):
+    return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
+
+
+def _signals(sdata):
+    s = pd.DataFrame.from_dict(sdata, orient='index')
+    s.index = pd.DatetimeIndex(s.index)
+    return s
 
 
 class Test(TestCase):
@@ -92,11 +102,6 @@ class Test(TestCase):
         self.assertEqual(r.results[0].portfolio.index[-1], pd.Timestamp('2021-01-05 00:00:00'))
 
     def test_new_commissions_impl_binance(self):
-        def _signals(sdata):
-            s = pd.DataFrame.from_dict(sdata, orient='index')
-            s.index = pd.DatetimeIndex(s.index)
-            return s
-
         sigs = _signals({
             '2019-09-08 19:15': {'BTCUSDT': +1.0},
             '2019-09-10 22:00': {'BTCUSDT': 0.0}
@@ -146,3 +151,26 @@ class Test(TestCase):
 
         # Spot is 0.1% futures is 0.04% so commissions must be equal by this ratio
         self.assertAlmostEqual(c_spt * 0.04 / 0.1, c_fut, places=3)
+
+    def test_ATR_tracker(self):
+        data = _read_csv_ohlc('EURUSD')
+        s = _signals({
+            '2020-08-17 08:25:01': {'EURUSD': +1},
+            '2020-08-17 10:25:01': {'EURUSD': +1},
+            '2020-08-17 11:50:59': {'EURUSD': -1},
+            '2020-08-17 23:19:59': {'EURUSD': 0},
+        })
+
+        r = simulation({
+            'ATR TEST': [s, ATRTracker(1000, '5Min', 15, 1, 3, take_by_limit_orders=False, accurate_stops=True, debug=True)]
+        }, data,
+            'forex',
+            'Test1', start='2020-08-17 00:00:00', stop='2020-08-18 00:00:00'
+        )
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        print(r.results[0].trackers_stat)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        debug_output(r.results[0].executions, 'Execs', 25)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        self.assertEqual(0, r.results[0].trackers_stat['EURUSD']['takes'])
+        self.assertEqual(2, r.results[0].trackers_stat['EURUSD']['stops'])
