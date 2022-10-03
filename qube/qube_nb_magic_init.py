@@ -51,7 +51,7 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.simulator.utils import ls_brokers
     from qube.simulator.backtester import backtest_signals_inplace, backtest
     from qube.simulator.tracking.trackers import (
-        FixedTrader, FixedPctTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
+        FixedRiskTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
         MultiTakeStopTracker, SignalBarTracker,
         TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker
     )

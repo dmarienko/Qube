@@ -19,7 +19,12 @@ class TakeStopTracker(Tracker):
     Now more sophisticated version is actual (MultiTakeStopTracker)
     """
 
-    def __init__(self, debug=False, take_by_limit_orders=False):
+    def __init__(self, debug=False, take_by_limit_orders=False, accurate_stops=False):
+        """
+        :param take_by_limit_orders: if true we use limit orders for take profit
+        :param accurate_stops: if set to true it will execute stops exactly at set level otherwise at current quote
+                               second case may introduce additional costs if being tested on OHLC bars
+        """
         self.take = None
         self._take_user_data = None
         self.stop = None
@@ -28,9 +33,7 @@ class TakeStopTracker(Tracker):
         self.n_takes = 0
         self.times_to_take = []
         self.times_to_stop = []
-        # if set to true it will execute stops exactly at set level otherwise at current quote
-        # second case may introduce additional costs if being tested on OHLC bars
-        self.accurate_stops = False
+        self.accurate_stops = accurate_stops
         # what is last triggered event: 'stop' or 'take' (None if nothing was triggered yet)
         self.last_triggered_event = None
         # if we use limit order for take profit ?
@@ -135,7 +138,7 @@ class MultiTakeStopTracker(Tracker):
     closes of position at different levels.
     """
 
-    def __init__(self, debug=False, take_by_limit_orders=False):
+    def __init__(self, debug=False, take_by_limit_orders=False, accurate_stops=False):
         # take config {price: (fraction, user_data)}
         self.part_takes: Dict[float, Tuple[float, Any]] = {}
 
@@ -156,7 +159,7 @@ class MultiTakeStopTracker(Tracker):
 
         # if set to true it will execute stops exactly at set level otherwise at current quote
         # second case may introduce additional costs if being tested on OHLC bars
-        self.accurate_stops = False
+        self.accurate_stops = accurate_stops
 
         # what is last triggered event: 'stop' or 'take' (None if nothing was triggered yet)
         self.last_triggered_event = None
@@ -571,66 +574,78 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
         return {'triggers': len(self.fired) + len(self.orders), 'fired': len(self.fired), **super().statistics()}
 
 
-class FixedTrader(TakeStopTracker):
+class IPositionSizer:
+    def get_size(self, signal, bid, ask, bid_size, ask_size):
+        return signal
+
+
+class FixedRiskTrader(TakeStopTracker):
     """
-    Fixed trader tracker:
-     fixed position size, fixed stop and take
+    Fixed risk trader tracker.
+    It uses fixed stop and take levels: either absolute deltas or percantage from entry price
     """
 
-    def __init__(self, size, take, stop, tick_size=1, debug=False, take_by_limit_orders=True):
-        super().__init__(debug, take_by_limit_orders=take_by_limit_orders)
-        self.position_size = size
-        self.fixed_take = take * tick_size
-        self.fixed_stop = stop * tick_size
+    def __init__(self, size: Union[IPositionSizer, float], take=0, stop=0,
+                 in_percentage=False, tick_size=1, debug=False,
+                 take_by_limit_orders=True,
+                 accurate_stops=False,
+                 reset_risks_on_repeated_signals=False):
+        """
+        :param take_by_limit_orders: if it opens positions by limit orders
+        :param accurate_stops: execute at exact stop prices instead of current market
+        :param reset_risks_on_repeated_signals: recalculate new stop/take on repeated signals
+        """
+        super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
+        self.position_size: Union[IPositionSizer, float] = size
+        self.reset_risks_on_repeated_signals = reset_risks_on_repeated_signals
+        self.in_percentage = in_percentage
 
-    def on_signal(self, signal_time, signal_qty, quote_time, bid, ask, bid_size, ask_size):
-        if signal_qty > 0:
-            if self.fixed_stop > 0:
-                self.stop_at(signal_time, ask - self.fixed_stop)
+        if in_percentage:
+            self.fixed_take = abs(take) / 100.0
+            self.fixed_stop = abs(stop) / 100.0
 
-            if self.fixed_take > 0:
-                self.take_at(signal_time, ask + self.fixed_take)
+            if self.fixed_take >= 1.0:
+                print("FixedRiskTrader:: Take profit level is above 100 % !")
 
-        elif signal_qty < 0:
-            if self.fixed_stop > 0:
-                self.stop_at(signal_time, bid + self.fixed_stop)
+            if self.fixed_stop >= 1.0:
+                print("FixedRiskTrader:: Stop loss level is above 100 % !")
+        else:
+            self.fixed_take = abs(take) * tick_size
+            self.fixed_stop = abs(stop) * tick_size
 
-            if self.fixed_take > 0:
-                self.take_at(signal_time, bid - self.fixed_take)
+    def _can_change_risks_for(self, signal):
+        can_stop, can_take = False, False
+        if signal > 0:
+            can_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
+            can_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
+        elif signal < 0:
+            can_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
+            can_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
+        return can_stop, can_take
+
+    def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
+        can_change_stop, can_change_take = self._can_change_risks_for(signal)
+
+        if signal > 0:
+            if can_change_stop:
+                self.stop_at(signal_time,
+                             ask * (1 - self.fixed_stop) if self.in_percentage else (ask - self.fixed_stop))
+
+            if can_change_take:
+                self.take_at(signal_time,
+                             ask * (1 + self.fixed_take) if self.in_percentage else (ask + self.fixed_take))
+
+        elif signal < 0:
+            if can_change_stop:
+                self.stop_at(signal_time,
+                             bid * (1 + self.fixed_stop) if self.in_percentage else (bid + self.fixed_stop))
+
+            if can_change_take:
+                self.take_at(signal_time,
+                             bid * (1 - self.fixed_take) if self.in_percentage else (bid - self.fixed_take))
 
         # call super method
-        return signal_qty * self.position_size
-
-
-class FixedPctTrader(TakeStopTracker):
-    """
-    Fixed trader tracker (take and stop as percentage from entry price):
-     fixed position size, fixed stop and take
-    """
-
-    def __init__(self, size, take, stop, debug=False, take_by_limit_orders=True):
-        super().__init__(debug, take_by_limit_orders=take_by_limit_orders)
-        self.position_size = size
-        self.fixed_take = abs(take)
-        self.fixed_stop = abs(stop)
-
-    def on_signal(self, signal_time, signal_qty, quote_time, bid, ask, bid_size, ask_size):
-        if signal_qty > 0:
-            if self.fixed_stop > 0:
-                self.stop_at(signal_time, ask * (1 - self.fixed_stop))
-
-            if self.fixed_take > 0:
-                self.take_at(signal_time, ask * (1 + self.fixed_take))
-
-        elif signal_qty < 0:
-            if self.fixed_stop > 0:
-                self.stop_at(signal_time, bid * (1 + self.fixed_stop))
-
-            if self.fixed_take > 0:
-                self.take_at(signal_time, bid * (1 - self.fixed_take))
-
-        # call super method
-        return signal_qty * self.position_size
+        return signal * self.position_size
 
 
 class TimeExpirationTracker(Tracker):

@@ -1,13 +1,13 @@
 import pandas as pd
 
-from qube.quantitative.tools import infer_series_frequency
 from qube.datasource import DataSource
-from qube.datasource.MultiExchangeDataSource import EXCHANGE_SEPARATOR
 from qube.portfolio.Instrument import Instrument
 from qube.portfolio.broker_constants import *
+from qube.quantitative.tools import infer_series_frequency
 from qube.utils import QubeLogger
 
 __logger = QubeLogger.getLogger(__name__)
+EXCHANGE_SEPARATOR = ':'
 
 _ent0 = lambda c1: {'USDT': c1}
 _entusd0 = lambda c1: {'USD': c1}
@@ -198,66 +198,6 @@ class ZeroTCC(TransactionCostsCalculator):
 class BitmexTCC(TransactionCostsCalculator):
 
     def __init__(self, taker=0.05 / 100, maker=-0.01 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceCOINM_TCC_VIP0(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.05 / 100, maker=0.01 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP0(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.04 / 100, maker=0.02 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP1(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.04 / 100, maker=0.016 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP2(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.035 / 100, maker=0.014 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP3(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.032 / 100, maker=0.012 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP4(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.03 / 100, maker=0.01 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP5(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.027 / 100, maker=0.008 / 100):
-        super().__init__(taker, maker)
-
-
-class GenericUSDTM_TCC_5_2(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.05 / 100, maker=0.02 / 100):
-        super().__init__(taker, maker)
-
-
-class GenericUSDTM_TCC_5_0(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.05 / 100, maker=0.00 / 100):
-        super().__init__(taker, maker)
-
-
-class BinanceUSDTM_TCC_VIP9(TransactionCostsCalculator):
-
-    def __init__(self, taker=0.017 / 100, maker=0.0):
         super().__init__(taker, maker)
 
 

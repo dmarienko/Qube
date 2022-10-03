@@ -12,7 +12,7 @@ from qube import runtime_env
 from qube.datasource import DataSource
 from qube.portfolio.commissions import (
     TransactionCostsCalculator, ZeroTCC, BinanceRatesCommon, WooXRatesCommon,
-    StockTCC, ForexTCC, BitmexTCC, BinanceCOINM_TCC_VIP0, FxcmTCC, FTXRatesCommon
+    StockTCC, ForexTCC, BitmexTCC, FxcmTCC, FTXRatesCommon
 )
 from qube.portfolio.performance import split_cumulative_pnl
 from qube.quantitative.tools import infer_series_frequency
@@ -539,7 +539,7 @@ def __create_brokerage_instances(spread: Union[dict, float], tcc: TransactionCos
         def _f(_cl, _i, _c):
             return lambda: _cl(spread=spread, tcc=FTXRatesCommon(None, _i, _c))
 
-        return {f'ftx_t{i+1}_{c.lower()}': _f(broker_class, f't{i+1}', c.upper()) for i in range(6)
+        return {f'ftx_t{i + 1}_{c.lower()}': _f(broker_class, f't{i + 1}', c.upper()) for i in range(6)
                 for c in currencies}
 
     return {
@@ -552,7 +552,6 @@ def __create_brokerage_instances(spread: Union[dict, float], tcc: TransactionCos
         # --- some predefined ---
         'bitmex': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=BitmexTCC()),
         'bitmex_vip': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=BitmexTCC(0.03 / 100, -0.01 / 100)),
-        'binance_cm_vip0': lambda: GenericCryptoFuturesBrokerInfo(spread=spread, tcc=BinanceCOINM_TCC_VIP0()),
 
         # - Binance spot
         **_binance_generator(GenericCryptoBrokerInfo, 'spot', ['USDT', 'BNB']),

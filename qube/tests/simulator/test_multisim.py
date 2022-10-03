@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import numpy as np
 import pandas as pd
 from sklearn.pipeline import make_pipeline
 
@@ -9,7 +10,7 @@ from qube.learn.core.base import MarketDataComposer
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
 from qube.simulator.multisim import simulation
-from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedTrader
+from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader
 
 
 class Test(TestCase):
@@ -41,25 +42,54 @@ class Test(TestCase):
 
         r.report(1000, only_report=True)
 
-    def test_simulation_fixed(self):
+    def test_simulation_fixed_risk_trader(self):
         m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
                                 SingleInstrumentPicker(), debug=True).fit(self.ds)
 
         r = simulation({
-            'exp1 [FIXED TRADER]': [m1, FixedTrader(10, 30, 10, 1)]
+            'exp1 [FIXED TRADER]': [m1, FixedRiskTrader(10, 30, 10)],
         }, self.ds, 'forex', 'Test1')
 
         r.report(1000, only_report=True)
 
+        print(" - - - - - - - - - - - - - - - - - - - ")
         print(r.results[0].trackers_stat)
-        self.assertEqual(3, r.results[0].trackers_stat['ES']['takes'])
-        self.assertEqual(42, r.results[0].trackers_stat['ES']['stops'])
-        self.assertAlmostEqual(1160.0, r.results[0].portfolio['ES_PnL'].sum())
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        debug_output(r.results[0].executions, 'Execs', 5)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        self.assertEqual(20, r.results[0].trackers_stat['ES']['takes'])
+        self.assertEqual(25, r.results[0].trackers_stat['ES']['stops'])
+        self.assertAlmostEqual(-4087.5, r.results[0].portfolio['ES_PnL'].sum())
+
+    def test_simulation_fixed_risk_trader_pct(self):
+        m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+                                SingleInstrumentPicker(), debug=True).fit(self.ds)
+
+        r = simulation({
+            'FIXED TRADER PCT': [m1, FixedRiskTrader(10, 0.75, 0.5, in_percentage=True, accurate_stops=True)]
+        }, self.ds, 'forex', 'Test1')
+
+        r.report(1000, only_report=True)
+
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        print(r.results[0].trackers_stat)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        debug_output(r.results[0].executions, 'Execs', 5)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        self.assertEqual(28, r.results[0].trackers_stat['ES']['takes'])
+        self.assertEqual(15, r.results[0].trackers_stat['ES']['stops'])
+
+        self.assertAlmostEqual(-4941.6812, r.results[0].portfolio['ES_PnL'].sum(), 4)
+        op = r.results[0].executions.iloc[0].exec_price
+        stp = r.results[0].executions.iloc[1].exec_price
+        actual_loss_pct = 100 * (op / stp - 1)
+        self.assertAlmostEquals(0.5, actual_loss_pct, 2)
 
     def test_start_stop(self):
-        r = simulation({'simple tracker': FixedTrader(10, 30, 10, 1)},
+        r = simulation({'simple tracker': FixedRiskTrader(10, 30, 10, tick_size=1)},
                        self.ds, 'forex', 'Test1',
                        start='2021-01-03', stop='2021-01-04')
+        self.assertEqual(r.results[0].portfolio.index[-1], pd.Timestamp('2021-01-05 00:00:00'))
 
     def test_new_commissions_impl_binance(self):
         def _signals(sdata):
@@ -73,18 +103,28 @@ class Test(TestCase):
         })
 
         r_spot = simulation({
-            'simple tracker spot': [sigs, FixedTrader(
+            'simple tracker spot': [sigs, FixedRiskTrader(
                 100 / 10345.41,  # here $100 converted to amount of BTC
-                30, 10, 1, take_by_limit_orders=False, debug=True)]
+                30, 10,
+                in_percentage=False,
+                tick_size=1,
+                take_by_limit_orders=False,
+                reset_risks_on_repeated_signals=True,
+                debug=True)]
         }, self.ds_bnc,
             'binance_spot_vip0_usdt',
             'Test1', start='2019-09-08', stop='2019-09-11'
         )
 
         r_fut = simulation({
-            'simple tracker spot': [sigs, FixedTrader(
+            'simple tracker spot': [sigs, FixedRiskTrader(
                 100,  # here $100 traded on future contract
-                30, 10, 1, take_by_limit_orders=False, debug=True)]
+                30, 10,
+                in_percentage=False,
+                tick_size=1,
+                take_by_limit_orders=False,
+                reset_risks_on_repeated_signals=True,
+                debug=True)]
         }, self.ds_bnc,
             'binance_um_vip0_usdt',
             'Test1', start='2019-09-08', stop='2019-09-11')

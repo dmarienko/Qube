@@ -3,11 +3,11 @@ from os.path import join
 
 import pandas as pd
 
+from qube.configs.Properties import get_root_dir
 from qube.portfolio import commissions
 from qube.portfolio.Instrument import Instrument
 from qube.portfolio.Position import CryptoFuturesPosition
-from qube.portfolio.commissions import BinanceUSDTM_TCC_VIP0
-from qube.configs.Properties import get_root_dir
+from qube.portfolio.commissions import BinanceRatesCommon
 
 
 class CommissionsTest(unittest.TestCase):
@@ -51,7 +51,7 @@ class CommissionsTest(unittest.TestCase):
 
     def test_binance_tcc(self):
         # - Crypto futures test
-        p = CryptoFuturesPosition(Instrument('BTCUSDT', True, 0, 0), BinanceUSDTM_TCC_VIP0())
+        p = CryptoFuturesPosition(Instrument('BTCUSDT', True, 0, 0), BinanceRatesCommon('um', 'vip0', 'USDT'))
 
         p.update_position_bid_ask(0, 2500, 20000, 20000)
         pnl = p.update_position_bid_ask(1, 0, 19800, 19800)
