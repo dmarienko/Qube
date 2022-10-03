@@ -4,12 +4,14 @@ import re
 import sys
 import time
 from os.path import dirname
+from typing import Union
 
 import pandas as pd
 
 from qube.utils import QubeLogger
 from ..configs import Properties
 from . import _CONNECTORS_LOOKUP
+from ..utils.DateUtils import DateUtils
 
 IN_MEMORY_DATASOURCE_NAME = 'in_memory_datasource'
 MULTI_EXCHANGE_DATASOURCE_NAME = 'multi_exchange_datasource'
@@ -194,7 +196,8 @@ class DataSource:
         for i, df in data.items():
             if len(df.index) > 0 and isinstance(df.index[0], str):
                 is_string_date = False
-                try:  # let's check if index isn't a date like finviz, so we don't need to to cast index strs to datetimes
+                # let's check if index isn't a date, so we don't need to cast index str to datetimes
+                try:
                     pd.to_datetime(df.index[0])
                     is_string_date = True
                 except:
@@ -231,3 +234,69 @@ class DataSource:
 
     def __exit__(self, exc_type, exc_val, exc_t):
         self.close()
+
+    def load_data_nbars(self, nback, instruments, freq: Union[int, str] = None,
+                        date_from: Union[str, pd.Timestamp] = None,
+                        accept_holidays=True, populate_local_time=True):
+        """
+        Helpful method for getting recent series of 'nback' bars
+
+        :param nback: amount of bars / ticks to load
+        :param instruments: list of instruments to load data for
+        :param freq: size of the bars to load. supported formats: int or str format (pandas frequency format).
+                     An example of values to populate '5Min' or 300.
+                     Default is None - means tick data.
+        :param date_from: date to load previous data from. default is None - means load latest (from now) nback bars.
+        :param accept_holidays: adding weekends and holidays to each week
+        :param populate_local_time:
+        :return: Dict[instrument:pd.DataFrame]
+        """
+        if isinstance(instruments, str):
+            instruments = [instruments]
+
+        start = self.__find_start_time_from_nback(nback, freq=freq, date_from=date_from, accept_holidays=accept_holidays)
+        result = self.load_data(instruments, start, date_from, timeframe=freq, populate_local_time=populate_local_time)
+        for instr in result.keys():
+            result[instr] = result[instr].iloc[-nback:]
+
+        return result
+
+    @staticmethod
+    def __find_start_time_from_nback(nback: int, nback_unit: str = None, freq: Union[int, str] = None,
+                                     date_from: Union[str, pd.Timestamp] = None, accept_holidays=True):
+        """
+        Method is used to estimate start date to begin load data from
+        when we want to load specified 'nback' bars of 'freq' timeframe back from 'date_from' date.
+        There is no any reason in explicit use of that method!
+
+        :param nback: amount of bars / ticks to load or pd.TimeDelta unit if param nback_unit exists.
+        :param nback_unit: pd.TimeDelta unit for nback.
+        :param freq: size of the bars to load.
+        :param date_from: date to load previous data from. default is None - means load latest (from now) nback bars.
+        :accept_holidays: adding weekends and holidays to each week
+        :return: estimation of start date (return type: dt.datetime)
+        """
+        from datetime import datetime, timezone
+        from qube.series.Series import Series
+
+        __ADDITIONAL_DAYS_PER_WEEK = 4
+        __NOW_DATA_TZ = timezone.utc
+
+        if nback_unit:
+            nback_delta = pd.Timedelta(nback, unit=nback_unit)
+        else:
+            if freq:
+                freq = freq if isinstance(freq, str) else Series.get_pd_freq_by_seconds_freq_val(freq)
+                delta_freq = pd.Timedelta(freq)
+            else:
+                delta_freq = pd.Timedelta(seconds=1)
+
+            nback_delta: pd.Timedelta = delta_freq * nback
+
+        if accept_holidays:
+            nback_weeks = int(nback_delta.days / 7)
+            nback_delta += pd.Timedelta(days=__ADDITIONAL_DAYS_PER_WEEK) * (nback_weeks + 1)
+
+        date_from = DateUtils.get_datetime(date_from) if date_from else datetime.now(__NOW_DATA_TZ)
+
+        return date_from - nback_delta

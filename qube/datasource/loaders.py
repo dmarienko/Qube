@@ -9,9 +9,8 @@ import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
 
-from qube.datasource.DataSource import DataSource
 from qube.learn.core.data_utils import series_period_as_str
-from qube.quantitative.tools import drop_duplicated_indexes, ohlc_resample, srows
+from qube.quantitative.tools import drop_duplicated_indexes, ohlc_resample
 from qube.quantitative.tools import infer_series_frequency
 from qube.utils.nb_functions import z_ld, z_save, z_ls
 from qube.utils.ui_utils import green, red, blue

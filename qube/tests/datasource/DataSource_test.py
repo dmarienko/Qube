@@ -5,7 +5,6 @@ import pandas as pd
 
 from qube import datasource
 from qube.datasource.InMemoryDataSource import InMemoryDataSource
-from qube.datasource.datasource_utils import get_ds_data_nback
 from qube.utils.DateUtils import DateUtils
 
 
@@ -82,9 +81,11 @@ class TestDataSource(TestCase):
         ds_cfg_file = 'qube/tests/data/simulator/sim_test_datasource_cfg.json'
         ds = datasource.DataSource('simulator::quotes_data', ds_cfg_file)
         ds_data = ds.load_data(['GBPUSD'])
-        data = get_ds_data_nback(ds, 10, ['GBPUSD'], date_from='2017-03-21 20:38:02')
+        data = ds.load_data_nbars(10, ['GBPUSD'], date_from='2017-03-21 20:38:02')
         self.assertEqual(len(data['GBPUSD']), 10)
         self.assertTrue(data['GBPUSD'].index[-1] < DateUtils.get_datetime('2017-03-21 20:38:02'))
+        print(data)
+        print(ds_data)
 
     def __assert_series(self, ser, date_beg, val_beg, date_end, val_end):
         self.__assert_close(ser, 0, date_beg, val_beg)
