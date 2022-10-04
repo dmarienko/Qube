@@ -9,8 +9,9 @@ from qube.examples.learn.transformers import RollingRange
 from qube.learn.core.base import MarketDataComposer
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
+from qube.portfolio.Position import Position
 from qube.simulator.multisim import simulation
-from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker
+from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker, IPositionSizer
 
 
 def _read_csv_ohlc(symbol):
@@ -67,9 +68,9 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 5)
         print(" - - - - - - - - - - - - - - - - - - - ")
-        self.assertEqual(20, r.results[0].trackers_stat['ES']['takes'])
-        self.assertEqual(25, r.results[0].trackers_stat['ES']['stops'])
-        self.assertAlmostEqual(-4087.5, r.results[0].portfolio['ES_PnL'].sum())
+        self.assertEqual(4, r.results[0].trackers_stat['ES']['takes'])
+        self.assertEqual(19, r.results[0].trackers_stat['ES']['stops'])
+        self.assertAlmostEqual(-732.5, r.results[0].portfolio['ES_PnL'].sum())
 
     def test_simulation_fixed_risk_trader_pct(self):
         m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
@@ -86,10 +87,10 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 5)
         print(" - - - - - - - - - - - - - - - - - - - ")
-        self.assertEqual(28, r.results[0].trackers_stat['ES']['takes'])
-        self.assertEqual(15, r.results[0].trackers_stat['ES']['stops'])
+        self.assertEqual(6, r.results[0].trackers_stat['ES']['takes'])
+        self.assertEqual(10, r.results[0].trackers_stat['ES']['stops'])
 
-        self.assertAlmostEqual(-4941.6812, r.results[0].portfolio['ES_PnL'].sum(), 4)
+        self.assertAlmostEqual(-1019.9875, r.results[0].portfolio['ES_PnL'].sum(), 4)
         op = r.results[0].executions.iloc[0].exec_price
         stp = r.results[0].executions.iloc[1].exec_price
         actual_loss_pct = 100 * (op / stp - 1)
@@ -162,7 +163,8 @@ class Test(TestCase):
         })
 
         r = simulation({
-            'ATR TEST': [s, ATRTracker(1000, '5Min', 15, 1, 3, take_by_limit_orders=False, accurate_stops=True, debug=True)]
+            'ATR TEST': [s, ATRTracker(1000, '5Min', 15, 1, 3, take_by_limit_orders=False, accurate_stops=True,
+                                       debug=True)]
         }, data,
             'forex',
             'Test1', start='2020-08-17 00:00:00', stop='2020-08-18 00:00:00'
@@ -174,3 +176,53 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
         self.assertEqual(0, r.results[0].trackers_stat['EURUSD']['takes'])
         self.assertEqual(2, r.results[0].trackers_stat['EURUSD']['stops'])
+
+    def test_simulation_fixed_risk_trader_pct_position_sizing(self):
+        m1 = MarketDataComposer(
+            make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+            SingleInstrumentPicker(), debug=True
+        ).fit(self.ds)
+
+        class PCals(IPositionSizer):
+            def __init__(self, cap, max_cap_in_risk):
+                self.cap = cap
+                self.max_cap_in_risk = max_cap_in_risk
+
+            def get_position_size(self, signal, position: Position,
+                                  entry_price: float,
+                                  stop_price: float = None,
+                                  take_price: float = None):
+                if signal != 0:
+                    direction = np.sign(signal)
+
+                    if stop_price:
+                        cap = self.cap + max(position.pnl, 0)
+                        pos_size = direction * round(
+                            (cap * self.max_cap_in_risk / 100) / abs(stop_price / entry_price - 1))
+
+                        if not position.instrument.is_futures:
+                            pos_size = pos_size / entry_price
+                        else:
+                            # using adjustntry price and aligned contract, calc USDT pos size
+                            pos_size = round(pos_size, position.instrument.futures_contract_size)
+
+                        return pos_size
+
+                return 0
+
+        r = simulation({
+            'POSITION CALCULATOR': [m1, FixedRiskTrader(
+                PCals(1000, 0.5), 0.25, 5,
+                in_percentage=True,
+                accurate_stops=True)]
+        }, self.ds, 'stock', 'Test1')
+
+        r.report(1000, only_report=True)
+
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        print(f" | {r.results[0].portfolio['ES_PnL'].sum()}")
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        print("\t" + str(r.results[0].trackers_stat))
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        debug_output(r.results[0].executions, 'Execs', 5)
+        print(" - - - - - - - - - - - - - - - - - - - ")

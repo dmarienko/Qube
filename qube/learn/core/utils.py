@@ -6,6 +6,8 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.pipeline import Pipeline
 
+from qube.utils.ui_utils import red, blue
+
 
 def _check_frame_columns(x, *args):
     if not (isinstance(x, pd.DataFrame) and sum(x.columns.isin(args)) == len(args)):
@@ -19,12 +21,12 @@ def debug_output(data, name, start=3, end=3, time_info=True):
             t_info += f' | {data.index[0]}:{data.index[-1]}'
         hdr = f'.-<{name} {t_info} records>-' + ' -' * 50
         sep = ' -' * 50
-        print(hdr[:len(sep)])
+        print(blue(hdr[:len(sep)]))
         print(data.head(start).to_string(header=True))
         if start < len(data):
-            print(' \t ...  ')
-            print(data.tail(end).to_string(header=False))
-        print(sep)
+            print(' \t . . . . . . ')
+            print(data.tail(end).to_string(header=True))
+        print(blue(sep))
     else:
         print(data)
 

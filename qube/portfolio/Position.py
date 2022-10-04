@@ -216,7 +216,7 @@ class ForexPosition(Position):
     _CURRENCIES = ['USD', 'EUR', 'GBP', 'CHF', 'JPY',
                    'AUD', 'NZD', 'CAD', 'SGD', 'HKD',
                    'PLN', 'DKK', 'NOK', 'SEK', 'CNH',
-                   'MXN', 'ZAR', 'TRY', 'RUB']
+                   'MXN', 'ZAR', 'TRY', 'RUB', 'UAH']
 
     def __init__(self, instrument: Instrument, tcc: TransactionCostsCalculator = None):
         super().__init__(instrument, tcc)
@@ -327,7 +327,7 @@ class CryptoPosition(Position):
 
         self.is_straight = self.quote == 'USD'
 
-        # seems to be crypto currency pair
+        # seems to be cryptocurrency pair
         if self.base is not None:
             # cross pair if USD not found: ETHBTC
             self.is_cross = (not self.is_straight)
@@ -353,7 +353,7 @@ class CryptoPosition(Position):
 
     def update_position_bid_ask(self, timestamp, n_pos, c_bid, c_ask, a_bid=nan, a_ask=nan, **kwargs) -> float:
         """
-        For crypto currency cross-pairs we want to do all PnL-related calculations expressed in USD.
+        For cryptocurrency cross-pairs we want to do all PnL-related calculations expressed in USD.
         For that we introduce auxiliary instrument. For example aux instrument for BTCETH is ETHUSD.
 
         :param timestamp: time of update

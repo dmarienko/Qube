@@ -34,9 +34,14 @@ class Tracker:
         """
         Method must be called before this class can be used
         """
-        self._position = service.get_position()
-        self._instrument = self._position.symbol
+        # some service information
+        self._position: Position = service.get_position()
+        self._instrument: str = self._position.symbol
         self._service: TradingService = service
+
+        # last processed signal
+        self.last_signal = None
+        self.last_signal_time = None
 
         # holder for custom OHLC series
         self._ohlc_series = dict()

@@ -88,10 +88,15 @@ class _InstrumentTrack(TradingService):
             signal_time, signal_value, self.time, self.bid, self.ask, self.bid_vol, self.ask_vol
         ) if self.tracker else signal_value
 
-        # tracker may returns None so we skip this signal
+        # tracker may return None so we skip this signal
         if processed_signal is not None and np.isfinite(processed_signal):
             # store last trading time in tracker
             self.last_trade_time = signal_time
+
+            # keep last pricessed signal (not processed value)
+            if self.tracker:
+                self.tracker.last_signal = signal_value
+                self.tracker.last_signal_time = signal_time
 
             # execute trade (by default we are using market orders)
             return self.position.update_position_bid_ask(

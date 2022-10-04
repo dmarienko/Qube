@@ -1,3 +1,4 @@
+import numbers
 from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum
@@ -6,6 +7,7 @@ from typing import Dict, List, Tuple, Any, Union
 import numpy as np
 import pandas as pd
 
+from qube.portfolio.Position import Position
 from qube.series.Indicators import ATR
 from qube.series.Quote import Quote
 from qube.simulator.core import Tracker
@@ -77,6 +79,31 @@ class TakeStopTracker(Tracker):
         self.stop = None
         self._take_user_data = None
         self._stop_user_data = None
+
+    def _can_modify_risks_for(self, signal, stop_risk, take_target, reset_risks_on_repeated_signals):
+        can_modify_stop, can_modify_take = False, False
+
+        # check if we may modify risks
+        ps_dir = np.sign(self.last_signal) if self.last_signal is not None else 0
+        cs_dir = np.sign(signal)
+        allowed = reset_risks_on_repeated_signals or cs_dir != ps_dir
+
+        if signal > 0:
+            can_modify_stop = stop_risk > 0 and (not self.stop or allowed)
+            can_modify_take = take_target > 0 and (not self.take or allowed)
+        elif signal < 0:
+            can_modify_stop = stop_risk > 0 and (not self.stop or allowed)
+            can_modify_take = take_target > 0 and (not self.take or allowed)
+
+        return can_modify_stop, can_modify_take
+
+    def _can_process_signal(self, signal, process_repeated_signals):
+        # if signal is different from last one - it can be processed in any case
+        # also can be processed if allowed by parameter
+        if process_repeated_signals or signal != self.last_signal:
+            return True
+
+        return False
 
     def __exec_risk_management(self, timestamp, exec_price, is_take, is_long):
         pos_dir = 'long' if is_long else 'short'
@@ -575,8 +602,35 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
 
 
 class IPositionSizer:
-    def get_size(self, signal, bid, ask, bid_size, ask_size):
-        return signal
+    def get_position_size(self, signal, position: Position,
+                          entry_price: float,
+                          stop_price: float = None,
+                          take_price: float = None):
+        """
+        Position size calculator
+        :param signal: signal to process
+        :param position: current Position object for this instrument
+        :param entry_price: price for entrering position (might be current market midprice)
+        :param stop_price: planned stop price level
+        :param take_price: planned take price level
+        """
+        raise ValueError("Not implemented method")
+
+    @staticmethod
+    def wrap_fixed(value):
+        """
+        Just small helper
+        """
+        return FixedSizer(value) if isinstance(value, numbers.Number) else value
+
+
+class FixedSizer(IPositionSizer):
+    def __init__(self, fixed_size):
+        self.fixed_size = abs(fixed_size)
+
+    def get_position_size(self, signal, position: Position,
+                          entry_price: float, stop_price: float = None, take_price: float = None):
+        return signal * self.fixed_size
 
 
 class FixedRiskTrader(TakeStopTracker):
@@ -585,21 +639,29 @@ class FixedRiskTrader(TakeStopTracker):
     It uses fixed stop and take levels: either absolute deltas or percantage from entry price
     """
 
-    def __init__(self, size: Union[IPositionSizer, float], take=0, stop=0,
-                 in_percentage=False, tick_size=1, debug=False,
+    def __init__(self, size: Union[IPositionSizer, numbers.Number], take=0, stop=0,
+                 in_percentage=False, tick_size=1,
                  take_by_limit_orders=True,
                  accurate_stops=False,
-                 reset_risks_on_repeated_signals=False):
+                 reset_risks_on_repeated_signals=False,
+                 process_repeated_signals=False,
+                 debug=False):
         """
-        :param take_by_limit_orders: if it opens positions by limit orders
-        :param accurate_stops: execute at exact stop prices instead of current market
-        :param reset_risks_on_repeated_signals: recalculate new stop/take on repeated signals
+        :param size: position size - either fixed amount or size calculator (instance of IPositionSize class)
+        :param take: take distance (if <= 0 - no take)
+        :param stop: stop distance (if <= 0 - no stop)
+                     take and stop may be fixed distances (if in_percentage=False)
+                     or percentage from entry price (here 1 == 1%)
+        :param take_by_limit_orders: if it opens positions by limit orders (true)
+        :param accurate_stops: execute at exact stop prices instead of current market (false)
+        :param process_repeated_signals: if it's enabled to process signals in same direction (false)
+        :param reset_risks_on_repeated_signals: recalculate new stop/take on repeated signals (false)
         """
         super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
-        self.position_size: Union[IPositionSizer, float] = size
+        self.position_calculator = IPositionSizer.wrap_fixed(size)
         self.reset_risks_on_repeated_signals = reset_risks_on_repeated_signals
+        self.process_repeated_signals = process_repeated_signals
         self.in_percentage = in_percentage
-
         if in_percentage:
             self.fixed_take = abs(take) / 100.0
             self.fixed_stop = abs(stop) / 100.0
@@ -613,18 +675,11 @@ class FixedRiskTrader(TakeStopTracker):
             self.fixed_take = abs(take) * tick_size
             self.fixed_stop = abs(stop) * tick_size
 
-    def _can_modify_risks_for(self, signal):
-        can_modify_stop, can_modify_take = False, False
-        if signal > 0:
-            can_modify_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
-            can_modify_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
-        elif signal < 0:
-            can_modify_stop = self.fixed_stop > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
-            can_modify_take = self.fixed_take > 0 and (not self.take or self.reset_risks_on_repeated_signals)
-        return can_modify_stop, can_modify_take
-
-    def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
-        stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(signal)
+    def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size) -> Union[float, None]:
+        # - check if we can change risk management
+        stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(
+            signal, self.fixed_stop, self.fixed_take, self.reset_risks_on_repeated_signals
+        )
 
         # - if we can change stop loss level
         if stop_can_be_changed:
@@ -644,8 +699,14 @@ class FixedRiskTrader(TakeStopTracker):
                 self.take_at(signal_time,
                              bid * (1 - self.fixed_take) if self.in_percentage else (bid - self.fixed_take))
 
-        # call super method
-        return signal * self.position_size
+        # - check if it's allowed to process this signal
+        if not self._can_process_signal(signal, self.process_repeated_signals):
+            return None
+
+        # - calculate size
+        return self.position_calculator.get_position_size(
+            signal, self._position, (bid + ask) / 2, stop_price=self.stop, take_price=self.take
+        )
 
 
 class TimeExpirationTracker(Tracker):
@@ -826,13 +887,15 @@ class ATRTracker(TakeStopTracker):
                  debug=False,
                  take_by_limit_orders=True,
                  accurate_stops=False,
+                 process_repeated_signals=False,
                  reset_risks_on_repeated_signals=False):
         super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
         self.timeframe = timeframe
         self.period = period
-        self.position_size = size
+        self.position_calculator: IPositionSizer = IPositionSizer.wrap_fixed(size)
         self.take_target = take_target
         self.stop_risk = stop_risk
+        self.process_repeated_signals = process_repeated_signals
         self.reset_risks_on_repeated_signals = reset_risks_on_repeated_signals
         self.atr_smoother = atr_smoother
 
@@ -841,41 +904,36 @@ class ATRTracker(TakeStopTracker):
         self.ohlc = self.get_ohlc_series(self.timeframe)
         self.ohlc.attach(self.atr)
 
-    def _can_modify_risks_for(self, signal):
-        can_modify_stop, can_modify_take = False, False
-        if signal > 0:
-            can_modify_stop = self.stop_risk > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
-            can_modify_take = self.take_target > 0 and (not self.take or self.reset_risks_on_repeated_signals)
-        elif signal < 0:
-            can_modify_stop = self.stop_risk > 0 and (not self.stop or self.reset_risks_on_repeated_signals)
-            can_modify_take = self.take_target > 0 and (not self.take or self.reset_risks_on_repeated_signals)
-        return can_modify_stop, can_modify_take
-
     def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
         av = self.atr[1]
         if av is None or not np.isfinite(av):
             # skip if ATR is not calculated yet
             return None
 
-        stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(signal)
+        stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(
+            signal, self.stop_risk, self.take_target, self.reset_risks_on_repeated_signals
+        )
+
         if stop_can_be_changed:
             if signal > 0:
-                # self.debug(f"Stop long ATR is : {av}")
                 self.stop_at(signal_time, ask - self.stop_risk * av)
             elif signal < 0:
-                # self.debug(f"Stop short ATR is : {av}")
                 self.stop_at(signal_time, bid + self.stop_risk * av)
 
         if take_can_be_changed:
             if signal > 0:
-                # self.debug(f"Take long ATR is : {av}")
                 self.take_at(signal_time, ask + self.take_target * av)
             elif signal < 0:
-                # self.debug(f"Take short ATR is : {av}")
                 self.take_at(signal_time, bid - self.take_target * av)
 
-        # call super method
-        return signal * self.position_size
+        # - check if it's allowed to process this signal
+        if not self._can_process_signal(signal, self.process_repeated_signals):
+            return None
+
+        # - return size
+        return self.position_calculator.get_position_size(
+            signal, self._position, (bid + ask) / 2, stop_price=self.stop, take_price=self.take
+        )
 
 
 class SignalBarTracker(TriggeredOrdersTracker):
