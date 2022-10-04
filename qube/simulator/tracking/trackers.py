@@ -11,6 +11,7 @@ from qube.portfolio.Position import Position
 from qube.series.Indicators import ATR
 from qube.series.Quote import Quote
 from qube.simulator.core import Tracker
+from qube.simulator.tracking.sizers import IPositionSizer
 from qube.utils.utils import mstruct
 
 
@@ -599,38 +600,6 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
 
     def statistics(self) -> Dict:
         return {'triggers': len(self.fired) + len(self.orders), 'fired': len(self.fired), **super().statistics()}
-
-
-class IPositionSizer:
-    def get_position_size(self, signal, position: Position,
-                          entry_price: float,
-                          stop_price: float = None,
-                          take_price: float = None):
-        """
-        Position size calculator
-        :param signal: signal to process
-        :param position: current Position object for this instrument
-        :param entry_price: price for entrering position (might be current market midprice)
-        :param stop_price: planned stop price level
-        :param take_price: planned take price level
-        """
-        raise ValueError("Not implemented method")
-
-    @staticmethod
-    def wrap_fixed(value):
-        """
-        Just small helper
-        """
-        return FixedSizer(value) if isinstance(value, numbers.Number) else value
-
-
-class FixedSizer(IPositionSizer):
-    def __init__(self, fixed_size):
-        self.fixed_size = abs(fixed_size)
-
-    def get_position_size(self, signal, position: Position,
-                          entry_price: float, stop_price: float = None, take_price: float = None):
-        return signal * self.fixed_size
 
 
 class FixedRiskTrader(TakeStopTracker):

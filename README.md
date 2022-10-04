@@ -4,7 +4,7 @@
       .' :     .'|        QUBE | Quantitative Backtesting Environment
      +-------+'  |             | (Community version) 
      |   : * |   |        
-     |  ,+---+---+ 
+     |  ,+---|---+ 
      |.'     | .' 
      +-------+'
 

@@ -43,7 +43,6 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.simulator.utils import (
         shift_signals, rolling_forward_test_split, permutate_params
     )
-    from qube.portfolio.Instrument import Instrument
     from qube.portfolio.Position import Position, ForexPosition, CryptoPosition, CryptoFuturesPosition
     from qube.simulator.multisim import simulation, Market
     from qube.simulator.multiproc import ls_running_tasks, run_tasks
@@ -55,6 +54,7 @@ if runtime_env() in ['notebook', 'shell']:
         MultiTakeStopTracker, SignalBarTracker,
         TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker
     )
+    from qube.simulator.tracking.sizers import (IPositionSizer, FixedSizer, FixedRiskSizer)
 
     # - - - - Learn stuff - - - -
     from qube.learn.core.pickers import SingleInstrumentPicker, PortfolioPicker
@@ -97,7 +97,7 @@ if runtime_env() in ['notebook', 'shell']:
            {green(" .' :     .'|")}   {yellow("QUBE")} | {cyan("Quantitative Backtesting Environment")}
            {green("+-------+'  |")}  
            {green("|   : ") + red("*") + green(" |   |")}   (c) 2022,  ver. {magenta(version().rstrip())}
-           {green("|  ,+---+---+")} 
+           {green("|  ,+---|---+")} 
            {green("|.'     | .' ")}   
            {green("+-------+'   ")} ''')
         qube.QubeMagics.__already_initialized__ = True

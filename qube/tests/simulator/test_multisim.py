@@ -1,6 +1,5 @@
 from unittest import TestCase
 
-import numpy as np
 import pandas as pd
 from sklearn.pipeline import make_pipeline
 
@@ -9,9 +8,9 @@ from qube.examples.learn.transformers import RollingRange
 from qube.learn.core.base import MarketDataComposer
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
-from qube.portfolio.Position import Position
 from qube.simulator.multisim import simulation
-from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker, IPositionSizer
+from qube.simulator.tracking.sizers import FixedRiskSizer
+from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker
 
 
 def _read_csv_ohlc(symbol):
@@ -183,36 +182,9 @@ class Test(TestCase):
             SingleInstrumentPicker(), debug=True
         ).fit(self.ds)
 
-        class PCals(IPositionSizer):
-            def __init__(self, cap, max_cap_in_risk):
-                self.cap = cap
-                self.max_cap_in_risk = max_cap_in_risk
-
-            def get_position_size(self, signal, position: Position,
-                                  entry_price: float,
-                                  stop_price: float = None,
-                                  take_price: float = None):
-                if signal != 0:
-                    direction = np.sign(signal)
-
-                    if stop_price:
-                        cap = self.cap + max(position.pnl, 0)
-                        pos_size = direction * round(
-                            (cap * self.max_cap_in_risk / 100) / abs(stop_price / entry_price - 1))
-
-                        if not position.instrument.is_futures:
-                            pos_size = pos_size / entry_price
-                        else:
-                            # using adjustntry price and aligned contract, calc USDT pos size
-                            pos_size = round(pos_size, position.instrument.futures_contract_size)
-
-                        return pos_size
-
-                return 0
-
         r = simulation({
             'POSITION CALCULATOR': [m1, FixedRiskTrader(
-                PCals(1000, 0.5), 0.25, 5,
+                FixedRiskSizer(1000, 0.5), 0.25, 5,
                 in_percentage=True,
                 accurate_stops=True)]
         }, self.ds, 'stock', 'Test1')
