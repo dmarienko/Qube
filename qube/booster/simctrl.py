@@ -116,7 +116,7 @@ class ModelView(IReport):
         self.project = project
         self.model = model
         self.sims = sims
-        self.reports_path = f"reports/{self.project}/{self.model}"
+        self.reports_path = f"app/reports/{self.project}/{self.model}"
 
     def run(self, *args, **kwargs):
         print("Not sure what to run here")

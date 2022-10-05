@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head profile="http://www.w3.org/2005/10/profile">
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<meta http-equiv="refresh" content="600"/>
+	<link rel="icon" type="image/png" href="/images/favicon.ico"/>
+	<link href="https://fonts.googleapis.com/css?family=Maven+Pro:400,500,700,900" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="/styles/dark.css"/>
+    
+<script type="text/javascript">
+    function show_modal(e) {
+        // console.log (e.href);
+        $("#iframe_modal").attr("src", e.href);
+        $('#myModal').modal('show');
+
+        return false;
+    }
+
+    function _init_loading() {
+        var iframe = document.getElementById("iframe_modal");
+        iframedoc =iframe.contentDocument || iframe.contentWindow.document;
+        iframedoc.body.innerHTML = '<img src="/images/loading-loop.gif" style="width: 30%;position: absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);">Loading</img>';
+    }
+
+    function init_handlers() {
+        _init_loading();
+
+        // clean content on modal dialog close
+        $("#myModal").on('hide.bs.modal', function() {   
+            _init_loading();
+        });
+
+    }
+    window.onload = init_handlers;
+    
+</script> 
+    
+<style> </style>
+</head>
+    
+<body>
+    
+<div class="modal fade" id="myModal" role="dialog">
+    <div class="modal-dialog" style="width:90%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">Report Details</h4>
+            </div>
+            <div class="modal-body">
+                <iframe id="iframe_modal" class="if-body" src="">
+                </iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+    
+<title>Booster report for project {{ project_id }}</title>
+    <div class="content"> 
+         {{ main_report | safe }} 
+    </div>
+
+</body>
+</html>

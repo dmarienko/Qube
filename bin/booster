@@ -7,22 +7,21 @@ from os.path import expanduser, exists, join, abspath
 import yaml
 
 from qube.booster import __version__ as VERSION
+from qube.booster.app.boo import BOOSTER_CONFIG_PATH, BOOSTER_PROJECT_CONFIGS_FILE
 from qube.booster.core import Booster
+from qube.simulator.multiproc import ls_running_tasks
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import add_project_to_system_path
 
+# - add current project folder to accessible paths
 add_project_to_system_path()
-
-# default path where configs are stored
-_DEFAULT_CONFIG_PATH = '/var/appliedalpha/booster/'
-_DEFAULT_CONFIG_FILE = f'{_DEFAULT_CONFIG_PATH}/booster.yml'
 
 
 def install_new_path(project, path_to_config, description):
     # temp: using abs path to config
     a_path = abspath(path_to_config)
 
-    with open(_DEFAULT_CONFIG_FILE, 'r') as stream:
+    with open(BOOSTER_PROJECT_CONFIGS_FILE, 'r') as stream:
         try:
             cfg = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
@@ -32,7 +31,7 @@ def install_new_path(project, path_to_config, description):
         print(red(f'Existing record for {project} "{cfg["entries"][project]}" --(replacing by)--> "{a_path}"'))
 
     # update config
-    with open(_DEFAULT_CONFIG_FILE, 'w') as stream:
+    with open(BOOSTER_PROJECT_CONFIGS_FILE, 'w') as stream:
         cfg['entries'][project] = {
             'path': a_path,
             'description': description
@@ -47,21 +46,23 @@ def split_comma_sep(ax):
 
 
 def main(config, command, *args):
+    """
+    TODO: looks very ugly - need to redo
+    """
     if command == 'progress':
         try:
-            import qlearn as q
             _dtls = 'details' in args
             _clnp = 'cleanup' in args
-            q.ls_running_tasks(cleanup=_clnp, details=_dtls)
-        except:
-            print(red('Error showing qlearn progress: check if you have qlearn installed'))
+            ls_running_tasks(cleanup=_clnp, details=_dtls)
+        except Exception as err:
+            print(red(f'Error showing progress: {err}'))
         return
 
     # check config
     config = config if config.endswith('.yml') or config.endswith('.yaml') else config + '.yml'
     fpath = expanduser(config)
     if not exists(fpath):
-        fpath = join(_DEFAULT_CONFIG_PATH, fpath)
+        fpath = join(BOOSTER_CONFIG_PATH, fpath)
         if not exists(fpath):
             print(red(f" >>> Can't find specified config file from '{config}'\n"))
             sys.exit(2)
@@ -103,7 +104,6 @@ def main(config, command, *args):
 
         try:
             conds = eval(f"mstruct({args[0]}).to_dict()")
-            # print(args[1], args[0], ' --> ', conds)
             for a in split_comma_sep(args[1]):
                 boo.task_clean(a, **conds)
         except Exception as e:
@@ -152,7 +152,7 @@ def main(config, command, *args):
 
 
 if __name__ == '__main__':
-    print(f"\n >>> {green('Qube Experiments Booster')} utility ver. {red(VERSION)}\n")
+    print(f"\n >>> {green('Qube Portfolio Booster')} utility ver. {red(VERSION)}\n")
     parser = argparse.ArgumentParser(description='Booster cli')
 
     parser.add_argument('command', type=str, nargs='+',

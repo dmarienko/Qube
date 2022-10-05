@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+    <head profile="http://www.w3.org/2005/10/profile">
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+        <link href="https://fonts.googleapis.com/css?family=Maven+Pro:400,500,700,900" rel="stylesheet" type="text/css"/>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+    <!--     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script> -->
+    <!--     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
+        <link rel="stylesheet" href="/styles/dark.css" type="text/css"/>
+    </head>
+    <body>
+
+    <title>Experiment {{ experiment_id }} chart report for project {{ project_id }}</title>
+        <div> 
+            <h4><font color='orange'> {{ project_id }}</font> : <font color='green'>{{ description | safe}}</font> </h4> 
+            <a href="{{ table_report | safe }}">view as table</a>
+        </div>
+        
+        <div id="chart" class="chart"></div>
+
+    <!--     </div> -->
+    <!--     <div>
+             {{ param_report | safe }} 
+        </div> -->
+    </body>
+
+    <script type="text/javascript">
+        var graphs = {{main_report | safe}};
+        Plotly.plot('chart', graphs, {});        
+    </script>
+    
+</html>

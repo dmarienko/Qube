@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+    <head>
+<!--         <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+        <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script> -->
+        
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />  
+        <link rel="stylesheet" href="/styles/dark.css"/>
+        
+    </head>
+    
+    <body style="font-family:arial, sans-serif">
+<!--         <h1>{{header}}</h1> -->
+        
+        <input type="text" name="daterange" class="drp-input" value="{{start_date}} - {{end_date}}" />
+        
+        <div id="chart" class="chart"></div>
+        <div>{{description}}</div>
+    </body>
+
+    <script type="text/javascript">
+        var graphs = {{graphJSON | safe}};
+        Plotly.plot('chart', graphs, {});        
+    </script>
+
+    <script>
+        
+        $(function() {
+          $('input[name="daterange"]').daterangepicker({
+            opens: 'left',
+            minDate: '{{min_date}}',
+            maxDate: '{{max_date}}',
+            locale: {
+                separator: " - ",
+                applyLabel: "Show",
+                cancelLabel: "Cancel",
+                fromLabel: "From",
+                toLabel: "To",
+                format: "YYYY-MM-DD"
+            },
+          }, function(start, end, label) {
+                console.log("A new date selection was made: " + start.format('YYYY-MM-DD') + ' to ' + end.format('YYYY-MM-DD'));
+              
+                $.getJSON({
+                    url: "/booster/callback", data: { 
+                        'start_date': start.format('YYYY-MM-DD'), 
+                        'end_date': end.format('YYYY-MM-DD'),
+                        // 'timeframe': '15Min',
+                    }, success: function (result) {
+                    Plotly.newPlot('chart', result, {staticPlot: true});
+                }
+                });
+          });
+        });        
+        
+</script> 
+        
+    
+    
+</html>

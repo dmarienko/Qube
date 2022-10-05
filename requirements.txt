@@ -13,6 +13,8 @@ patool
 pymemcache
 airspeed
 flask_jsonpify
+Flask-BasicAuth
+python-dotenv
 ntplib
 bs4
 dill

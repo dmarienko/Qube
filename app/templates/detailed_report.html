@@ -1,0 +1,80 @@
+<!doctype html>
+<head profile="http://www.w3.org/2005/10/profile">
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	<link href="https://fonts.googleapis.com/css?family=Maven+Pro:400,500,700,900" rel="stylesheet" type="text/css"/>
+<!--     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"> -->
+    <link rel="stylesheet" href="/styles/dark.css" type="text/css"/>
+    
+<style> </style>
+</head>
+<body>
+    
+<title>Detailed report for project {{ symbol_id }}</title>
+    
+
+    <div class="content" height="100%"> 
+        
+         <div class="tab">
+          <button class="tablinks" onclick="openReport(event, 'blended')">Blended</button>
+          <button class="tablinks" onclick="openReport(event, 'break')">FBreak</button>
+          <button class="tablinks" onclick="openReport(event, 'touch')">Touch</button>
+        </div>
+        
+         <table border=0>
+             <tr><td>
+                 <!-- All models parameters table -->
+                 {{ parameters_report | safe }} 
+             </td></tr>
+             
+             <!-- Blended model -->
+             <tr><td>
+                <div id="blended" class="tabcontent">
+                     {{ detailed_report | safe }} 
+                </div>
+             </td></tr>
+                 
+             <!-- Model 1 -->
+             <tr><td>
+                <div id="break" class="tabcontent">
+                     {{ detailed_report_1 | safe }} 
+                </div>
+             </td></tr>
+
+             <!-- Model 2 -->
+             <tr><td>
+                <div id="touch" class="tabcontent">
+                     {{ detailed_report_2 | safe }} 
+                </div>
+             </td></tr>
+             
+         </table>
+        
+    </div>
+
+
+<script>
+    
+    function openReport(evt, modelName) {
+          var i, tabcontent, tablinks;
+        
+          tabcontent = document.getElementsByClassName("tabcontent");
+
+          for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+          }
+
+          tablinks = document.getElementsByClassName("tablinks");
+          for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+          }
+          document.getElementById(modelName).style.display = "block";
+          evt.currentTarget.className += " active";
+    }
+    
+var evObj = document.createEvent('Events');
+evObj.initEvent('click', true, false);
+openReport(evObj, 'blended')
+    
+</script>
+
+</body>
