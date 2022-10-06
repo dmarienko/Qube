@@ -375,10 +375,13 @@ class _SimulationTrackerTask(Task):
 
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
         # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
-        data = self.loader(self.instrument, start=self.start, end=self.stop).ticks()
 
+        # - loading data
+        s_data = self.loader(self.instrument, start=self.start, end=self.stop)
         if self.timeframe is not None:
-            data = data.ohlc(self.timeframe)
+            data = s_data.ohlc(self.timeframe)
+        else:
+            data = s_data.ticks()
 
         s = _recognize({f"{task_name}.{t_id}": tracker_instance}, data, run_name)[0]
         sim_result = backtest(
