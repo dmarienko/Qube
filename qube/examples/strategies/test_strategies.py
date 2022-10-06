@@ -129,7 +129,7 @@ class TestTrader(TriggeredOrdersTracker):
 
     def get_take_target(self, direction, entry, stop):
         # Simple risk reward ratio take target algo
-        return round(entry + direction * abs(entry - stop) / self.risk_reward_ratio, 2)
+        return round(entry + direction * abs(entry - stop) * self.risk_reward_ratio, 2)
 
     def get_position_size(self, direction, entry, stop):
         cap = self.capital + max(self._position.pnl, 0)
