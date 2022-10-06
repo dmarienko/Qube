@@ -458,7 +458,7 @@ def _wrap_single_list(param_grid: Union[List, Dict]):
 
 def permutate_params(parameters: dict,
                      conditions: Union[types.FunctionType, list, tuple] = None,
-                     wrap_as_list=True) -> List[Dict]:
+                     wrap_as_list=False) -> List[Dict]:
     """
     Generate list of all permutations for given parameters and theirs possible values
 
