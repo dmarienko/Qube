@@ -12,6 +12,7 @@ import plotly.io as pio
 import yaml
 from dotenv import load_dotenv
 
+from qube import QubeMagics
 from qube.booster.utils import b_ls, b_ld
 
 from flask import Flask, render_template, request
@@ -32,7 +33,7 @@ BOOSTER_PROJECT_CONFIGS_FILE = f'{BOOSTER_CONFIG_PATH}/booster.yml'
 BOOSTER_APP_CONFIG_FILE = join(BOOSTER_CONFIG_PATH, 'config.cfg')
 
 sys.stdout = sys.stderr
-pio.templates.default = "plotly_dark"
+__dark_theme_installed = False
 app = Flask(__name__)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -54,6 +55,18 @@ class ViewerData:
     ohlc: pd.DataFrame
     signals: list
     timeframe: str = DEFAULT_TIMEFRAME
+
+
+def __install_charts_theme():
+    global __dark_theme_installed
+
+    if not __dark_theme_installed:
+        import matplotlib
+        import plotly.io as pio
+        pio.templates.default = "plotly_dark"
+        for (k, v) in QubeMagics.DARK_MPL_THEME:
+            matplotlib.rcParams[k] = v
+        __dark_theme_installed = True
 
 
 # just handy helper
@@ -187,6 +200,8 @@ def portfolios_index():
 
 @app.route('/experiments/report_chart/<project>/<experiment>')
 def experiment_chart_report(project, experiment):
+    __install_charts_theme()
+
     report = ''
     descr = ''
     try:
@@ -342,6 +357,7 @@ def experiment_report(project, experiment):
 
 @app.route('/tearsheet')
 def tsheet_report():
+    __install_charts_theme()
     try:
         project = request.args.get('project')
         entry = request.args.get('entry')
