@@ -339,13 +339,27 @@ class _LoaderCallable:
         pass
 
 
+@dataclass
+class MarketDescriptor:
+    broker: str
+    tcc: TransactionCostsCalculator
+    loader: _LoaderCallable
+    start: str
+    stop: str
+    spreads: List
+    test_timeframe: str
+
+
 class _SimulationTrackerTask(Task):
     """
     Task for simulations run (tracker only)
     TODO: signal generator
     """
 
-    def __init__(self, instrument, market_description, storage_db, tracker_class, *tracker_args, **tracker_kwargs):
+    def __init__(
+            self, instrument, market_description: MarketDescriptor, simulations_storage_db,
+            tracker_class, *tracker_args, **tracker_kwargs
+    ):
         super().__init__(tracker_class, *tracker_args, **tracker_kwargs)
         self.instrument = instrument
         self.broker = market_description.broker
@@ -353,7 +367,8 @@ class _SimulationTrackerTask(Task):
         self.stop = market_description.stop
         self.spreads = market_description.spreads
         self.tcc = market_description.tcc
-        self.save(True, storage_db)
+        self.timeframe = market_description.test_timeframe
+        self.save(True, simulations_storage_db)
 
         # TODO: [1] Temp loader hack !!
         self.loader: _LoaderCallable = market_description.loader
@@ -361,6 +376,9 @@ class _SimulationTrackerTask(Task):
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
         # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
         data = self.loader(self.instrument, start=self.start, end=self.stop).ticks()
+
+        if self.timeframe is not None:
+            data = data.ohlc(self.timeframe)
 
         s = _recognize({f"{task_name}.{t_id}": tracker_instance}, data, run_name)[0]
         sim_result = backtest(
@@ -377,21 +395,25 @@ class Market:
     Generic market descriptor
     """
 
-    def __init__(self, broker, start, stop, spreads,
+    def __init__(self, broker: str, start: str, stop: str, spreads,
                  data_loader: _LoaderCallable,
-                 tcc: TransactionCostsCalculator = ZeroTCC()):
-        self.market_description = mstruct(
-            broker=broker, tcc=tcc, loader=data_loader, start=start, stop=stop, spreads=spreads
+                 tcc: TransactionCostsCalculator = None,
+                 test_timeframe: Union[str, None] = None
+                 ):
+        self.market_description: MarketDescriptor = MarketDescriptor(
+            broker=broker, tcc=tcc, loader=data_loader, start=start, stop=stop,
+            spreads=spreads, test_timeframe=test_timeframe
         )
 
     def new_simulation(self, instrument, tracker, *tracker_args, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
-        return _SimulationTrackerTask(instrument, self.market_description, storage_db, tracker, *tracker_args,
-                                      **tracker_kwargs)
+        return _SimulationTrackerTask(
+            instrument, self.market_description, storage_db, tracker, *tracker_args, **tracker_kwargs
+        )
 
     def new_simulations_set(self, instrument, tracker, tracker_args_permutations,
                             simulation_id_start=0, storage_db=DB_SIMULATION_RESULTS):
         return {
-            f'sim.{k}.{instrument}': self.new_simulation(instrument, tracker, *[], **p, storage_db=storage_db) for k, p
-            in
-            enumerate(tracker_args_permutations, simulation_id_start)
+            f'sim.{k}.{instrument}': self.new_simulation(
+                instrument, tracker, *[], **p, storage_db=storage_db
+            ) for k, p in enumerate(tracker_args_permutations, simulation_id_start)
         }

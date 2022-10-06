@@ -49,7 +49,7 @@ def backtest(signals, datasource, broker,
     :param progress: custom progress indicator
     :param name: name of simualtion
     :param tcc: transaction costs calculator (default is None i.e. zero commissions)
-    :param verbose: true if need more information
+    :param verbose: true if needed more information
     :return: simulation results structure
     """
     if isinstance(datasource, (pd.DataFrame, dict)):
