@@ -3,23 +3,97 @@ from . import charting
 from . import datasource
 from . import utils
 
-__version__ = '0.1.95'
+__version__ = '0.1.96'
 
 from qube.utils.utils import runtime_env
+from cycler import cycler
 
 # reload cython modules
 try:
     from qube.utils.utils import reload_pyx_module
+
     reload_pyx_module()
 except Exception as exception:
     print(f" >>> Exception during reloading cython pyx modules {str(exception)}")
+
+DARK_MATLPLOT_THEME = [
+    ('backend', 'module://ipykernel.pylab.backend_inline'),
+    ('interactive', True),
+    ('lines.color', '#5050f0'),
+    ('text.color', '#d0d0d0'),
+    ('axes.facecolor', '#000000'),
+    ('axes.edgecolor', '#404040'),
+    ('axes.grid', True),
+    ('axes.labelsize', 'large'),
+    ('axes.labelcolor', 'green'),
+    ('axes.prop_cycle', cycler('color', ['#08F7FE', '#00ff41', '#FE53BB', '#F5D300', '#449AcD', 'g',
+                                         '#f62841', 'y', '#088487', '#E24A33', '#f01010'])),
+    ('legend.fontsize', 'small'),
+    ('legend.fancybox', False),
+    ('legend.edgecolor', '#305030'),
+    ('legend.shadow', False),
+    ('lines.antialiased', True),
+    ('lines.linewidth', 0.8),  # reduced line width
+    ('patch.linewidth', 0.5),
+    ('patch.antialiased', True),
+    ('xtick.color', '#909090'),
+    ('ytick.color', '#909090'),
+    ('xtick.labelsize', 'large'),
+    ('ytick.labelsize', 'large'),
+    ('grid.color', '#404040'),
+    ('grid.linestyle', '--'),
+    ('grid.linewidth', 0.5),
+    ('grid.alpha', 0.8),
+    ('figure.figsize', [12.0, 5.0]),
+    ('figure.dpi', 80.0),
+    ('figure.facecolor', '#050505'),
+    ('figure.edgecolor', (1, 1, 1, 0)),
+    ('figure.subplot.bottom', 0.125),
+    ('savefig.facecolor', '#000000'),
+]
+
+LIGHT_MATPLOT_THEME = [
+    ('backend', 'module://ipykernel.pylab.backend_inline'),
+    ('interactive', True),
+    ('lines.color', '#101010'),
+    ('text.color', '#303030'),
+    ('lines.antialiased', True),
+    ('lines.linewidth', 1),
+    ('patch.linewidth', 0.5),
+    ('patch.facecolor', '#348ABD'),
+    ('patch.edgecolor', '#eeeeee'),
+    ('patch.antialiased', True),
+    ('axes.facecolor', '#fafafa'),
+    ('axes.edgecolor', '#d0d0d0'),
+    ('axes.linewidth', 1),
+    ('axes.titlesize', 'x-large'),
+    ('axes.labelsize', 'large'),
+    ('axes.labelcolor', '#555555'),
+    ('axes.axisbelow', True),
+    ('axes.grid', True),
+    ('axes.prop_cycle', cycler('color', ['#6792E0', '#27ae60', '#c44e52', '#975CC3', '#ff914d', '#77BEDB',
+                                         '#303030', '#4168B7', '#93B851', '#e74c3c', '#bc89e0', '#ff711a',
+                                         '#3498db', '#6C7A89'])),
+    ('legend.fontsize', 'small'),
+    ('legend.fancybox', False),
+    ('xtick.color', '#707070'),
+    ('ytick.color', '#707070'),
+    ('grid.color', '#606060'),
+    ('grid.linestyle', '--'),
+    ('grid.linewidth', 0.5),
+    ('grid.alpha', 0.3),
+    ('figure.figsize', [8.0, 5.0]),
+    ('figure.dpi', 80.0),
+    ('figure.facecolor', '#ffffff'),
+    ('figure.edgecolor', '#ffffff'),
+    ('figure.subplot.bottom', 0.1)
+]
 
 # registering magic for jupyter notebook
 if runtime_env() in ['notebook', 'shell']:
     from IPython.core.magic import (Magics, magics_class, line_magic, line_cell_magic)
     from IPython import get_ipython
 
-    from cycler import cycler
     from os.path import isdir, isfile, join, basename, expanduser, relpath
 
     @magics_class
@@ -27,85 +101,11 @@ if runtime_env() in ['notebook', 'shell']:
         # process data manager
         __manager = None
 
-        DARK_MPL_THEME = [
-            ('backend', 'module://ipykernel.pylab.backend_inline'),
-            ('interactive', True),
-            ('lines.color', '#5050f0'),
-            ('text.color', '#d0d0d0'),
-            ('axes.facecolor', '#000000'),
-            ('axes.edgecolor', '#404040'),
-            ('axes.grid', True),
-            ('axes.labelsize', 'large'),
-            ('axes.labelcolor', 'green'),
-            ('axes.prop_cycle', cycler('color', ['#08F7FE', '#00ff41', '#FE53BB', '#F5D300', '#449AcD', 'g',
-                                                 '#f62841', 'y', '#088487', '#E24A33', '#f01010'])),
-            ('legend.fontsize', 'small'),
-            ('legend.fancybox', False),
-            ('legend.edgecolor', '#305030'),
-            ('legend.shadow', False),
-            ('lines.antialiased', True),
-            ('lines.linewidth', 0.8), # reduced line width
-            ('patch.linewidth', 0.5),
-            ('patch.antialiased', True),
-            ('xtick.color', '#909090'),
-            ('ytick.color', '#909090'),
-            ('xtick.labelsize', 'large'),
-            ('ytick.labelsize', 'large'),
-            ('grid.color', '#404040'),
-            ('grid.linestyle', '--'),
-            ('grid.linewidth', 0.5),
-            ('grid.alpha', 0.8),
-            ('figure.figsize', [12.0, 5.0]),
-            ('figure.dpi', 80.0),
-            ('figure.facecolor', '#050505'),
-            ('figure.edgecolor', (1, 1, 1, 0)),
-            ('figure.subplot.bottom', 0.125),
-            ('savefig.facecolor', '#000000'),
-        ]
-
-        LIGHT_MPL_THEME = [
-            ('backend', 'module://ipykernel.pylab.backend_inline'),
-            ('interactive', True),
-            ('lines.color', '#101010'),
-            ('text.color', '#303030'),
-            ('lines.antialiased', True),
-            ('lines.linewidth', 1),
-            ('patch.linewidth', 0.5),
-            ('patch.facecolor', '#348ABD'),
-            ('patch.edgecolor', '#eeeeee'),
-            ('patch.antialiased', True),
-            ('axes.facecolor', '#fafafa'),
-            ('axes.edgecolor', '#d0d0d0'),
-            ('axes.linewidth', 1),
-            ('axes.titlesize', 'x-large'),
-            ('axes.labelsize', 'large'),
-            ('axes.labelcolor', '#555555'),
-            ('axes.axisbelow', True),
-            ('axes.grid', True),
-            ('axes.prop_cycle', cycler('color', ['#6792E0', '#27ae60', '#c44e52', '#975CC3', '#ff914d', '#77BEDB',
-                                                 '#303030', '#4168B7', '#93B851', '#e74c3c', '#bc89e0', '#ff711a',
-                                                 '#3498db', '#6C7A89'])),
-            ('legend.fontsize', 'small'),
-            ('legend.fancybox', False),
-            ('xtick.color', '#707070'),
-            ('ytick.color', '#707070'),
-            ('grid.color', '#606060'),
-            ('grid.linestyle', '--'),
-            ('grid.linewidth', 0.5),
-            ('grid.alpha', 0.3),
-            ('figure.figsize', [8.0, 5.0]),
-            ('figure.dpi', 80.0),
-            ('figure.facecolor', '#ffffff'),
-            ('figure.edgecolor', '#ffffff'),
-            ('figure.subplot.bottom', 0.1)
-        ]
-
         @line_magic
         def alphalab(self, line: str):
             """
             QUBE framework initialization
             """
-            
             import os
             from qube.configs.Properties import get_root_dir
             import matplotlib
@@ -114,19 +114,19 @@ if runtime_env() in ['notebook', 'shell']:
             tpl_path = os.path.join(get_root_dir(), "qube_nb_magic_init.py")
             with open(tpl_path, 'r') as myfile:
                 s = myfile.read()
-                
+
             exec(s, self.shell.user_ns)
 
             # setup more funcy mpl theme instead of ugly default
             if line:
                 if 'dark' in line.lower():
                     pio.templates.default = "plotly_dark"
-                    for (k, v) in QubeMagics.DARK_MPL_THEME:
+                    for (k, v) in DARK_MATLPLOT_THEME:
                         matplotlib.rcParams[k] = v
 
                 elif 'light' in line.lower():
                     pio.templates.default = "plotly_white"
-                    for (k, v) in QubeMagics.LIGHT_MPL_THEME:
+                    for (k, v) in LIGHT_MATPLOT_THEME:
                         matplotlib.rcParams[k] = v
 
         def _get_manager(self):
@@ -205,6 +205,7 @@ if runtime_env() in ['notebook', 'shell']:
             for p in m.active_children():
                 if line and p.name.startswith(line):
                     p.terminate()
+
 
     # registering magic here
     get_ipython().register_magics(QubeMagics)

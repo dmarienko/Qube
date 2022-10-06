@@ -8,11 +8,10 @@ from os.path import join
 import numpy as np
 import pandas as pd
 import plotly
-import plotly.io as pio
 import yaml
 from dotenv import load_dotenv
 
-from qube import QubeMagics
+from qube import DARK_MATLPLOT_THEME
 from qube.booster.utils import b_ls, b_ld
 
 from flask import Flask, render_template, request
@@ -64,7 +63,7 @@ def __install_charts_theme():
         import matplotlib
         import plotly.io as pio
         pio.templates.default = "plotly_dark"
-        for (k, v) in QubeMagics.DARK_MPL_THEME:
+        for (k, v) in DARK_MATLPLOT_THEME:
             matplotlib.rcParams[k] = v
         __dark_theme_installed = True
 
