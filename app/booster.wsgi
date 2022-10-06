@@ -32,9 +32,6 @@ sys.path[:0] = new_sys_path
 if debug:
     print(f' >>> start application loading, cwd : {os.getcwd()} ')
 
-# sys.path.insert(0, '/var/www/booster')
-
 from qube.booster.app.boo import app as application
-
 if debug:
     print(f' >>> DONE')

@@ -8,6 +8,7 @@ from os.path import join
 import numpy as np
 import pandas as pd
 import plotly
+import plotly.io as pio
 import yaml
 from dotenv import load_dotenv
 
@@ -24,7 +25,6 @@ from qube.booster.app.reports import (
 from qube.booster.app.signal_viewer import show_signals
 from qube.charting.lookinglass import LookingGlass
 
-
 DEFAULT_TIMEFRAME = '15Min'
 DEBUG = True
 BOOSTER_CONFIG_PATH = '/var/appliedalpha/booster/'
@@ -32,6 +32,7 @@ BOOSTER_PROJECT_CONFIGS_FILE = f'{BOOSTER_CONFIG_PATH}/booster.yml'
 BOOSTER_APP_CONFIG_FILE = join(BOOSTER_CONFIG_PATH, 'config.cfg')
 
 sys.stdout = sys.stderr
+pio.templates.default = "plotly_dark"
 app = Flask(__name__)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -118,15 +119,19 @@ def collect_all_portfolio_experiments(sort_by_time=True):
 @app.route('/')
 def main_index():
     report = '<table><tr><th class="index-page">Project</th><th class="index-page">Description</th></tr>'
-    projects = collect_all_projects()
-    for p, pdata in projects.items():
-        report += f"<tr><td class='index-page'> <a href='report/{p.upper()}'>{p.upper()} </a> </td><td class='index-page'>{pdata.desc if pdata.desc is not None else ''}</td><tr>"
-    report += '</table>'
+    try:
+        projects = collect_all_projects()
+        for p, pdata in projects.items():
+            report += f"<tr><td class='index-page'> <a href='report/{p.upper()}'>{p.upper()} </a> </td><td class='index-page'>{pdata.desc if pdata.desc is not None else ''}</td><tr>"
+        report += '</table>'
+    except Exception as e:
+        trace = ''
+        if DEBUG:
+            import traceback
+            trace = traceback.format_exc().replace('\n', '<br/>')
+        report = f"<h2><font color='red'>Exception: {str(e)} / </font> </h2><br/> {trace}"
 
-    return render_template(
-        'index.html',
-        main_report=report
-    )
+    return render_template('index.html', main_report=report)
 
 
 @app.route('/experiments/')
@@ -157,8 +162,8 @@ def portfolios_index():
                     stat = red('RUN') + f'&nbsp; {progress[0]:.2f}%/{progress[1]}'
 
                 # detailed reports links
-                links = f"<a href='experiments/report/{p}/{pdata.experiment}?full=false' target='_blank' >{pdata.experiment}</a>"
-                links += f"<a href='experiments/report_chart/{p}/{pdata.experiment}' target='_blank'> | <font color='#405030'>Chart</font></a>"
+                links = f"<a href='report/{p}/{pdata.experiment}?full=false' target='_blank' >{pdata.experiment}</a>"
+                links += f"<a href='report_chart/{p}/{pdata.experiment}' target='_blank'> | <font color='#405030'>Chart</font></a>"
 
                 report += tr(
                     td(bold(p) if _is_first else '&nbsp;' * 2 + '&nbsp;.' * 5),
@@ -177,10 +182,7 @@ def portfolios_index():
             trace = traceback.format_exc().replace('\n', '<br/>')
         report = f"<h2><font color='red'>Exception: {str(e)} / </font> </h2><br/> {trace}"
 
-    return render_template(
-        'experiments_index.html',
-        main_report=report
-    )
+    return render_template('experiments_index.html', main_report=report)
 
 
 @app.route('/experiments/report_chart/<project>/<experiment>')
