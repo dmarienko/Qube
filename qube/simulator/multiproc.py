@@ -108,9 +108,11 @@ class Task:
         self.args = args
         self.kwargs = kwargs
         self.save_to_storage = True
+        self.storage_db = DB_SIMULATION_RESULTS
 
-    def save(self, save: bool):
+    def save(self, save: bool, storage=DB_SIMULATION_RESULTS):
         self.save_to_storage = save
+        self.storage_db = storage
         return self
 
     def run(self, task_obj, run_name: str, run_id: str, t_id: str, task_name: str, ri: RunningInfoManager):
@@ -148,7 +150,7 @@ class Task:
                                    result=result)
 
         if self.save_to_storage:
-            z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname=DB_SIMULATION_RESULTS)
+            z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname=self.storage_db)
 
         return result_to_return
 

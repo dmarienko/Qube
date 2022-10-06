@@ -14,7 +14,7 @@ from tqdm.auto import tqdm
 from qube.booster.simctrl import OCtrl
 from qube.booster.utils import (
     rm_sim_data, rm_blend_data, check_model_already_exists, class_import, calculate_weights, short_performace_report,
-    average_trades_per_period, b_ld, b_ls, b_del, b_save
+    average_trades_per_period, b_ld, b_ls, b_del, b_save, BOOSTER_DB
 )
 from qube.datasource.loaders import load_data, get_data_time_range
 from qube.quantitative.tools import srows, scols
@@ -649,7 +649,7 @@ class Booster:
             run_tasks(config.project,
                       market.new_simulations_set(
                           config.instrument, task_clazz, parameters[start_sim_number:],
-                          simulation_id_start=start_sim_number
+                          simulation_id_start=start_sim_number, storage_db=BOOSTER_DB
                       ),
                       max_cpus=max_cpus,
                       max_tasks_per_proc=m_optimizer.get('max_tasks_per_proc', 10),
@@ -860,7 +860,7 @@ class Booster:
         for symbol in symbols:
             data_start_date, data_end_date = get_data_time_range(symbol)
             market = Market(broker, start_date, end_date, sprds.get(symbol, 0), load_data)
-            simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0)
+            simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0, storage_db=BOOSTER_DB)
             self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")
             sims_names_by_symbol[symbol] = list(simulations.keys())
             sims = {**sims, **simulations}

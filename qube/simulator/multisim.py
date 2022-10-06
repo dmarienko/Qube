@@ -10,9 +10,9 @@ from sklearn.pipeline import Pipeline
 
 from qube.learn.core.base import MarketDataComposer
 from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
-from qube.simulator.core import Tracker, SimulationResult
-from qube.simulator.multiproc import Task, RunningInfoManager
 from qube.simulator.backtester import backtest
+from qube.simulator.core import Tracker, SimulationResult, DB_SIMULATION_RESULTS
+from qube.simulator.multiproc import Task, RunningInfoManager
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import mstruct, runtime_env
 
@@ -37,7 +37,7 @@ def _type(obj) -> _Types:
     elif isinstance(obj, (Pipeline, BaseEstimator)):
         t = _Types.ESTIMATOR
     elif isinstance(obj, dict):
-        # when tracker has setup for each intrument {str -> Tracker}
+        # when tracker has a setup for each intrument {str -> Tracker}
         if all([isinstance(k, str) & isinstance(v, Tracker) for k, v in obj.items()]):
             t = _Types.TRACKER
         else:
@@ -345,7 +345,7 @@ class _SimulationTrackerTask(Task):
     TODO: signal generator
     """
 
-    def __init__(self, instrument, market_description, tracker_class, *tracker_args, **tracker_kwargs):
+    def __init__(self, instrument, market_description, storage_db, tracker_class, *tracker_args, **tracker_kwargs):
         super().__init__(tracker_class, *tracker_args, **tracker_kwargs)
         self.instrument = instrument
         self.broker = market_description.broker
@@ -353,12 +353,13 @@ class _SimulationTrackerTask(Task):
         self.stop = market_description.stop
         self.spreads = market_description.spreads
         self.tcc = market_description.tcc
+        self.save(True, storage_db)
 
-        # TODO: Temp loader hack !!
+        # TODO: [1] Temp loader hack !!
         self.loader: _LoaderCallable = market_description.loader
 
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
-        # TODO: Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
+        # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
         data = self.loader(self.instrument, start=self.start, end=self.stop).ticks()
 
         s = _recognize({f"{task_name}.{t_id}": tracker_instance}, data, run_name)[0]
@@ -383,11 +384,14 @@ class Market:
             broker=broker, tcc=tcc, loader=data_loader, start=start, stop=stop, spreads=spreads
         )
 
-    def new_simulation(self, instrument, tracker, *tracker_args, **tracker_kwargs):
-        return _SimulationTrackerTask(instrument, self.market_description, tracker, *tracker_args, **tracker_kwargs)
+    def new_simulation(self, instrument, tracker, *tracker_args, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
+        return _SimulationTrackerTask(instrument, self.market_description, storage_db, tracker, *tracker_args,
+                                      **tracker_kwargs)
 
-    def new_simulations_set(self, instrument, tracker, tracker_args_permutations, simulation_id_start=0):
+    def new_simulations_set(self, instrument, tracker, tracker_args_permutations,
+                            simulation_id_start=0, storage_db=DB_SIMULATION_RESULTS):
         return {
-            f'sim.{k}.{instrument}': self.new_simulation(instrument, tracker, *[], **p) for k, p in
+            f'sim.{k}.{instrument}': self.new_simulation(instrument, tracker, *[], **p, storage_db=storage_db) for k, p
+            in
             enumerate(tracker_args_permutations, simulation_id_start)
         }
