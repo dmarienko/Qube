@@ -11,6 +11,8 @@ import plotly
 import yaml
 from dotenv import load_dotenv
 
+from qube import __version__ as QVER
+from qube.booster import __version__ as BVER
 from qube import DARK_MATLPLOT_THEME
 from qube.booster.utils import b_ls, b_ld
 
@@ -30,6 +32,7 @@ DEBUG = True
 BOOSTER_CONFIG_PATH = '/var/appliedalpha/booster/'
 BOOSTER_PROJECT_CONFIGS_FILE = f'{BOOSTER_CONFIG_PATH}/booster.yml'
 BOOSTER_APP_CONFIG_FILE = join(BOOSTER_CONFIG_PATH, 'config.cfg')
+VERSION = QVER + " / " + BVER
 
 sys.stdout = sys.stderr
 __dark_theme_installed = False
@@ -62,7 +65,9 @@ def __install_charts_theme():
     if not __dark_theme_installed:
         import matplotlib
         import plotly.io as pio
+        import plotly.express as px
         pio.templates.default = "plotly_dark"
+        px.defaults.template = "plotly_dark"
         for (k, v) in DARK_MATLPLOT_THEME:
             matplotlib.rcParams[k] = v
         __dark_theme_installed = True
@@ -194,7 +199,7 @@ def portfolios_index():
             trace = traceback.format_exc().replace('\n', '<br/>')
         report = f"<h2><font color='red'>Exception: {str(e)} / </font> </h2><br/> {trace}"
 
-    return render_template('experiments_index.html', main_report=report)
+    return render_template('experiments_index.html', main_report=report, version=VERSION)
 
 
 @app.route('/experiments/report_chart/<project>/<experiment>')
