@@ -1447,3 +1447,27 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
     psar_i, psarbear, psarbull = __psar(ohlc['close'].values, ohlc['high'].values, ohlc['low'].values, iaf, maxaf)
 
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
+
+def fdi(x, e_period = 30):
+    fdi_result = pd.DataFrame()
+    
+    lastBars = x.count().min() - e_period
+    for pos in range(lastBars, 0, -1):
+        priceMax = x[pos:pos+e_period].max()
+        priceMin = x[pos:pos+e_period].min()
+        length = 0
+        priorDiff = 0
+        
+        for iteration in range(e_period - 1):
+            diff = (x.iloc[pos + iteration] - priceMin) / (priceMax - priceMin)
+            if iteration > 0:
+                length += np.power(np.power((diff - priorDiff), 2.0) + (1.0 / math.pow(e_period, 2.0)), 0.5)
+                priorDiff = diff
+        fdi = 1.0 + (np.log(length) + math.log(2.0)) / math.log(2*e_period)
+
+        if not isinstance(fdi, pd.Series):
+            fdi = pd.Series(fdi)
+        fdi.name = x.index[pos]
+        fdi_result = fdi_result.append(fdi)
+        fdi_result.replace([np.inf, -np.inf, np.nan], 0, inplace=True)
+    return fdi_result.values
