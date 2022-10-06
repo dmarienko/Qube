@@ -11,16 +11,12 @@ import plotly
 import yaml
 from dotenv import load_dotenv
 
-from qube.booster.utils import BOOSTER_DB
-
-sys.stdout = sys.stderr
-# sys.path.insert(0, '/var/www/booster/booster')
+from qube.booster.utils import b_ls, b_ld
 
 from flask import Flask, render_template, request
 from flask_basicauth import BasicAuth
 
 from qube.booster.core import Booster
-from qube.utils.nb_functions import z_ls, z_ld
 from qube.utils.utils import mstruct, dict2struct
 from qube.booster.app.reports import (
     BoosterProgressReport, tearsheet_report, get_progress_for, portfolios_parameters_sets, get_experiment_trend_report
@@ -28,12 +24,14 @@ from qube.booster.app.reports import (
 from qube.booster.app.signal_viewer import show_signals
 from qube.charting.lookinglass import LookingGlass
 
+
 DEFAULT_TIMEFRAME = '15Min'
 DEBUG = True
 BOOSTER_CONFIG_PATH = '/var/appliedalpha/booster/'
 BOOSTER_PROJECT_CONFIGS_FILE = f'{BOOSTER_CONFIG_PATH}/booster.yml'
 BOOSTER_APP_CONFIG_FILE = join(BOOSTER_CONFIG_PATH, 'config.cfg')
 
+sys.stdout = sys.stderr
 app = Flask(__name__)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -98,13 +96,13 @@ def collect_all_portfolio_experiments(sort_by_time=True):
     Collect all portfolios experiments
     """
     projects = defaultdict(dict)
-    for p in z_ls('portfolios/_index/.*/.*', dbname=BOOSTER_DB):
+    for p in b_ls('portfolios/_index/.*/.*'):
         ps = p.split('/')
         if len(ps) == 4:
             project = ps[2]
             entry = ps[3]
             dps = projects[project]
-            dps[entry] = dict2struct(z_ld(p, dbname=BOOSTER_DB))
+            dps[entry] = dict2struct(b_ld(p))
 
     if sort_by_time:
         sorted_projects = {}
@@ -253,7 +251,7 @@ def experiment_report(project, experiment):
         # if true we want to see full parameters set
         full_parameters_list = request.args.get('full', 'false').lower() in ['true', '1', 'yes']
 
-        data = z_ld(f'portfolios/{project}/{experiment}', dbname=BOOSTER_DB)
+        data = b_ld(f'portfolios/{project}/{experiment}')
         param_report = ''
 
         def highlight_neg(s):
@@ -467,6 +465,7 @@ def signals_viewer(project, symbol, entry, modelname):
     _end_date = request.args.get('end_date')
 
     try:
+        from qube.utils.nb_functions import z_ld
         global _g
 
         # loading blended report

@@ -7,11 +7,27 @@ from tqdm.auto import tqdm
 from qube.portfolio.allocating import tang_portfolio
 from qube.quantitative.tools import scols
 from qube.simulator.SignalTester import SimulationResult
-from qube.utils.nb_functions import z_ls, z_del
+from qube.utils.nb_functions import z_ls, z_del, z_ld, z_save
 from qube.utils.ui_utils import red, green
 from qube.utils.utils import mstruct
 
 BOOSTER_DB = "booster"
+
+
+def b_ld(path: str):
+    return z_ld(path, dbname=BOOSTER_DB)
+
+
+def b_save(path: str, data):
+    return z_save(path, data, dbname=BOOSTER_DB)
+
+
+def b_ls(query: str):
+    return z_ls(query, dbname=BOOSTER_DB)
+
+
+def b_del(query: str):
+    return z_del(query, dbname=BOOSTER_DB)
 
 
 def class_import(name):
@@ -23,23 +39,22 @@ def class_import(name):
 
 
 def check_model_already_exists(project, model):
-    search_str = f'runs/{project}/.*{model}$'
-    recs = z_ls(search_str, dbname=BOOSTER_DB)
+    recs = b_ls(f'runs/{project}/.*{model}$')
     return len(recs)
 
 
 def rm_sim_data(project, model):
     print(red("REMOVING: ") + f"{project} / {model} data ... ", end='')
-    recs = z_ls(f'runs/{project}/.*{model}$', dbname=BOOSTER_DB)
+    recs = b_ls(f'runs/{project}/.*{model}$')
     for r in tqdm(recs, desc=f"Delete {model}"):
-        z_del(r, dbname=BOOSTER_DB)
-        z_del(r.replace('runs/', 'stats/'), dbname=BOOSTER_DB)
+        b_del(r)
+        b_del(r.replace('runs/', 'stats/'))
     print(green("[OK]"))
 
 
 def rm_blend_data(project, entry_id):
     print(red("REMOVING: ") + f"{project} / {entry_id} bleneded data ... ", end='')
-    z_del(f'blends/{project}/{entry_id}', dbname=BOOSTER_DB)
+    b_del(f'blends/{project}/{entry_id}')
     print(green("[OK]"))
 
 
@@ -136,6 +151,6 @@ def short_performace_report(res: SimulationResult, init_cash, account_transactio
         n_execs=len(res.executions) if res.executions is not None else 0,
         mean_return=prf.mean_return,
         commissions=prf.broker_commissions,
-        # KLR-121: additional metric - average trades per period (month)
+        # additional metric - average trades per period (month)
         avg_trades_month=average_trades_per_period(res.executions, 'BM') if res.executions is not None else 0
     )

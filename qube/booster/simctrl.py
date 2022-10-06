@@ -9,11 +9,10 @@ import numpy as np
 import pandas as pd
 from tqdm.auto import tqdm
 
-from qube.booster.utils import class_import, short_performace_report, BOOSTER_DB
+from qube.booster.utils import class_import, short_performace_report, b_del, b_ld, b_save, b_ls
 from qube.datasource.loaders import load_data
 from qube.portfolio.reports import tearsheet
 from qube.simulator import simulation
-from qube.utils.nb_functions import z_ld, z_save, z_ls, z_del
 from qube.utils.ui_utils import red, green, yellow, blue, ui_progress_bar
 from qube.utils.utils import runtime_env
 
@@ -116,7 +115,7 @@ class ModelView(IReport):
         self.project = project
         self.model = model
         self.sims = sims
-        self.reports_path = f"app/reports/{self.project}/{self.model}"
+        self.reports_path = f"reports/{self.project}/{self.model}"
 
     def run(self, *args, **kwargs):
         print("Not sure what to run here")
@@ -135,12 +134,12 @@ class ModelView(IReport):
         if self.sims:
             print(f'>>> Deleting {len(self.sims)} simulations for {self.project} : {self.model}')
             for s in tqdm(self.sims):
-                z_del(self.spath(s), dbname=BOOSTER_DB)
-                z_del(self.dpath(s), dbname=BOOSTER_DB)
+                b_del(self.spath(s))
+                b_del(self.dpath(s))
             self.sims = []
 
         # delete stored report
-        z_del(self.reports_path, dbname=BOOSTER_DB)
+        b_del(self.reports_path)
 
     def clean(self, min_sharpe, min_gain=-np.inf, min_qr=-np.inf, min_execs=0):
         """
@@ -151,13 +150,15 @@ class ModelView(IReport):
             for s in tqdm(self.sims):
                 s_path = self.spath(s)
                 d_path = self.dpath(s)
-                perf = z_ld(s_path, dbname=BOOSTER_DB)
+                perf = b_ld(s_path)
                 if perf:
                     try:
-                        if (
-                                perf.sharpe < min_sharpe or perf.gain < min_gain or perf.qr < min_qr or perf.n_execs < min_execs):
-                            z_del(s_path, dbname=BOOSTER_DB)
-                            z_del(d_path, dbname=BOOSTER_DB)
+                        if (perf.sharpe < min_sharpe or
+                                perf.gain < min_gain or
+                                perf.qr < min_qr or
+                                perf.n_execs < min_execs):
+                            b_del(s_path)
+                            b_del(d_path)
                         else:
                             retained.append(s)
                     except Exception as exc:
@@ -180,13 +181,13 @@ class ModelView(IReport):
         return None
 
     def report(self, sharpe=-np.inf, qr=-np.inf, execs=0, init_cash=None, refresh=False):
-        report = z_ld(self.reports_path, dbname=BOOSTER_DB)
+        report = b_ld(self.reports_path)
 
         if report is None or refresh:
             report = {}
             for s in tqdm(self.sims):
                 s_path = self.spath(s)
-                p = z_ld(s_path, dbname=BOOSTER_DB)
+                p = b_ld(s_path)
 
                 if p is None and init_cash is not None and init_cash < 0:
                     p = self.update_stats(self.dpath(s), s_path, init_cash=init_cash)
@@ -197,7 +198,7 @@ class ModelView(IReport):
                 if _s_rep is not None:
                     report[s] = _s_rep
             # save  
-            z_save(self.reports_path, report, dbname=BOOSTER_DB)
+            b_save(self.reports_path, report)
 
         rpt = pd.DataFrame.from_dict(report, orient='index')
         if not rpt.empty:
@@ -215,16 +216,17 @@ class ModelView(IReport):
                     break
 
         sim = self.sims[sim] if isinstance(sim, int) else sim
-        data = z_ld(self.dpath(sim), dbname=BOOSTER_DB)
-        stats = z_ld(self.spath(sim), dbname=BOOSTER_DB)
+        data = b_ld(self.dpath(sim))
+        stats = b_ld(self.spath(sim))
         return SimView(data, stats)
 
     def __truediv__(self, p):
         return self.__getitem__(p)
 
-    def update_stats(self, data_path, stats_path, init_cash, account_transactions=True,
-                     performance_statistics_period=252):
-        sd = z_ld(data_path, dbname=BOOSTER_DB)
+    def update_stats(
+            self, data_path, stats_path, init_cash, account_transactions=True, performance_statistics_period=252
+    ):
+        sd = b_ld(data_path)
         performance = None
         if sd:
             res = sd.result
@@ -237,7 +239,7 @@ class ModelView(IReport):
                 performance.args = task_params
 
                 # save report to DB
-                z_save(stats_path, performance, dbname=BOOSTER_DB)
+                b_save(stats_path, performance)
             except Exception as exc:
                 print(f'>>> Exception during processing {stats_path}: {str(exc)}')
 
@@ -250,7 +252,7 @@ class ModelView(IReport):
         for s in tqdm(self.sims):
             data_path = self.dpath(s)
             stats_path = self.spath(s)
-            stats = z_ld(stats_path, dbname=BOOSTER_DB)
+            stats = b_ld(stats_path)
             if stats is None or force_calc:
                 self.update_stats(data_path, stats_path, init_cash, account_transactions=True,
                                   performance_statistics_period=performance_statistics_period)
@@ -267,7 +269,7 @@ class ModelView(IReport):
         for s in sims:
             data_path = self.dpath(s)
             stats_path = self.spath(s)
-            stats = z_ld(stats_path, dbname=BOOSTER_DB)
+            stats = b_ld(stats_path)
             if stats is None or force_calc:
                 stats = self.update_stats(data_path, stats_path, init_cash, account_transactions=True,
                                           performance_statistics_period=performance_statistics_period)
@@ -323,14 +325,14 @@ class ModelView(IReport):
 
         # clean reports
         cleaned = {k: v for k, v in all_reps.items() if v is not None}
-        z_save(self.reports_path, cleaned, dbname=BOOSTER_DB)
+        b_save(self.reports_path, cleaned)
 
         print('OK')
         return self
 
     def __repr__(self):
         short_rep = f'{len(self.sims)} ' + model_short_report(
-            z_ld(f"reports/{self.project}/{self.model}", dbname=BOOSTER_DB)
+            b_ld(f"reports/{self.project}/{self.model}")
         )
         return f'{self.project} | {self.model} : {short_rep}'
 
@@ -366,7 +368,7 @@ class ProjectModelView:
         reprs = ''
         for i, m in enumerate(self.models_list()):
             v = self.models[m]
-            short_rep = model_short_report(z_ld(f"reports/{self.project}/{m}", dbname=BOOSTER_DB))
+            short_rep = model_short_report(b_ld(f"reports/{self.project}/{m}"))
             _n = green(f'[{i}]'.ljust(7))
             reprs += f'{_n} {(blue(m) + ":").ljust(ml + 2)}\t{len(v)} {short_rep}\n'
         return reprs
@@ -374,14 +376,14 @@ class ProjectModelView:
 
 class OCtrl:
     def projects(self):
-        return list(set([p.split('/')[1] for p in z_ls('runs/.*')]))
+        return list(set([p.split('/')[1] for p in b_ls('runs/.*')]))
 
     def select(self, project: str, model: str = '.*'):
         if any([p in project for p in ['$', '*', '?', '/', "'", '^', '&', '\\']]):
             raise ValueError("Project name must not contain any regular expressions")
 
         search_str = f'runs/{project}/.*' + model if model else ''
-        recs = z_ls(search_str)
+        recs = b_ls(search_str)
         return ProjectModelView(project, recs) if len(recs) > 0 else None
 
     def report(self, *args, **kwargs):

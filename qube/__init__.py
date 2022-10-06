@@ -3,7 +3,7 @@ from . import charting
 from . import datasource
 from . import utils
 
-__version__ = '0.1.9'
+__version__ = '0.1.91'
 
 from qube.utils.utils import runtime_env
 
@@ -20,7 +20,6 @@ if runtime_env() in ['notebook', 'shell']:
     from IPython import get_ipython
 
     from cycler import cycler
-    from glob import glob
     from os.path import isdir, isfile, join, basename, expanduser, relpath
 
     @magics_class
@@ -129,13 +128,6 @@ if runtime_env() in ['notebook', 'shell']:
                     pio.templates.default = "plotly_white"
                     for (k, v) in QubeMagics.LIGHT_MPL_THEME:
                         matplotlib.rcParams[k] = v
-
-        def walk_dir(self, d_path, f_collect, extension='.ipynb'):
-            fls = glob('%s/*' % d_path)
-            [f_collect.append(f) for f in fls if isfile(f) and f.endswith(extension)]
-            dirs = [d for d in fls if isdir(d) and d not in ['.', '..']]
-            for d in dirs:
-                self.walk_dir(d, f_collect, extension)
 
         def _get_manager(self):
             if self.__manager is None:

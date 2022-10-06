@@ -14,14 +14,13 @@ from tqdm.auto import tqdm
 from qube.booster.simctrl import OCtrl
 from qube.booster.utils import (
     rm_sim_data, rm_blend_data, check_model_already_exists, class_import, calculate_weights, short_performace_report,
-    average_trades_per_period, BOOSTER_DB
+    average_trades_per_period, b_ld, b_ls, b_del, b_save
 )
 from qube.datasource.loaders import load_data, get_data_time_range
 from qube.quantitative.tools import srows, scols
 from qube.simulator import simulation, Market
 from qube.simulator.multiproc import run_tasks
 from qube.simulator.utils import permutate_params
-from qube.utils.nb_functions import z_ld, z_ls, z_del, z_save
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import mstruct, dict2struct
 
@@ -90,32 +89,31 @@ class Booster:
     def _ld_data(self, entry_id):
         cfg = self.load_entry_config(entry_id)
         # todo: use another DB (dbname='booster') !!!
-        return z_ld(f"blends/{cfg.project}/{entry_id}", dbname=BOOSTER_DB)
+        return b_ld(f"blends/{cfg.project}/{entry_id}")
 
     def _ld_simulation_stats_data(self, project, sim_id, entry_id):
         # todo: use another DB (dbname='booster') !!!
-        return z_ld(f"stats/{project}/{sim_id}/{entry_id}", dbname=BOOSTER_DB)
+        return b_ld(f"stats/{project}/{sim_id}/{entry_id}")
 
     def _ld_simulation_run_data(self, project, sim_id, entry_id):
         # todo: use another DB (dbname='booster') !!!
-        return z_ld(f"runs/{project}/{sim_id}/{entry_id}", dbname=BOOSTER_DB)
+        return b_ld(f"runs/{project}/{sim_id}/{entry_id}")
 
     def _save_data(self, entry_id, data):
         cfg = self.load_entry_config(entry_id)
-        # todo: use another DB (dbname='booster') !!!
-        return z_save(f"blends/{cfg.project}/{entry_id}", data, dbname=BOOSTER_DB)
+        return b_save(f"blends/{cfg.project}/{entry_id}", data)
 
     def _save_portfolio_task_report(self, project: str, entry_id: str, data: dict):
         # todo: use another DB (dbname='booster') !!!
         path = f"portfolios/{project}/{entry_id}"
-        z_save(f'portfolios/_index/{project}/{entry_id}', {
+        b_save(f'portfolios/_index/{project}/{entry_id}', {
             'path': path,
             'experiment': entry_id,
             'description': data.get('description', ''),
             'timestamp': data.get('timestamp', ''),
             'status': data.get('status', '???')
-        }, dbname=BOOSTER_DB)
-        return z_save(path, data, dbname=BOOSTER_DB)
+        })
+        return b_save(path, data)
 
     def _preproc(self, xs):
         """
@@ -201,7 +199,7 @@ class Booster:
 
             # delete report
             if hasattr(sims, 'reports_path') and sims.reports_path:
-                z_del(sims.reports_path, dbname=BOOSTER_DB)
+                b_del(sims.reports_path)
 
             print('done')
 
@@ -363,7 +361,7 @@ class Booster:
             raise ValueError(f"Can't find 'blender' section in '{entry_id}'")
 
         # load blended information from DB
-        blends = z_ld(f"blends/{config.project}/{entry_id}", dbname=BOOSTER_DB)
+        blends = b_ld(f"blends/{config.project}/{entry_id}")
         if blends is None:
             raise ValueError(f"Can't find blended results for '{entry_id}' probably you need to run 'blend' task first")
 
@@ -760,7 +758,7 @@ class Booster:
             # --- run statistics calculations if requested or needed
             if force_performace_calculations or b_cfg.get('recalculate', False) or not hasattr(
                     sims, 'reports_path'
-            ) or not z_ld(sims.reports_path, dbname=BOOSTER_DB):
+            ) or not b_ld(sims.reports_path):
                 self._logger.info(f"Calculating performance stats for {m} ...")
                 sims // pobj.stats(capital, force_calc=True, performance_statistics_period=DEFAULT_STATS_PERIOD)
 
@@ -788,16 +786,16 @@ class Booster:
 
     def delete_previous_portfolio_runs(self, project, entry, drop_index=False):
         # drop runs
-        prev_runs = z_ls(f'runs/{project}/.*/{entry}_PORTFOLIO', dbname=BOOSTER_DB)
+        prev_runs = b_ls(f'runs/{project}/.*/{entry}_PORTFOLIO')
         if prev_runs:
             for s in tqdm(prev_runs):
-                z_del(s, dbname=BOOSTER_DB)
+                b_del(s)
         # drop final combined stats
-        z_del(f'portfolios/{project}/{entry}', dbname=BOOSTER_DB)
+        b_del(f'portfolios/{project}/{entry}')
 
         # drop index if requested
         if drop_index:
-            z_del(f'portfolios/_index/{project}/{entry}', dbname=BOOSTER_DB)
+            b_del(f'portfolios/_index/{project}/{entry}')
 
     def task_portfolio(self, entry_id: str, run=True, stats=True, capital=None):
         """

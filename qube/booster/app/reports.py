@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from qube.booster.core import Booster
+from qube.booster.utils import b_ld
 from qube.portfolio.drawdown import absmaxdd
 from qube.portfolio.performance import (
     portfolio_stats, combine_portfolios, sharpe_ratio, cagr, sortino_ratio, calmar_ratio, qr
@@ -11,7 +12,6 @@ from qube.portfolio.reports import tearsheet
 from qube.quantitative.tools import scols, srows
 from qube.simulator.multiproc import RunningInfoManager
 from qube.simulator.utils import __instantiate_simulated_broker as inst_sim_brok
-from qube.utils.nb_functions import z_ld
 from qube.utils.utils import mstruct
 
 PERFORMANCE_PERIOD = 365
@@ -91,7 +91,7 @@ class BoosterProgressReport:
             atpm = np.nan
             nexecs = 0
 
-            r = z_ld(f'blends/{model}/{_n}')
+            r = b_ld(f'blends/{model}/{_n}')
             ns = {}
             if r is None:
                 ns, status = self.check_running_status(_n)
@@ -157,7 +157,7 @@ class BoosterProgressReport:
         return airspeed.Template(h_table).merge(tmpl)
 
     def show_detailed_report(self, project, symbol, entry):
-        b_report = z_ld(f'blends/{project}/{entry}')
+        b_report = b_ld(f'blends/{project}/{entry}')
         if b_report is None:
             return "<h2>Data is not ready yet</h2>"
 
@@ -181,7 +181,7 @@ class BoosterProgressReport:
         """
         m_perfs = {}
 
-        b_report = z_ld(f'blends/{project}/{entry}')
+        b_report = b_ld(f'blends/{project}/{entry}')
         if b_report is None:
             return mstruct(models_parameters="---", models_performance=m_perfs, models_names=['none'])
 
@@ -247,7 +247,7 @@ def get_portfolio_run_info(project, entry):
     """
     Returns info about portfolio run
     """
-    return z_ld(f'portfolios/{project}/{entry}')
+    return b_ld(f'portfolios/{project}/{entry}')
 
 
 def get_combined_portfolio(project, entry, set_name):
@@ -256,13 +256,13 @@ def get_combined_portfolio(project, entry, set_name):
     """
     data = None
     path = f'portfolios/{project}/{entry}'
-    p_data = z_ld(path)
+    p_data = b_ld(path)
 
     # - combine from runs
     if p_data is not None:
         comb_portfolio = []
         for sp in p_data['simulations'][set_name].values():
-            data = z_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
+            data = b_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
             comb_portfolio.append(data.result.portfolio)
         data = scols(*comb_portfolio)
     return data
@@ -274,13 +274,13 @@ def get_combined_executions(project, entry, set_name):
     """
     data = None
     path = f'portfolios/{project}/{entry}'
-    p_data = z_ld(path)
+    p_data = b_ld(path)
 
     # - combine from runs
     if p_data is not None:
         comb_portfolio = []
         for sp in p_data['simulations'][set_name].values():
-            data = z_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
+            data = b_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
             comb_portfolio.append(data.result.executions)
         data = srows(*comb_portfolio)
     return data
@@ -293,7 +293,7 @@ def get_runs_portfolio(project, entry, sim_path):
     data = None
     m_params = {}
     path = f'runs/{project}/{sim_path}/{entry}'
-    p_data = z_ld(path)
+    p_data = b_ld(path)
     if p_data is not None and hasattr(p_data, 'result'):
         data = p_data.result
         m_params = p_data.task_args[1] if hasattr(p_data, 'task_args') else {}
@@ -304,7 +304,7 @@ def get_experiment_trend_report(project, experiment):
     """
     Portfolio experiments as chart
     """
-    data = z_ld(f'portfolios/{project}/{experiment}')
+    data = b_ld(f'portfolios/{project}/{experiment}')
     p_sets = portfolios_parameters_sets(data, False)
     chart = {}
     for sn in p_sets.columns:

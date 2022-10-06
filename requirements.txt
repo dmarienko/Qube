@@ -15,6 +15,7 @@ airspeed
 flask_jsonpify
 Flask-BasicAuth
 python-dotenv
+cycler
 ntplib
 bs4
 dill
