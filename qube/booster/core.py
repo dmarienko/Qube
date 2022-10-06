@@ -794,6 +794,13 @@ class Booster:
         if prev_runs:
             for s in tqdm(prev_runs):
                 b_del(s)
+
+        # drop stats
+        prev_stats = b_ls(f'stats/{project}/.*/{entry}_PORTFOLIO')
+        if prev_stats:
+            for s in tqdm(prev_stats):
+                b_del(s)
+
         # drop final combined stats
         b_del(f'portfolios/{project}/{entry}')
 
