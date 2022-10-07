@@ -3,7 +3,7 @@ from . import charting
 from . import datasource
 from . import utils
 
-__version__ = '0.1.9901'
+__version__ = '0.1.9902'
 
 from qube.utils.utils import runtime_env
 from cycler import cycler
@@ -128,6 +128,10 @@ if runtime_env() in ['notebook', 'shell']:
                     pio.templates.default = "plotly_white"
                     for (k, v) in LIGHT_MATPLOT_THEME:
                         matplotlib.rcParams[k] = v
+
+            # install additional plotly helpers
+            from qube.charting.plot_helpers import install_plotly_helpers
+            install_plotly_helpers()
 
         def _get_manager(self):
             if self.__manager is None:

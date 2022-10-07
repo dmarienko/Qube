@@ -3,91 +3,20 @@ import json
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # - some plotly customizations
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 import plotly.io as pio
-from plotly.graph_objs.graph_objs import FigureWidget
 
 from qube.charting.lookinglass import LookingGlass
+from qube.charting.plot_helpers import install_plotly_helpers
 from qube.quantitative.tools import infer_series_frequency, ohlc_resample
 from qube.utils.utils import dict2struct
 
-pio.templates.default = "plotly_dark"
-
-
-def rline_(look, x, y, c='red', lw=1):
-    return look.update_layout(shapes=(
-        dict(type="line", xref="x1", yref="y1",
-             x0=pd.Timestamp(x), y0=y, x1=look.data[0]['x'][-1], y1=y,
-             fillcolor=c, opacity=1, line=dict(color=c, width=lw))
-        ,), overwrite=False)
-
-
-def rline(look, x, y, c='red', lw=1, ls=None):
-    return look.add_shape(go.layout.Shape(type="line",
-                                          x0=pd.Timestamp(x), x1=look.data[0]['x'][-1], y0=y, y1=y,
-                                          xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
-
-
-def rlinex(look, x0, x1, y, c='red', lw=1, ls=None):
-    return look.add_shape(go.layout.Shape(type="line",
-                                          x0=pd.Timestamp(x0), x1=pd.Timestamp(x1), y0=y, y1=y,
-                                          xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
-
-
-def dliney(look, x0, y0, y1, c='red', lw=1, ls=None):
-    return look.add_shape(go.layout.Shape(type="line",
-                                          x0=pd.Timestamp(x0), x1=pd.Timestamp(x0), y0=y0, y1=y1,
-                                          xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
-
-
-def vline(look, x, c='yellow', lw=1, ls='dot'):
-    return look.add_shape(go.layout.Shape(type="line",
-                                          x0=pd.Timestamp(x), x1=pd.Timestamp(x), y0=0, y1=1,
-                                          xref='x1', yref='paper', line=dict(width=lw, color=c, dash=ls)))
-
-
-def arrow(look, x2, y2, x1, y1, c='red', text='', lw=1, font=dict(size=8)):
-    return look.add_annotation(x=x1, y=y1, ax=x2, ay=y2, xref='x', yref='y', axref='x', ayref='y', text=text, font=font,
-                               showarrow=True, arrowhead=1, arrowsize=1, arrowwidth=lw, arrowcolor=c)
-
-
-FigureWidget.rline = rline
-FigureWidget.rlinex = rlinex
-FigureWidget.rline_ = rline_
-FigureWidget.vline = vline
-FigureWidget.dliney = dliney
-FigureWidget.arrow = arrow
-
-
-def custom_hover(v, h=600, n=2):
-    return v.update_traces(
-        xaxis="x1"
-    ).update_layout(
-        height=h, hovermode="x unified",
-        showlegend=False,
-        hoverdistance=1000,
-        xaxis={'hoverformat': '%d-%b-%y %H:%M'},
-        yaxis={'hoverformat': f'.{n}f'},
-        dragmode='zoom',
-        newshape=dict(line_color='#f090ff', line_width=1.5, fillcolor='#101010', opacity=0.75),
-        modebar_remove=['lasso', 'select'],
-        modebar_add=['drawline', 'drawopenpath', 'drawcircle', 'drawrect', 'eraseshape'],
-    ).update_xaxes(
-        showspikes=True, spikemode='across',
-        spikesnap='cursor', spikecolor='#306020',
-        spikethickness=1, spikedash='dot'
-    ).update_yaxes(
-        spikesnap='cursor', spikecolor='#306020',
-        tickformat=f".{n}f", spikethickness=1,
-    )
-
-
-FigureWidget.hover = custom_hover
-
 _as_ts = lambda x: pd.Timestamp(x)
+
+pio.templates.default = "plotly_dark"
+install_plotly_helpers()
 
 
 def aslist(o):

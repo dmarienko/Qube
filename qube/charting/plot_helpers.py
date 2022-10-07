@@ -20,80 +20,79 @@ except:
 from qube.utils.DateUtils import DateUtils
 from qube.quantitative.tools import isscalar
 
-try:
-    from plotly.graph_objs.graph_objs import FigureWidget
-    import plotly.graph_objects as go
 
+def install_plotly_helpers():
+    try:
+        from plotly.graph_objs.graph_objs import FigureWidget
+        import plotly.graph_objects as go
 
-    def rline_(look, x, y, c='red', lw=1):
-        """
-        Ray line
-        """
-        return look.update_layout(shapes=(
-            dict(type="line", xref="x1", yref="y1",
-                 x0=pd.Timestamp(x), y0=y, x1=look.data[0]['x'][-1], y1=y,
-                 fillcolor=c, opacity=1, line=dict(color=c, width=lw))), overwrite=False)
+        def rline_(look, x, y, c='red', lw=1):
+            """
+            Ray line
+            """
+            return look.update_layout(shapes=(
+                dict(type="line", xref="x1", yref="y1",
+                     x0=pd.Timestamp(x), y0=y, x1=look.data[0]['x'][-1], y1=y,
+                     fillcolor=c, opacity=1, line=dict(color=c, width=lw))), overwrite=False)
 
+        def rline(look, x, y, c='red', lw=1, ls=None):
+            return look.add_shape(go.layout.Shape(type="line",
+                                                  x0=pd.Timestamp(x), x1=look.data[0]['x'][-1], y0=y, y1=y,
+                                                  xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
 
-    def rline(look, x, y, c='red', lw=1, ls=None):
-        return look.add_shape(go.layout.Shape(type="line",
-                                              x0=pd.Timestamp(x), x1=look.data[0]['x'][-1], y0=y, y1=y,
-                                              xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
+        def rlinex(look, x0, x1, y, c='red', lw=1, ls=None):
+            return look.add_shape(go.layout.Shape(type="line",
+                                                  x0=pd.Timestamp(x0), x1=pd.Timestamp(x1), y0=y, y1=y,
+                                                  xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
 
+        def dliney(look, x0, y0, y1, c='red', lw=1, ls=None):
+            return look.add_shape(go.layout.Shape(type="line",
+                                                  x0=pd.Timestamp(x0), x1=pd.Timestamp(x0), y0=y0, y1=y1,
+                                                  xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
 
-    def rlinex(look, x0, x1, y, c='red', lw=1, ls=None):
-        return look.add_shape(go.layout.Shape(type="line",
-                                              x0=pd.Timestamp(x0), x1=pd.Timestamp(x1), y0=y, y1=y,
-                                              xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
+        def vline(look, x, c='yellow', lw=1, ls='dot'):
+            return look.add_shape(go.layout.Shape(type="line",
+                                                  x0=pd.Timestamp(x), x1=pd.Timestamp(x), y0=0, y1=1,
+                                                  xref='x1', yref='paper', line=dict(width=lw, color=c, dash=ls)))
 
+        def arrow(look, x2, y2, x1, y1, c='red', text='', lw=1, font=dict(size=8)):
+            return look.add_annotation(x=x1, y=y1, ax=x2, ay=y2, xref='x', yref='y', axref='x', ayref='y', text=text,
+                                       font=font,
+                                       showarrow=True, arrowhead=1, arrowsize=1, arrowwidth=lw, arrowcolor=c)
 
-    def dliney(look, x0, y0, y1, c='red', lw=1, ls=None):
-        return look.add_shape(go.layout.Shape(type="line",
-                                              x0=pd.Timestamp(x0), x1=pd.Timestamp(x0), y0=y0, y1=y1,
-                                              xref='x1', yref='y1', line=dict(width=lw, color=c, dash=ls)))
+        def custom_hover(v, h=600, n=2, legend=False, show_info=True):
+            return v.update_traces(
+                xaxis="x1"
+            ).update_layout(
+                height=h, hovermode="x unified",
+                showlegend=legend,
+                hoverdistance=1000 if show_info else 0,
+                xaxis={'hoverformat': '%d-%b-%y %H:%M'},
+                yaxis={'hoverformat': f'.{n}f'},
+                dragmode='zoom',
+                newshape=dict(line_color='yellow', line_width=1.),
+                modebar_add=['drawline', 'drawopenpath', 'drawrect', 'eraseshape'],
+            ).update_xaxes(
+                showspikes=True, spikemode='across',
+                spikesnap='cursor', spikecolor='#306020',
+                spikethickness=1, spikedash='dot'
+            ).update_yaxes(
+                spikesnap='cursor', spikecolor='#306020',
+                tickformat=f".{n}f", spikethickness=1,
+            )
 
+        FigureWidget.hover = custom_hover
+        FigureWidget.rline = rline
+        FigureWidget.rlinex = rlinex
+        FigureWidget.rline_ = rline_
+        FigureWidget.vline = vline
+        FigureWidget.dliney = dliney
+        FigureWidget.arrow = arrow
+    except:
+        print(" >>> Cant attach helpers to plotly::FigureWidget - probably it isn't installed !")
 
-    def vline(look, x, c='yellow', lw=1, ls='dot'):
-        return look.add_shape(go.layout.Shape(type="line",
-                                              x0=pd.Timestamp(x), x1=pd.Timestamp(x), y0=0, y1=1,
-                                              xref='x1', yref='paper', line=dict(width=lw, color=c, dash=ls)))
-
-
-    def arrow(look, x2, y2, x1, y1, c='red', text='', lw=1, font=dict(size=8)):
-        return look.add_annotation(x=x1, y=y1, ax=x2, ay=y2, xref='x', yref='y', axref='x', ayref='y', text=text,
-                                   font=font,
-                                   showarrow=True, arrowhead=1, arrowsize=1, arrowwidth=lw, arrowcolor=c)
-
-
-    def custom_hover(v, h=600, n=2, legend=False, show_info=True):
-        return v.update_traces(
-            xaxis="x1"
-        ).update_layout(
-            height=h, hovermode="x unified",
-            showlegend=legend,
-            hoverdistance=1000 if show_info else 0,
-            xaxis={'hoverformat': '%d-%b-%y %H:%M'},
-            yaxis={'hoverformat': f'.{n}f'}
-        ).update_xaxes(
-            showspikes=True, spikemode='across',
-            spikesnap='cursor', spikecolor='#306020',
-            spikethickness=1, spikedash='dot'
-        ).update_yaxes(
-            spikesnap='cursor', spikecolor='#306020',
-            tickformat=f".{n}f", spikethickness=1,
-        )
-
-
-    FigureWidget.hover = custom_hover
-    FigureWidget.rline = rline
-    FigureWidget.rlinex = rlinex
-    FigureWidget.rline_ = rline_
-    FigureWidget.vline = vline
-    FigureWidget.dliney = dliney
-    FigureWidget.arrow = arrow
-
-except:
-    print(" >>> Cant attach helpers to plotly::FigureWidget - probably it isn't installed !")
+# - install plotly helpers
+# install_plotly_helpers()
 
 
 def multiplot(frame: pd.DataFrame, names: Union[List, Tuple, str] = None, pos=None, figsize=None,
