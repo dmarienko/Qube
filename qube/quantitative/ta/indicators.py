@@ -1452,7 +1452,7 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
 def fdi(x, e_period = 30):
     if isinstance(x, (pd.DataFrame, pd.Series)):
         x = x.values
-    return __fdi(x, e_period)
+    return _fdi(x, e_period)
 
 # @njit
 def _fdi(x, e_period = 30):
