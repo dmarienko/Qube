@@ -3,6 +3,7 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
+import math
 import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS
 
