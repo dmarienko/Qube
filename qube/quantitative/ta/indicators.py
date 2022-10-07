@@ -1449,7 +1449,7 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
 
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
 
-def fdi(x, e_period = 30):
+def fdi_2(x, e_period = 30):
     return _fdi(x.values, e_period)
 
 # @njit
@@ -1463,7 +1463,7 @@ def _fdi(x, e_period = 30):
     
         diff = (work_data.T - priceMin) / (priceMax - priceMin)
         length = np.power(np.power(np.diff(diff.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
-        length = sum(length)
+        length = sum(length[:-1])
 
         fdi = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2*e_period)
 
