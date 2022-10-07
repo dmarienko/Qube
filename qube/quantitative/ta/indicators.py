@@ -1450,25 +1450,29 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
 
 def fdi(x, e_period = 30):
-    fdi_result = pd.DataFrame()
-    
-    lastBars = x.count().min() - e_period
-    for pos in range(lastBars, 0, -1):
-        priceMax = x[pos:pos+e_period].max()
-        priceMin = x[pos:pos+e_period].min()
+    return _fdi(x.values, e_period)
+
+# @njit
+def _fdi(x, e_period = 30):
+    fdi_result = None
+    for work_data in running_view(x, e_period, 0):
+        priceMax = work_data.T.max(axis=0)
+        priceMin = work_data.T.min(axis=0)
         length = 0
         priorDiff = 0
-        
-        for iteration in range(e_period - 1):
-            diff = (x.iloc[pos + iteration] - priceMin) / (priceMax - priceMin)
-            if iteration > 0:
-                length += np.power(np.power((diff - priorDiff), 2.0) + (1.0 / math.pow(e_period, 2.0)), 0.5)
-                priorDiff = diff
-        fdi = 1.0 + (np.log(length) + math.log(2.0)) / math.log(2*e_period)
+    
+        diff = (work_data.T - priceMin) / (priceMax - priceMin)
+        length = np.power(np.power(np.diff(diff.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
+        length = sum(length)
 
-        if not isinstance(fdi, pd.Series):
-            fdi = pd.Series(fdi)
-        fdi.name = x.index[pos]
-        fdi_result = fdi_result.append(fdi)
-        fdi_result.replace([np.inf, -np.inf, np.nan], 0, inplace=True)
-    return fdi_result.values
+        fdi = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2*e_period)
+
+        if type(fdi) != np.array:
+            fdi = np.array([fdi])
+        
+        if fdi_result is None:
+            fdi_result = fdi.copy()
+        else:
+            fdi_result = np.vstack([fdi_result, fdi])
+    fdi_result[np.isinf(fdi_result)] = 0
+    return fdi_result
