@@ -1449,8 +1449,10 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
 
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
 
-def fdi_2(x, e_period = 30):
-    return _fdi(x.values, e_period)
+def fdi(x, e_period = 30):
+    if isinstance(x, (pd.DataFrame, pd.Series)):
+        x = x.values
+    return __fdi(x, e_period)
 
 # @njit
 def _fdi(x, e_period = 30):
