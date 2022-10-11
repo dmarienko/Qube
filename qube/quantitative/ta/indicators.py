@@ -1449,7 +1449,7 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
 
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
 
-def fdi(x, e_period = 30):
+def fdi(x: Union[pd.Series, pd.DataFrame], e_period = 30):
     if isinstance(x, (pd.DataFrame, pd.Series)):
         x = x.values
     fdi_result = None
@@ -1475,7 +1475,7 @@ def fdi(x, e_period = 30):
     fdi_result[np.isinf(fdi_result)] = 0
     return fdi_result
 
-def fdi_numba(x, e_period = 30):
+def fdi_numba(x: Union[pd.Series, pd.DataFrame], e_period = 30) -> np.ndarray:
     len_shape = 2
     if isinstance(x, (pd.DataFrame, pd.Series)):
         x = x.values
@@ -1492,7 +1492,7 @@ def fdi_numba(x, e_period = 30):
     return fdi_result
 
 @njit
-def _fdi(work_data, e_period = 30, shape_len = 1):
+def _fdi(work_data, e_period = 30, shape_len = 1) -> np.ndarray:
     idx = np.argmax(work_data, -1)
     flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()
     priceMax = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
