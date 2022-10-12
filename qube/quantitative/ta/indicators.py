@@ -1457,7 +1457,7 @@ def fdi(x: Union[pd.Series, pd.DataFrame], e_period=30):
         price_max = work_data.T.max(axis=0)
         price_min = work_data.T.min(axis=0)
         length = 0
-    
+
         diff = (work_data.T - price_min) / (price_max - price_min)
         length = np.power(np.power(np.diff(diff.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
         length = np.sum(length[1:], 0)
@@ -1466,7 +1466,7 @@ def fdi(x: Union[pd.Series, pd.DataFrame], e_period=30):
 
         if type(fdi_vs) != np.array:
             fdi_vs = np.array([fdi_vs])
-        
+
         if fdi_result is None:
             fdi_result = fdi_vs.copy()
         else:
@@ -1503,7 +1503,7 @@ def _fdi(work_data, e_period=30, shape_len=1) -> np.ndarray:
     idx = np.argmin(work_data, -1)
     flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()
     price_min = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
-    
+
     length = 0
 
     if shape_len == 1:
