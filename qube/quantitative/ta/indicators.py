@@ -3,7 +3,6 @@ from typing import Union
 
 import numpy as np
 import pandas as pd
-import math
 import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS
 
@@ -1449,69 +1448,71 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
 
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
 
-def fdi(x: Union[pd.Series, pd.DataFrame], e_period = 30):
+
+def fdi(x: Union[pd.Series, pd.DataFrame], e_period=30):
     if isinstance(x, (pd.DataFrame, pd.Series)):
         x = x.values
     fdi_result = None
     for work_data in running_view(x, e_period, 0):
-        priceMax = work_data.T.max(axis=0)
-        priceMin = work_data.T.min(axis=0)
+        price_max = work_data.T.max(axis=0)
+        price_min = work_data.T.min(axis=0)
         length = 0
-        priorDiff = 0
-    
-        diff = (work_data.T - priceMin) / (priceMax - priceMin)
+        prior_diff = 0
+
+        diff = (work_data.T - price_min) / (price_max - price_min)
         length = np.power(np.power(np.diff(diff.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
         length = np.sum(length[:-1], 0)
 
-        fdi = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2*e_period)
+        fdi_vs = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2 * e_period)
 
-        if type(fdi) != np.array:
-            fdi = np.array([fdi])
-        
+        if type(fdi_vs) != np.array:
+            fdi_vs = np.array([fdi_vs])
+
         if fdi_result is None:
-            fdi_result = fdi.copy()
+            fdi_result = fdi_vs.copy()
         else:
-            fdi_result = np.vstack([fdi_result, fdi])
+            fdi_result = np.vstack([fdi_result, fdi_vs])
     fdi_result[np.isinf(fdi_result)] = 0
     return fdi_result
 
-def fdi_numba(x: Union[pd.Series, pd.DataFrame], e_period = 30) -> np.ndarray:
+
+def fdi_numba(x: Union[pd.Series, pd.DataFrame], e_period=30) -> np.ndarray:
     len_shape = 2
     if isinstance(x, (pd.DataFrame, pd.Series)):
         x = x.values
     if len(x.shape) == 1:
         len_shape = 1
-        x = x.reshape(x.shape[0],1)
+        x = x.reshape(x.shape[0], 1)
     fdi_result = None
     for work_data in running_view(x, e_period, 0):
         if fdi_result is None:
             fdi_result = _fdi(work_data, e_period, len_shape)
         else:
             fdi_result = np.vstack([fdi_result, _fdi(work_data, e_period, len_shape)])
-    fdi_result[np.isinf(fdi_result)] = 0    
+    fdi_result[np.isinf(fdi_result)] = 0
     return fdi_result
 
+
 @njit
-def _fdi(work_data, e_period = 30, shape_len = 1) -> np.ndarray:
+def _fdi(work_data, e_period=30, shape_len=1) -> np.ndarray:
     idx = np.argmax(work_data, -1)
     flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()
-    priceMax = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
+    price_max = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
     idx = np.argmin(work_data, -1)
     flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()
-    priceMin = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
-   
+    price_min = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
+
     length = 0
-    priorDiff = 0
+    prior_diff = 0
 
     if shape_len == 1:
-        diffs = (work_data - priceMin) / (priceMax - priceMin)
+        diffs = (work_data - price_min) / (price_max - price_min)
         length = np.power(np.power(np.diff(diffs).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
     else:
-        diffs = (work_data.T - priceMin) / (priceMax - priceMin)
+        diffs = (work_data.T - price_min) / (price_max - price_min)
         length = np.power(np.power(np.diff(diffs.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
     length = np.sum(length[:-1], 0)
 
-    fdi = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2*e_period)
+    fdi_vs = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2 * e_period)
 
-    return fdi
-
+    return fdi_vs

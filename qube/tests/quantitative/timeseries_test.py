@@ -4,10 +4,11 @@ import numpy as np
 import pandas as pd
 from numpy import nan
 
+from qube.learn import debug_output
 from qube.quantitative.ta.indicators import (
-    ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, pivot_point
+    ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, pivot_point, fdi, fdi_numba
 )
-from qube.quantitative.tools import add_constant, ohlc_resample
+from qube.quantitative.tools import add_constant, ohlc_resample, nans
 
 
 class TestTimeSeriesUtils(unittest.TestCase):
@@ -129,3 +130,23 @@ class TestTimeSeriesUtils(unittest.TestCase):
 
         first_day = ohlc_resample(data, '1D', resample_tz='EET').loc['2018-12-31 22:00:00']
         self.assertEqual(r.loc['2019-01-01 22:00']['P'], (first_day.high + first_day.low + first_day.close) / 3)
+
+    def test_fdi(self):
+        mt4data = pd.read_csv("FDI_test.csv", parse_dates=True).replace(-1, np.nan)
+        debug_output(mt4data, "MT4")
+
+        q_fdi = fdi(mt4data.close, 30)
+        q_fdi_nmb = fdi_numba(mt4data.close, 30)
+
+        print(len(mt4data))
+        print(len(q_fdi))
+        print(len(q_fdi_nmb))
+
+        np.testing.assert_almost_equal(q_fdi.flatten(),
+                                       q_fdi_nmb.flatten(), decimal=3)
+
+        np.testing.assert_almost_equal(mt4data.fdi.values,
+                                       q_fdi.flatten(), decimal=3)
+
+        np.testing.assert_almost_equal(mt4data.fdi.values,
+                                       q_fdi_nmb.flatten(), decimal=3)
