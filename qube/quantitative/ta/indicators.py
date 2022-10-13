@@ -1449,41 +1449,30 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
 
 
-def fdi(x: Union[pd.Series, pd.DataFrame], e_period=30):
-    if isinstance(x, (pd.DataFrame, pd.Series)):
-        x = x.values
-    fdi_result = None
-    for work_data in running_view(x, e_period, 0):
-        price_max = work_data.T.max(axis=0)
-        price_min = work_data.T.min(axis=0)
-        length = 0
+@__wrap_dataframe_decorator
+def fdi(x: Union[pd.Series, pd.DataFrame, np.array], e_period=30) -> Union[np.ndarray, pd.Series]:
+    """
+    The Fractal Dimension Index determines the amount of market volatility. Value of 1.5 suggests the market is
+    acting in a completely random fashion. As the indicator deviates from 1.5, the opportunity for earning profits
+    is increased in proportion to the amount of deviation.
 
-        diff = (work_data.T - price_min) / (price_max - price_min)
-        length = np.power(np.power(np.diff(diff.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
-        length = np.sum(length[1:], 0)
+    The indicator < 1.5 when the market is in a trend. And it > 1.5 when there is a high volatility.
+    When the FDI crosses 1.5 upward it means that a trend is finishing, the market becomes erratic and
+    a high volatility is present.
 
-        fdi_vs = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2 * e_period)
+    For more information, see
+    http://www.forex-tsd.com/suggestions-trading-systems/6119-tasc-03-07-fractal-dimension-index.html
 
-        if type(fdi_vs) != np.array:
-            fdi_vs = np.array([fdi_vs])
-
-        if fdi_result is None:
-            fdi_result = fdi_vs.copy()
-        else:
-            fdi_result = np.vstack([fdi_result, fdi_vs])
-    fdi_result[np.isinf(fdi_result)] = 0
-    fdi_result = np.vstack((np.full([e_period, x.shape[-1] if len(x.shape)==2 else 1], np.nan), fdi_result[1:]))
-    return fdi_result
-
-
-def fdi_numba(x: Union[pd.Series, pd.DataFrame], e_period=30) -> np.ndarray:
+    :param x: input series (pd.Series or numpy array)
+    :param e_period: period of indicator (30 is default)
+    """
     len_shape = 2
     data = x.copy()
     if isinstance(data, (pd.DataFrame, pd.Series)):
         data = data.values
     if len(data.shape) == 1:
         len_shape = 1
-        data = data.reshape(data.shape[0],1)
+        data = data.reshape(data.shape[0], 1)
     fdi_result = None
     for work_data in running_view(data, e_period, 0):
         if fdi_result is None:
@@ -1491,7 +1480,7 @@ def fdi_numba(x: Union[pd.Series, pd.DataFrame], e_period=30) -> np.ndarray:
         else:
             fdi_result = np.vstack([fdi_result, _fdi(work_data, e_period, len_shape)])
     fdi_result[np.isinf(fdi_result)] = 0
-    fdi_result = np.vstack((np.full([e_period, x.shape[-1] if len(x.shape)==2 else 1], np.nan), fdi_result[1:]))
+    fdi_result = np.vstack((np.full([e_period, x.shape[-1] if len(x.shape) == 2 else 1], np.nan), fdi_result[1:]))
     return fdi_result
 
 
