@@ -1,13 +1,15 @@
 import unittest
+from typing import Union
 
 import numpy as np
 import pandas as pd
 from numpy import nan
 
+from qube.learn import debug_output
 from qube.quantitative.ta.indicators import (
-    ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, pivot_point
+    ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, pivot_point, fdi, running_view
 )
-from qube.quantitative.tools import add_constant, ohlc_resample
+from qube.quantitative.tools import add_constant, ohlc_resample, nans
 
 
 class TestTimeSeriesUtils(unittest.TestCase):
@@ -129,3 +131,51 @@ class TestTimeSeriesUtils(unittest.TestCase):
 
         first_day = ohlc_resample(data, '1D', resample_tz='EET').loc['2018-12-31 22:00:00']
         self.assertEqual(r.loc['2019-01-01 22:00']['P'], (first_day.high + first_day.low + first_day.close) / 3)
+
+    def test_fdi(self):
+
+        def fdi_classic(x: Union[pd.Series, pd.DataFrame], e_period=30):
+            """
+            Let's keep it here just for reference
+            """
+            if isinstance(x, (pd.DataFrame, pd.Series)):
+                x = x.values
+            fdi_result = None
+            for work_data in running_view(x, e_period, 0):
+                price_max = work_data.T.max(axis=0)
+                price_min = work_data.T.min(axis=0)
+                diff = (work_data.T - price_min) / (price_max - price_min)
+                length = np.power(np.power(np.diff(diff.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
+                length = np.sum(length[1:], 0)
+                fdi_vs = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2 * e_period)
+
+                if type(fdi_vs) != np.array:
+                    fdi_vs = np.array([fdi_vs])
+
+                if fdi_result is None:
+                    fdi_result = fdi_vs.copy()
+                else:
+                    fdi_result = np.vstack([fdi_result, fdi_vs])
+            fdi_result[np.isinf(fdi_result)] = 0
+            fdi_result = np.vstack(
+                (np.full([e_period, x.shape[-1] if len(x.shape) == 2 else 1], np.nan), fdi_result[1:]))
+            return fdi_result
+
+        mt4data = pd.read_csv("FDI_test.csv", parse_dates=True, index_col='time').replace(-1, np.nan)
+        debug_output(mt4data, "MT4")
+
+        q_fdi_reference = fdi_classic(mt4data.close, 30)
+        q_fdi = fdi(mt4data.close, 30)
+
+        print(len(mt4data))
+        print(len(q_fdi_reference))
+        print(len(q_fdi))
+
+        np.testing.assert_almost_equal(q_fdi_reference.flatten(),
+                                       q_fdi.values, decimal=3)
+
+        np.testing.assert_almost_equal(mt4data.fdi.values,
+                                       q_fdi_reference.flatten(), decimal=3)
+
+        np.testing.assert_almost_equal(mt4data.fdi.values,
+                                       q_fdi.values, decimal=3)

@@ -1447,3 +1447,62 @@ def psar(ohlc, iaf=0.02, maxaf=0.2):
     psar_i, psarbear, psarbull = __psar(ohlc['close'].values, ohlc['high'].values, ohlc['low'].values, iaf, maxaf)
 
     return pd.DataFrame({"psar": psar_i, "up": psarbear, "down": psarbull}, index=ohlc.index)
+
+
+@__wrap_dataframe_decorator
+def fdi(x: Union[pd.Series, pd.DataFrame, np.array], e_period=30) -> Union[np.ndarray, pd.Series]:
+    """
+    The Fractal Dimension Index determines the amount of market volatility. Value of 1.5 suggests the market is
+    acting in a completely random fashion. As the indicator deviates from 1.5, the opportunity for earning profits
+    is increased in proportion to the amount of deviation.
+
+    The indicator < 1.5 when the market is in a trend. And it > 1.5 when there is a high volatility.
+    When the FDI crosses 1.5 upward it means that a trend is finishing, the market becomes erratic and
+    a high volatility is present.
+
+    For more information, see
+    http://www.forex-tsd.com/suggestions-trading-systems/6119-tasc-03-07-fractal-dimension-index.html
+
+    :param x: input series (pd.Series or numpy array)
+    :param e_period: period of indicator (30 is default)
+    """
+    len_shape = 2
+    data = x.copy()
+    if isinstance(data, (pd.DataFrame, pd.Series)):
+        data = data.values
+    if len(data.shape) == 1:
+        len_shape = 1
+        data = data.reshape(data.shape[0], 1)
+    fdi_result = None
+    for work_data in running_view(data, e_period, 0):
+        if fdi_result is None:
+            fdi_result = _fdi(work_data, e_period, len_shape)
+        else:
+            fdi_result = np.vstack([fdi_result, _fdi(work_data, e_period, len_shape)])
+    fdi_result[np.isinf(fdi_result)] = 0
+    fdi_result = np.vstack((np.full([e_period, x.shape[-1] if len(x.shape) == 2 else 1], np.nan), fdi_result[1:]))
+    return fdi_result
+
+
+@njit
+def _fdi(work_data, e_period=30, shape_len=1) -> np.ndarray:
+    idx = np.argmax(work_data, -1)
+    flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()
+    price_max = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
+    idx = np.argmin(work_data, -1)
+    flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()
+    price_min = work_data.ravel()[flat_idx].reshape(*work_data.shape[:-1])
+
+    length = 0
+
+    if shape_len == 1:
+        diffs = (work_data - price_min) / (price_max - price_min)
+        length = np.power(np.power(np.diff(diffs).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
+    else:
+        diffs = (work_data.T - price_min) / (price_max - price_min)
+        length = np.power(np.power(np.diff(diffs.T).T, 2.0) + (1.0 / np.power(e_period, 2.0)), 0.5)
+    length = np.sum(length[1:], 0)
+
+    fdi_vs = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2 * e_period)
+
+    return fdi_vs
