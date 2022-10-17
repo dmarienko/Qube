@@ -199,7 +199,7 @@ def recognize_datasource_structure(data_src: DataSource, series_names, start, en
                                                ).get(name.upper())
             except Exception as ex:
                 if logger:
-                    logger.warn("Error loading '%s' instrument: %s" % (name, str(ex)))
+                    logger.warning("Error loading '%s' instrument: %s" % (name, str(ex)))
 
             d0 += timedelta(days=1)
 
@@ -223,7 +223,7 @@ def recognize_datasource_structure(data_src: DataSource, series_names, start, en
             ld_blk_amnt = (end - start) + timedelta(weeks=2)
             freq = timedelta(days=1)
 
-            # if we have more than 1 records try infer frequency
+            # if we have more than 1 records try to infer frequency
             if test_data.shape[0] > 1:
 
                 # try to infer series frequency (timedelta object)
@@ -243,7 +243,7 @@ def recognize_datasource_structure(data_src: DataSource, series_names, start, en
 
             return dsinfo(ld_blk_amnt, ds_type, freq)
 
-    raise ValueError("Can't infer frequency for specified datasource '%s'" % data_src.get_name())
+    raise ValueError(f"Can't infer frequency for specified datasource '{data_src.get_name() if data_src is not None else data_src}'")
 
 
 def __is_list_in(cols: List[str], df: pd.DataFrame):

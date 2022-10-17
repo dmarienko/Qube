@@ -608,6 +608,7 @@ class Booster:
         max_cpus = min(m_optimizer.get('max_cpus', mp.cpu_count() - 1), mp.cpu_count() - 1)
         start_date = m_optimizer.get('start_date', config._get_('start_date'))
         end_date = m_optimizer.get('end_date', config._get_('end_date'))
+        fit_end_date = m_optimizer.get('fit_end_date', config._get_('fit_end_date'))
         task_clazz = class_import(m_optimizer["task"])
 
         # number of simulation to start from 
@@ -647,7 +648,7 @@ class Booster:
 
         def run_fn():
             market = Market(
-                broker, start_date, end_date, m_optimizer.get('spreads', 0),
+                broker, start_date, end_date, fit_end_date, m_optimizer.get('spreads', 0),
                 data_loader=load_data, test_timeframe=simulator_timeframe
             )
             run_tasks(config.project,
@@ -823,6 +824,7 @@ class Booster:
         start_date = config._get_('start_date')
         sprds = config._get_('spreads', {})
         end_date = config._get_('end_date')
+        fit_end_date = config._get_('fit_end_date')
         symbols = [config.instrument] if isinstance(config.instrument, str) else config.instrument
         total_cap = capital * len(symbols)
         simulator_timeframe = config._get_('simulator_timeframe', None)
@@ -871,8 +873,11 @@ class Booster:
         sims_names_by_symbol = dict()
         for symbol in symbols:
             data_start_date, data_end_date = get_data_time_range(symbol)
-            market = Market(broker, start_date, end_date,
-                            sprds.get(symbol, 0), data_loader=load_data,
+            market = Market(broker,
+                            start=start_date, stop=end_date,
+                            fit_stop=fit_end_date,
+                            spreads=sprds.get(symbol, 0),
+                            data_loader=load_data,
                             test_timeframe=simulator_timeframe)
             simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0, storage_db=BOOSTER_DB)
             self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")

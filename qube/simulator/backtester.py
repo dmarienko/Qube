@@ -19,7 +19,7 @@ def backtest_signals_inplace(signals, datasource, broker, spread: Union[float, D
     It's good for fast testing on small set of instruments and history.
     Just for compatibility
 
-    :return: portfolio log dataframe(PnL is splitted)
+    :return: portfolio log dataframe(PnL is split)
     """
     r = backtest(signals, datasource, broker, spread, execution_logger is not None, trackers, verbose, **kwargs)
     return r.portfolio

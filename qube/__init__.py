@@ -3,7 +3,7 @@ from . import charting
 from . import datasource
 from . import utils
 
-__version__ = '0.1.9902'
+__version__ = '0.1.9904'
 
 from qube.utils.utils import runtime_env
 from cycler import cycler
@@ -17,7 +17,8 @@ except Exception as exception:
     print(f" >>> Exception during reloading cython pyx modules {str(exception)}")
 
 DARK_MATLPLOT_THEME = [
-    ('backend', 'module://ipykernel.pylab.backend_inline'),
+    # ('backend', 'module://ipykernel.pylab.backend_inline'),
+    ('backend', 'module://matplotlib_inline.backend_inline'),
     ('interactive', True),
     ('lines.color', '#5050f0'),
     ('text.color', '#d0d0d0'),
@@ -53,7 +54,8 @@ DARK_MATLPLOT_THEME = [
 ]
 
 LIGHT_MATPLOT_THEME = [
-    ('backend', 'module://ipykernel.pylab.backend_inline'),
+    # ('backend', 'module://ipykernel.pylab.backend_inline'),
+    ('backend', 'module://matplotlib_inline.backend_inline'),
     ('interactive', True),
     ('lines.color', '#101010'),
     ('text.color', '#303030'),

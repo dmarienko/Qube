@@ -159,7 +159,7 @@ class DataSource:
         self.__logger.info(msg)
 
     def get_name(self):
-        return self.__connector.get_name()  # or self.data_source_name (actually same values)
+        return self.__connector.get_name() if self.__connector is not None else self.data_source_name
 
     def get_type(self):
         return self.__connector.get_type()

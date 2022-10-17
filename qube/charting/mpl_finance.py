@@ -3,8 +3,11 @@ A collection of functions for analyzing and plotting
 financial data.   User contributions welcome!
 """
 
+import colorsys
 import datetime
 
+import matplotlib.colors as mc
+import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
 from matplotlib import colors as mcolors, pyplot as plt
@@ -13,9 +16,17 @@ from matplotlib.dates import num2date, date2num
 from matplotlib.lines import TICKLEFT, TICKRIGHT, Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.transforms import Affine2D
-from six.moves import xrange, zip
 
 from qube.quantitative.tools import infer_series_frequency
+
+
+def adjust_lightness(color, amount=0.5):
+    try:
+        c = mc.cnames[color]
+    except:
+        c = color
+    c = colorsys.rgb_to_hls(*mc.to_rgb(c))
+    return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
 
 
 def plot_day_summary_oclh(ax, quotes, ticksize=3, colorup='k', colordown='r'):
@@ -273,17 +284,20 @@ def _candlestick(ax, quotes, width=0.2, colorup='k', colordown='r', alpha=1.0, o
 
         if close >= open:
             color = colorup
+            edgecolor = adjust_lightness(color, 1.5)
             lower = open
             height = close - open
         else:
             color = colordown
+            edgecolor = adjust_lightness(color, 1.2)
             lower = close
             height = open - close
 
         vline = Line2D(
             xdata=(t, t), ydata=(low, high),
+            # color=adjust_lightness(color, 1.3),
             color=color,
-            linewidth=0.5,
+            linewidth=1,
             antialiased=True,
         )
 
@@ -292,7 +306,11 @@ def _candlestick(ax, quotes, width=0.2, colorup='k', colordown='r', alpha=1.0, o
             width=width,
             height=height,
             facecolor=color,
-            edgecolor=color,
+            # edgecolor=color,
+            # facecolor=adjust_lightness(color, 1.3),
+            edgecolor=edgecolor,
+            lw=0.75
+
         )
         rect.set_alpha(alpha)
 
@@ -312,18 +330,12 @@ def _check_input(opens, closes, highs, lows, miss=-1):
 
     Parameters
     ----------
-    ax : `Axes`
-        an Axes instance to plot to
-    opens : sequence
-        sequence of opening values
-    highs : sequence
-        sequence of high values
-    lows : sequence
-        sequence of low values
-    closes : sequence
-        sequence of closing values
-    miss : int
-        identifier of the missing data
+    ax : `Axes` an Axes instance to plot to
+    opens : sequence of opening values
+    highs : sequence of high values
+    lows : sequence of low values
+    closes : sequence of closing values
+    miss : identifier of the missing data
 
     Raises
     ------
@@ -372,14 +384,10 @@ def plot_day_summary2_ochl(ax, opens, closes, highs, lows, ticksize=4,
     ----------
     ax : `Axes`
         an Axes instance to plot to
-    opens : sequence
-        sequence of opening values
-    closes : sequence
-        sequence of closing values
-    highs : sequence
-        sequence of high values
-    lows : sequence
-        sequence of low values
+    opens : sequence of opening values
+    closes : sequence of closing values
+    highs : sequence of high values
+    lows : sequence of low values
     ticksize : int
         size of open and close ticks in points
     colorup : color
@@ -434,7 +442,7 @@ def plot_day_summary2_ohlc(ax, opens, highs, lows, closes, ticksize=4,
     _check_input(opens, highs, lows, closes)
 
     rangeSegments = [((i, low), (i, high)) for i, low, high in
-                     zip(xrange(len(lows)), lows, highs) if low != -1]
+                     zip(range(len(lows)), lows, highs) if low != -1]
 
     # the ticks will be from ticksize to 0 in points at the origin and
     # we'll translate these to the i, close location
@@ -445,10 +453,10 @@ def plot_day_summary2_ohlc(ax, opens, highs, lows, closes, ticksize=4,
     closeSegments = [((0, 0), (ticksize, 0))]
 
     offsetsOpen = [(i, open) for i, open in
-                   zip(xrange(len(opens)), opens) if open != -1]
+                   zip(range(len(opens)), opens) if open != -1]
 
     offsetsClose = [(i, close) for i, close in
-                    zip(xrange(len(closes)), closes) if close != -1]
+                    zip(range(len(closes)), closes) if close != -1]
 
     scale = ax.figure.dpi * (1.0 / 72.0)
 
@@ -585,11 +593,11 @@ def candlestick2_ohlc(ax, opens, highs, lows, closes, width=4,
                  (i - delta, close),
                  (i + delta, close),
                  (i + delta, open))
-                for i, open, close in zip(xrange(len(opens)), opens, closes)
+                for i, open, close in zip(range(len(opens)), opens, closes)
                 if open != -1 and close != -1]
 
     rangeSegments = [((i, low), (i, high))
-                     for i, low, high in zip(xrange(len(lows)), lows, highs)
+                     for i, low, high in zip(range(len(lows)), lows, highs)
                      if low != -1]
 
     colorup = mcolors.to_rgba(colorup, alpha)
@@ -874,7 +882,7 @@ def index_bar(ax, vals,
     return barCollection
 
 
-def ohlc_plot(ohlc: pd.DataFrame, width=0, colorup='#209750', colordown='#ef5250', fmt='%H:%M', autofmt=False):
+def ohlc_plot(ohlc: pd.DataFrame, width=0, colorup='#209040', colordown='#e02020', fmt=None, autofmt=False):
     """
     Plot OHLC data frame
 
@@ -882,15 +890,15 @@ def ohlc_plot(ohlc: pd.DataFrame, width=0, colorup='#209750', colordown='#ef5250
     :param width: used bar width
     :param colorup: color of growing bar
     :param colordown: color of declining bar
-    :param autofmt: true if need to aoutoformatting time labels
-    :param fmt: format string for time scale
+    :param autofmt: true if needed to aoutoformatting time labels
+    :param fmt: format string for timescale
     :return: axis
     """
     ohlc_f = ohlc.filter(['open', 'high', 'low', 'close'])
     if ohlc_f.shape[1] != 4:
         raise ValueError("DataFrame ohlc must contain 'open', 'high', 'low', 'close' columns !")
 
-    is_eod = infer_series_frequency(ohlc_f) >= datetime.timedelta(1)
+    _freq = infer_series_frequency(ohlc_f)
 
     # customization of the axis
     f = plt.gcf()
@@ -904,18 +912,28 @@ def ohlc_plot(ohlc: pd.DataFrame, width=0, colorup='#209750', colordown='#ef5250
 
     # auto width
     if width <= 0:
-        width = max(1, pd.Series(ohlc.index).diff().mean().total_seconds() * 0.7) / 24 / 60 / 60
+        width = max(1, _freq.total_seconds() * 0.7) / 24 / 60 / 60
 
     reshaped_data = np.hstack((np.reshape(t_data[:, 0], (-1, 1)), t_data[:, 1:]))
-    candlestick_ohlc(ax, reshaped_data, width=width, colorup=colorup, colordown=colordown);
+    candlestick_ohlc(ax, reshaped_data, width=width, colorup=colorup, colordown=colordown)
 
+    is_eod = _freq >= datetime.timedelta(1)
     if is_eod:
-        ax.set_xticklabels([datetime.date.isoformat(num2date(x)) for x in ax.get_xticks()])
+        ax.xaxis.set_major_locator(mticker.MaxNLocator(15))
+        fmt = '%d-%b-%y' if fmt is None else fmt
     else:
-        ax.set_xticklabels([datetime.date.strftime(num2date(x), fmt) for x in ax.get_xticks()])
+        ax.xaxis.set_major_locator(mticker.MaxNLocator(20))
+        fmt = '%H:%M' if fmt is None else fmt
+
+    ticks_loc = ax.get_xticks().tolist()
+    ax.xaxis.set_major_locator(mticker.FixedLocator(ticks_loc))
+    ax.set_xticklabels([datetime.date.strftime(num2date(x), fmt) for x in ax.get_xticks()])
 
     if autofmt:
         f.autofmt_xdate()
+
+    # - don't want to see grid lines on the top
+    ax.set_axisbelow(True)
 
     return ax
 

@@ -1,20 +1,27 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 
 import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator
+from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
+from sklearn.utils.validation import check_is_fitted
 
-from qube.learn.core.base import MarketDataComposer
+from qube.learn.core.base import MarketDataComposer, SingleInstrumentComposer, PortfolioComposer
 from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
 from qube.simulator.backtester import backtest
 from qube.simulator.core import Tracker, SimulationResult, DB_SIMULATION_RESULTS
 from qube.simulator.multiproc import Task, RunningInfoManager
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import mstruct, runtime_env
+from qube.utils.QubeLogger import getLogger
+
+_LOGGER = getLogger('Simulator')
+
+_has_method = lambda obj, op: callable(getattr(obj, op, None))
 
 
 class _Types(Enum):
@@ -23,6 +30,7 @@ class _Types(Enum):
     TRACKER = 'tracker'
     SIGNAL = 'signal'
     ESTIMATOR = 'estimator'
+    TRACKED_ESTIMATOR = 'tracked_estimator'
 
 
 def _type(obj) -> _Types:
@@ -35,7 +43,11 @@ def _type(obj) -> _Types:
     elif isinstance(obj, (pd.DataFrame, pd.Series)):
         t = _Types.SIGNAL
     elif isinstance(obj, (Pipeline, BaseEstimator)):
-        t = _Types.ESTIMATOR
+        # generator now can have a tracker
+        if _has_method(obj, 'tracker'):
+            t = _Types.TRACKED_ESTIMATOR
+        else:
+            t = _Types.ESTIMATOR
     elif isinstance(obj, dict):
         # when tracker has a setup for each intrument {str -> Tracker}
         if all([isinstance(k, str) & isinstance(v, Tracker) for k, v in obj.items()]):
@@ -77,21 +89,57 @@ def start_stop_sigs(data: Dict[str, pd.DataFrame], start=None, stop=None):
 
 
 class SimSetup:
-    def __init__(self, signals, trackers, experiment_name=None):
+    def __init__(self, signals, trackers, experiment_name=None,
+                 estimator_portfolio_composer: str = "single", used_data='close'):
         self.signals = signals
         self.signal_type: _Types = _type(signals)
         self.trackers = trackers
         self.name = experiment_name
+        self.estimator_portfolio_composer = estimator_portfolio_composer
+        self.used_data = used_data
 
-    def get_signals(self, data, start, stop):
+    def _check_is_fitted(self, estimator):
+        if isinstance(estimator, MarketDataComposer):
+            if not estimator.fitted_predictors_:
+                raise NotFittedError(f"MarketDataComposer '{type(estimator).__name__}' is not fitted ")
+
+        check_is_fitted(estimator)
+
+    def get_signals(self, data, start, stop, fit_stop):
         sx = self.signals
 
         if sx is None or self.signal_type == _Types.UKNOWN:
             return start_stop_sigs(data, start, stop)
 
-        if self.signal_type == _Types.ESTIMATOR:
+        if self.signal_type == _Types.ESTIMATOR or self.signal_type == _Types.TRACKED_ESTIMATOR:
+
+            # - check if we need to wrap estimator into MarketDataComposer
+            if not isinstance(sx, MarketDataComposer) and self.estimator_portfolio_composer is not None:
+
+                # - when we want to process one by one
+                if self.estimator_portfolio_composer == 'single':
+                    sx = SingleInstrumentComposer(sx, column=self.used_data)
+
+                # - when we want to process as portfolio
+                elif self.estimator_portfolio_composer == 'portfolio':
+                    sx = PortfolioComposer(sx, column=self.used_data)
+
+                else:
+                    raise ValueError(f"Unknown estimator composer: {self.estimator_portfolio_composer}")
+
+            # - let's check if this estimator is fitted
+            try:
+                self._check_is_fitted(sx)
+            except NotFittedError as err:
+                # - try to fit predictor
+                _LOGGER.info(f'Fitting estimator {type(sx).__name__} for {start} : {fit_stop} ... ')
+                sx = sx.for_interval(start, fit_stop).fit(data, None)
+
+            # - if we need to select some date range
             if isinstance(sx, MarketDataComposer):
                 sx = sx.for_interval(start, stop)
+
+            # get signals
             sx = sx.predict(data)
 
         _z = slice(start, stop) if start is not None and stop is not None else None
@@ -109,11 +157,17 @@ def _is_generator(obj):
     return _type(obj) == _Types.ESTIMATOR
 
 
+def _is_generator_with_tracker(obj):
+    return _type(obj) == _Types.TRACKED_ESTIMATOR
+
+
 def _is_tracker(obj):
     return _type(obj) == _Types.TRACKER
 
 
-def _recognize(setup, data, name) -> List[SimSetup]:
+def _recognize(setup: Union[Dict, List, Tuple, pd.DataFrame, pd.Series, BaseEstimator, Pipeline],
+               data, name: str,
+               **kwargs) -> List[SimSetup]:
     r = list()
 
     if isinstance(setup, dict):
@@ -136,15 +190,18 @@ def _recognize(setup, data, name) -> List[SimSetup]:
     elif _is_generator(setup):
         r.append(SimSetup(setup, None, name))
 
+    elif _is_generator_with_tracker(setup):
+        r.append(SimSetup(setup, setup.tracker(**kwargs), name))
+
     return r
 
 
-def _proc_run(s: SimSetup, data, start, stop, broker, spreads, progress, tcc: TransactionCostsCalculator):
+def _proc_run(s: SimSetup, data, start, stop, fit_stop, broker, spreads, progress, tcc: TransactionCostsCalculator):
     """
     TODO: need to be running in separate process
     """
     b = backtest(
-        s.get_signals(data, start, stop),
+        s.get_signals(data, start, stop, fit_stop),
         data, broker, spread=spreads, name=s.name, execution_logger=True,
         trackers=s.trackers, progress=progress,
         tcc=tcc
@@ -265,7 +322,7 @@ class __ForeallProgress:
         self.i_in_sim = i
 
 
-def simulation(setup, data, broker, project='', start=None, stop=None, spreads=0,
+def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=None, spreads=0,
                tcc: TransactionCostsCalculator = None) -> MultiResults:
     """
     Simulate different setups
@@ -278,7 +335,7 @@ def simulation(setup, data, broker, project='', start=None, stop=None, spreads=0
         # print(s)
         if True:
             progress.set_descr(s.name)
-            b = _proc_run(s, data, start, stop, broker, spreads, progress, tcc)
+            b = _proc_run(s, data, start, stop, fit_stop, broker, spreads, progress, tcc)
             results.append(b)
 
     progress.set_descr(f'Backtest {project}')
@@ -346,7 +403,8 @@ class MarketDescriptor:
     loader: _LoaderCallable
     start: str
     stop: str
-    spreads: List
+    fit_stop: str
+    spreads: Union[float, Dict[str, float]]
     test_timeframe: str
 
 
@@ -365,6 +423,7 @@ class _SimulationTrackerTask(Task):
         self.broker = market_description.broker
         self.start = market_description.start
         self.stop = market_description.stop
+        self.fit_stop = market_description.fit_stop
         self.spreads = market_description.spreads
         self.tcc = market_description.tcc
         self.timeframe = market_description.test_timeframe
@@ -385,7 +444,7 @@ class _SimulationTrackerTask(Task):
 
         s = _recognize({f"{task_name}.{t_id}": tracker_instance}, data, run_name)[0]
         sim_result = backtest(
-            s.get_signals(data, self.start, self.stop), data, self.broker,
+            s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,
             spread=self.spreads, name=s.name, execution_logger=True, trackers=s.trackers,
             progress=_InfoProgress(run_name, run_id, t_id, task_name, ri),
             tcc=self.tcc
@@ -398,13 +457,13 @@ class Market:
     Generic market descriptor
     """
 
-    def __init__(self, broker: str, start: str, stop: str, spreads,
-                 data_loader: _LoaderCallable,
+    def __init__(self, broker: str, start: str, stop: str, fit_stop: str,
+                 spreads: Union[float, Dict[str, float]], data_loader: _LoaderCallable,
                  tcc: TransactionCostsCalculator = None,
-                 test_timeframe: Union[str, None] = None
-                 ):
+                 test_timeframe: Union[str, None] = None):
         self.market_description: MarketDescriptor = MarketDescriptor(
-            broker=broker, tcc=tcc, loader=data_loader, start=start, stop=stop,
+            broker=broker, tcc=tcc, loader=data_loader,
+            start=start, stop=stop, fit_stop=fit_stop,
             spreads=spreads, test_timeframe=test_timeframe
         )
 

@@ -1,11 +1,12 @@
 from unittest import TestCase
 
 import pandas as pd
+from sklearn.base import BaseEstimator
 from sklearn.pipeline import make_pipeline
 
 from qube.examples.learn.generators import RangeBreakoutDetector
 from qube.examples.learn.transformers import RollingRange
-from qube.learn.core.base import MarketDataComposer
+from qube.learn.core.base import MarketDataComposer, signal_generator
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
 from qube.simulator.multisim import simulation
@@ -17,8 +18,11 @@ def _read_csv_ohlc(symbol):
     return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
 
 
-def _signals(sdata):
-    s = pd.DataFrame.from_dict(sdata, orient='index')
+def _signals(sdata, as_series=False):
+    if as_series:
+        s = pd.Series(sdata)
+    else:
+        s = pd.DataFrame.from_dict(sdata, orient='index')
     s.index = pd.DatetimeIndex(s.index)
     return s
 
@@ -93,7 +97,7 @@ class Test(TestCase):
         op = r.results[0].executions.iloc[0].exec_price
         stp = r.results[0].executions.iloc[1].exec_price
         actual_loss_pct = 100 * (op / stp - 1)
-        self.assertAlmostEquals(0.5, actual_loss_pct, 2)
+        self.assertAlmostEqual(0.5, actual_loss_pct, 2)
 
     def test_start_stop(self):
         r = simulation({'simple tracker': FixedRiskTrader(10, 30, 10, tick_size=1)},
@@ -170,9 +174,11 @@ class Test(TestCase):
         )
         print(" - - - - - - - - - - - - - - - - - - - ")
         print(r.results[0].trackers_stat)
+        print(r.results[0].portfolio['EURUSD_PnL'].sum())
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 25)
         print(" - - - - - - - - - - - - - - - - - - - ")
+        self.assertAlmostEqual(-2.981, r.results[0].portfolio['EURUSD_PnL'].sum())
         self.assertEqual(0, r.results[0].trackers_stat['EURUSD']['takes'])
         self.assertEqual(2, r.results[0].trackers_stat['EURUSD']['stops'])
 
@@ -198,3 +204,48 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 5)
         print(" - - - - - - - - - - - - - - - - - - - ")
+
+    def test_signal_generator_with_tracker(self):
+        @signal_generator
+        class TestGenerator(BaseEstimator):
+            def __init__(self, capital, signals: dict):
+                self.signals = _signals(signals)
+                self.capital = capital
+
+            def fit(self, x, y, **kwargs):
+                # debug_output(x, ' - FIT x ~ y -', 25)
+                return self
+
+            def predict(self, x):
+                # debug_output(x, ' - Predict -', 25)
+                self.exact_time = True
+                return self.signals[self.market_info_.symbols]
+
+            def tracker(self, capital=None):
+                return ATRTracker(self.capital, '5Min', 15, 1, 3,
+                                  take_by_limit_orders=False, accurate_stops=True, debug=True)
+
+        r = simulation({
+            'POSITION CALCULATOR': TestGenerator(
+                1000,
+                {
+                    '2020-08-17 08:25:01': {'EURUSD': +1},
+                    '2020-08-17 10:25:01': {'EURUSD': +1},
+                    '2020-08-17 11:50:59': {'EURUSD': -1},
+                    '2020-08-17 23:19:59': {'EURUSD': 0}
+                })
+        }, _read_csv_ohlc('EURUSD'),
+            'forex', 'Test1',
+            start='2020-08-17 00:00:00',
+            stop='2020-08-18 00:00:00',
+            fit_stop='2020-08-17 15:00:00'
+        )
+        # - same results as in usual way of using generator + tracker
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        print(r.results[0].trackers_stat)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        debug_output(r.results[0].executions, 'Execs', 25)
+        print(" - - - - - - - - - - - - - - - - - - - ")
+        self.assertAlmostEqual(-2.981, r.results[0].portfolio['EURUSD_PnL'].sum())
+        self.assertEqual(0, r.results[0].trackers_stat['EURUSD']['takes'])
+        self.assertEqual(2, r.results[0].trackers_stat['EURUSD']['stops'])
