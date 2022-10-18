@@ -603,6 +603,8 @@ class Booster:
         cfg_key = f'{entry_id}_{model_name}'
         exchange, symbol = config.instrument.split(':')
         simulator_timeframe = config._get_('simulator_timeframe', None)
+        estimator_composer = config._get_('estimator_composer', 'single')
+        estimator_used_data = config._get_('estimator_data', 'close')
         m_optimizer = model_cfg['optimizer']
         broker = m_optimizer.get('broker', config.broker)
         max_cpus = min(m_optimizer.get('max_cpus', mp.cpu_count() - 1), mp.cpu_count() - 1)
@@ -649,7 +651,10 @@ class Booster:
         def run_fn():
             market = Market(
                 broker, start_date, end_date, fit_end_date, m_optimizer.get('spreads', 0),
-                data_loader=load_data, test_timeframe=simulator_timeframe
+                data_loader=load_data,
+                test_timeframe=simulator_timeframe,
+                estimator_portfolio_composer=estimator_composer,
+                estimator_used_data=estimator_used_data
             )
             run_tasks(config.project,
                       market.new_simulations_set(
@@ -828,6 +833,8 @@ class Booster:
         symbols = [config.instrument] if isinstance(config.instrument, str) else config.instrument
         total_cap = capital * len(symbols)
         simulator_timeframe = config._get_('simulator_timeframe', None)
+        estimator_composer = config._get_('estimator_composer', 'single')
+        estimator_used_data = config._get_('estimator_data', 'close')
 
         # default key for portfolio task
         cfg_key = f"{entry_id}_PORTFOLIO"
@@ -873,13 +880,17 @@ class Booster:
         sims_names_by_symbol = dict()
         for symbol in symbols:
             data_start_date, data_end_date = get_data_time_range(symbol)
-            market = Market(broker,
-                            start=start_date, stop=end_date,
-                            fit_stop=fit_end_date,
-                            spreads=sprds.get(symbol, 0),
-                            data_loader=load_data,
-                            test_timeframe=simulator_timeframe)
-            simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0, storage_db=BOOSTER_DB)
+            market = Market(
+                broker,
+                start=start_date, stop=end_date, fit_stop=fit_end_date,
+                spreads=sprds.get(symbol, 0),
+                data_loader=load_data,
+                test_timeframe=simulator_timeframe,
+                estimator_portfolio_composer=estimator_composer,
+                estimator_used_data=estimator_used_data
+            )
+            simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0,
+                                                     storage_db=BOOSTER_DB)
             self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")
             sims_names_by_symbol[symbol] = list(simulations.keys())
             sims = {**sims, **simulations}

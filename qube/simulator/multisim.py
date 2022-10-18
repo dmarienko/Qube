@@ -89,8 +89,7 @@ def start_stop_sigs(data: Dict[pd.DataFrame, Dict], start=None, stop=None):
 
 
 class SimSetup:
-    def __init__(self, signals, trackers, experiment_name=None,
-                 estimator_portfolio_composer: str = "single", used_data='close'):
+    def __init__(self, signals, trackers, experiment_name, estimator_portfolio_composer: str, used_data: str):
         self.signals = signals
         self.signal_type: _Types = _type(signals)
         self.trackers = trackers
@@ -130,7 +129,7 @@ class SimSetup:
                     sx = PortfolioComposer(sx, column=self.used_data)
 
                 else:
-                    raise ValueError(f"Unknown estimator composer: {self.estimator_portfolio_composer}")
+                    raise ValueError(f"Unsupported estimator composer: {self.estimator_portfolio_composer}")
 
             # - let's check if this estimator is fitted
             try:
@@ -171,31 +170,38 @@ def _is_tracker(obj):
 
 
 def _recognize(setup: Union[Dict, List, Tuple, pd.DataFrame, pd.Series, BaseEstimator, Pipeline],
-               name: str, **kwargs) -> List[SimSetup]:
+               name: str,
+               portfolio_composer: str,
+               used_data: str,
+               **kwargs) -> List[SimSetup]:
     r = list()
 
     if isinstance(setup, dict):
         for n, v in setup.items():
-            r.extend(_recognize(v, name + '/' + n))
+            r.extend(_recognize(
+                v, name + '/' + n, portfolio_composer=portfolio_composer, used_data=used_data, **kwargs
+            ))
 
     elif isinstance(setup, (list, tuple)):
         if len(setup) == 2 and _is_signal_or_generator(setup[0]) and _is_tracker(setup[1]):
-            r.append(SimSetup(setup[0], setup[1], name))
+            r.append(SimSetup(setup[0], setup[1], name, portfolio_composer, used_data))
         else:
             for j, s in enumerate(setup):
-                r.extend(_recognize(s, name + '/' + str(j)))
+                r.extend(_recognize(
+                    s, name + '/' + str(j), portfolio_composer=portfolio_composer, used_data=used_data, **kwargs)
+                )
 
     elif _is_tracker(setup):
-        r.append(SimSetup(None, setup, name))
+        r.append(SimSetup(None, setup, name, portfolio_composer, used_data))
 
     elif isinstance(setup, (pd.DataFrame, pd.Series)):
-        r.append(SimSetup(setup, None, name))
+        r.append(SimSetup(setup, None, name, portfolio_composer, used_data))
 
     elif _is_generator(setup):
-        r.append(SimSetup(setup, None, name))
+        r.append(SimSetup(setup, None, name, portfolio_composer, used_data))
 
     elif _is_generator_with_tracker(setup):
-        r.append(SimSetup(setup, setup.tracker(**kwargs), name))
+        r.append(SimSetup(setup, setup.tracker(**kwargs), name, portfolio_composer, used_data))
 
     return r
 
@@ -330,11 +336,13 @@ class __ForeallProgress:
 
 def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=None,
                spreads: Union[Dict, float] = 0,
+               portfolio_composer: str = 'single',
+               used_data: str = 'close',
                tcc: TransactionCostsCalculator = None) -> MultiResults:
     """
     Simulate different setups
     """
-    sims = _recognize(setup, project)
+    sims = _recognize(setup, project, portfolio_composer, used_data)
     results = []
     progress = __ForeallProgress(len(sims))
 
@@ -404,7 +412,7 @@ class _LoaderCallable:
 
 
 @dataclass
-class MarketDescriptor:
+class _SimulationConfigDescriptor:
     broker: str
     tcc: TransactionCostsCalculator
     loader: _LoaderCallable
@@ -413,31 +421,34 @@ class MarketDescriptor:
     fit_stop: str
     spreads: Union[float, Dict[str, float]]
     test_timeframe: str
+    estimator_portfolio_composer: str
+    estimator_used_data: str
 
 
 class _SimulationTrackerTask(Task):
     """
     Task for simulations run (tracker only)
-    TODO: signal generator
     """
 
     def __init__(
-            self, instrument, market_description: MarketDescriptor, simulations_storage_db,
+            self, instrument, simualtion_cfg: _SimulationConfigDescriptor, simulations_storage_db,
             tracker_class, *tracker_args, **tracker_kwargs
     ):
         super().__init__(tracker_class, *tracker_args, **tracker_kwargs)
         self.instrument = instrument
-        self.broker = market_description.broker
-        self.start = market_description.start
-        self.stop = market_description.stop
-        self.fit_stop = market_description.fit_stop
-        self.spreads = market_description.spreads
-        self.tcc = market_description.tcc
-        self.timeframe = market_description.test_timeframe
+        self.broker = simualtion_cfg.broker
+        self.start = simualtion_cfg.start
+        self.stop = simualtion_cfg.stop
+        self.fit_stop = simualtion_cfg.fit_stop
+        self.spreads = simualtion_cfg.spreads
+        self.tcc = simualtion_cfg.tcc
+        self.timeframe = simualtion_cfg.test_timeframe
+        self.estimator_portfolio_composer = simualtion_cfg.estimator_portfolio_composer
+        self.estimator_used_data = simualtion_cfg.estimator_used_data
         self.save(True, simulations_storage_db)
 
         # TODO: [1] Temp loader hack !!
-        self.loader: _LoaderCallable = market_description.loader
+        self.loader: _LoaderCallable = simualtion_cfg.loader
 
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
         # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
@@ -449,7 +460,10 @@ class _SimulationTrackerTask(Task):
         else:
             data = s_data.ticks()
 
-        s = _recognize({f"{task_name}.{t_id}": tracker_instance}, run_name)[0]
+        s = _recognize({
+            f"{task_name}.{t_id}": tracker_instance
+        }, run_name, self.estimator_portfolio_composer, self.estimator_used_data)[0]
+
         sim_result = backtest(
             s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,
             spread=self.spreads, name=s.name, execution_logger=True, trackers=s.trackers,
@@ -467,11 +481,14 @@ class Market:
     def __init__(self, broker: str, start: str, stop: str, fit_stop: str,
                  spreads: Union[float, Dict[str, float]], data_loader: _LoaderCallable,
                  tcc: TransactionCostsCalculator = None,
-                 test_timeframe: Union[str, None] = None):
-        self.market_description: MarketDescriptor = MarketDescriptor(
+                 test_timeframe: Union[str, None] = None,
+                 estimator_portfolio_composer: str = 'single',
+                 estimator_used_data: str = 'close'):
+        self.market_description: _SimulationConfigDescriptor = _SimulationConfigDescriptor(
             broker=broker, tcc=tcc, loader=data_loader,
             start=start, stop=stop, fit_stop=fit_stop,
-            spreads=spreads, test_timeframe=test_timeframe
+            spreads=spreads, test_timeframe=test_timeframe,
+            estimator_portfolio_composer=estimator_portfolio_composer, estimator_used_data=estimator_used_data
         )
 
     def new_simulation(self, instrument, tracker, *tracker_args, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
