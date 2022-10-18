@@ -115,12 +115,7 @@ class TestSimulatorTracker(unittest.TestCase):
             # d3 = scols(prep_prices('MSFT'), srows(s2['MSFT'], keep='last'), names=['s', 'q']).ffill().fillna(0)
             # r = (d1.s.diff() * d1.q.shift()) + (d2.s.diff() * d2.q.shift()) + (d3.s.diff() * d3.q.shift())
 
-            # from matplotlib import pyplot as plt
-            # plt.plot(pfl['Total_PnL'].cumsum())
-            # plt.plot(r.cumsum(), 'r')
-            # plt.show()
-
-            equity = W.equity()
+            equity = W.equity(account_transactions=False)
 
             pst0 = portfolio_stats(W.portfolio, 50000, account_transactions=False)
             pst1 = portfolio_stats(W.portfolio, 50000, account_transactions=True)
