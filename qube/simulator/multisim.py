@@ -59,7 +59,7 @@ def _type(obj) -> _Types:
     return t
 
 
-def start_stop_sigs(data: Dict[str, pd.DataFrame], start=None, stop=None):
+def start_stop_sigs(data: Dict[pd.DataFrame, Dict], start=None, stop=None):
     """
     Generate stub signals (NaNs mainly for backtester progress)
     """
@@ -105,7 +105,10 @@ class SimSetup:
 
         check_is_fitted(estimator)
 
-    def get_signals(self, data, start, stop, fit_stop):
+    def get_signals(self, data: Union[pd.DataFrame, pd.Series, Dict],
+                    start: Union[str, pd.Timestamp, None],
+                    stop: Union[str, pd.Timestamp, None],
+                    fit_stop: Union[str, pd.Timestamp, None]):
         sx = self.signals
 
         # - unknown type of signals
@@ -168,20 +171,19 @@ def _is_tracker(obj):
 
 
 def _recognize(setup: Union[Dict, List, Tuple, pd.DataFrame, pd.Series, BaseEstimator, Pipeline],
-               data, name: str,
-               **kwargs) -> List[SimSetup]:
+               name: str, **kwargs) -> List[SimSetup]:
     r = list()
 
     if isinstance(setup, dict):
         for n, v in setup.items():
-            r.extend(_recognize(v, data, name + '/' + n))
+            r.extend(_recognize(v, name + '/' + n))
 
     elif isinstance(setup, (list, tuple)):
         if len(setup) == 2 and _is_signal_or_generator(setup[0]) and _is_tracker(setup[1]):
             r.append(SimSetup(setup[0], setup[1], name))
         else:
             for j, s in enumerate(setup):
-                r.extend(_recognize(s, data, name + '/' + str(j)))
+                r.extend(_recognize(s, name + '/' + str(j)))
 
     elif _is_tracker(setup):
         r.append(SimSetup(None, setup, name))
@@ -219,8 +221,9 @@ class MultiResults:
     results: List[SimulationResult]
     project: str
     broker: str
-    start: Union[str, pd.Timestamp]
-    stop: Union[str, pd.Timestamp]
+    start: Union[str, pd.Timestamp]  # simulation / fit start
+    stop: Union[str, pd.Timestamp]  # simulation end
+    fit_stop: Union[str, pd.Timestamp]  # fit end (for estimators)
 
     def __add__(self, other):
         if not isinstance(other, MultiResults):
@@ -230,11 +233,12 @@ class MultiResults:
             raise ValueError(f"You can't add results from another project {other.project}")
 
         brok = self.broker if self.broker == other.broker else f'{self.broker},{other.broker}'
-        return MultiResults(self.results + other.results, self.project, brok, self.start, self.stop)
+        return MultiResults(self.results + other.results, self.project, brok, self.start, self.stop, self.fit_stop)
 
     def __getitem__(self, key):
         s = self.results[key]
-        return MultiResults(s if isinstance(s, list) else [s], self.project, self.broker, self.start, self.stop)
+        return MultiResults(s if isinstance(s, list) else [s], self.project, self.broker, self.start, self.stop,
+                            self.fit_stop)
 
     def report(self, init_cash=0, risk_free=0.0, margin_call_pct=0.33, only_report=False,
                only_positive=False, account_transactions=True) -> pd.DataFrame:
@@ -324,12 +328,13 @@ class __ForeallProgress:
         self.i_in_sim = i
 
 
-def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=None, spreads=0,
+def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=None,
+               spreads: Union[Dict, float] = 0,
                tcc: TransactionCostsCalculator = None) -> MultiResults:
     """
     Simulate different setups
     """
-    sims = _recognize(setup, data, project)
+    sims = _recognize(setup, project)
     results = []
     progress = __ForeallProgress(len(sims))
 
@@ -342,7 +347,7 @@ def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=
 
     progress.set_descr(f'Backtest {project}')
     progress.close()
-    return MultiResults(results=results, project=project, broker=broker, start=start, stop=stop)
+    return MultiResults(results=results, project=project, broker=broker, start=start, stop=stop, fit_stop=fit_stop)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -444,7 +449,7 @@ class _SimulationTrackerTask(Task):
         else:
             data = s_data.ticks()
 
-        s = _recognize({f"{task_name}.{t_id}": tracker_instance}, data, run_name)[0]
+        s = _recognize({f"{task_name}.{t_id}": tracker_instance}, run_name)[0]
         sim_result = backtest(
             s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,
             spread=self.spreads, name=s.name, execution_logger=True, trackers=s.trackers,

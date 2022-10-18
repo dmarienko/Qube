@@ -39,7 +39,7 @@ class SimulationRunData:
             sd = z_ld(r.path, host=self.host, dbname=DB_SIMULATION_RESULTS)
             if sd:
                 simres.append(sd.result)
-        return MultiResults(simres, self.prj, '', '', '')
+        return MultiResults(simres, self.prj, '', '', '', '')
 
     def calc_performance(self, init_cash, account_transactions=True, force_calc=False):
         """
