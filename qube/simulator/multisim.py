@@ -108,9 +108,11 @@ class SimSetup:
     def get_signals(self, data, start, stop, fit_stop):
         sx = self.signals
 
+        # - unknown type of signals
         if sx is None or self.signal_type == _Types.UKNOWN:
             return start_stop_sigs(data, start, stop)
 
+        # - if we got estimator / tracked estimator here
         if self.signal_type == _Types.ESTIMATOR or self.signal_type == _Types.TRACKED_ESTIMATOR:
 
             # - check if we need to wrap estimator into MarketDataComposer

@@ -206,18 +206,31 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
 
     def test_signal_generator_with_tracker(self):
+        SIM_START = '2020-08-17 00:00:00'
+        FIT_END = '2020-08-17 15:00:00'
+        SIM_END = '2020-08-18 00:00:00'
+
         @signal_generator
         class TestGenerator(BaseEstimator):
             def __init__(self, capital, signals: dict):
                 self.signals = _signals(signals)
                 self.capital = capital
+                self._test_case = TestCase()
 
             def fit(self, x, y, **kwargs):
-                # debug_output(x, ' - FIT x ~ y -', 25)
+                # well let's test here ranges of fitting
+                self._test_case.assertTrue(x.index[0] >= pd.to_datetime(SIM_START))
+                self._test_case.assertTrue(x.index[-1] <= pd.to_datetime(FIT_END))
+
+                # nothing to do
                 return self
 
             def predict(self, x):
-                # debug_output(x, ' - Predict -', 25)
+                # well let's test here ranges of prediction
+                self._test_case.assertTrue(x.index[0] >= pd.to_datetime(SIM_START))
+                self._test_case.assertTrue(x.index[-1] > pd.to_datetime(FIT_END))
+                self._test_case.assertTrue(x.index[-1] <= pd.to_datetime(SIM_END))
+
                 self.exact_time = True
                 return self.signals[self.market_info_.symbols]
 
@@ -235,17 +248,16 @@ class Test(TestCase):
                     '2020-08-17 23:19:59': {'EURUSD': 0}
                 })
         }, _read_csv_ohlc('EURUSD'),
-            'forex', 'Test1',
-            start='2020-08-17 00:00:00',
-            stop='2020-08-18 00:00:00',
-            fit_stop='2020-08-17 15:00:00'
+            'forex', 'Test1', start=SIM_START, stop=SIM_END, fit_stop=FIT_END
         )
+
         # - same results as in usual way of using generator + tracker
         print(" - - - - - - - - - - - - - - - - - - - ")
         print(r.results[0].trackers_stat)
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 25)
         print(" - - - - - - - - - - - - - - - - - - - ")
+
         self.assertAlmostEqual(-2.981, r.results[0].portfolio['EURUSD_PnL'].sum())
         self.assertEqual(0, r.results[0].trackers_stat['EURUSD']['takes'])
         self.assertEqual(2, r.results[0].trackers_stat['EURUSD']['stops'])
