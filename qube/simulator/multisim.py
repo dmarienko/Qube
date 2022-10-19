@@ -136,7 +136,9 @@ class SimSetup:
                 self._check_is_fitted(sx)
             except NotFittedError as err:
                 # - try to fit predictor
-                _LOGGER.info(f'Fitting estimator {type(sx).__name__} for {start} : {fit_stop} ... ')
+                _LOGGER.info(
+                    f"Fitting estimator {type(sx).__name__} for {start if start is not None else '[start]'} : {fit_stop if fit_stop is not None else '[end]'} ... "
+                )
                 sx = sx.for_interval(start, fit_stop).fit(data, None)
 
             # - if we need to select some date range

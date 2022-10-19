@@ -262,7 +262,8 @@ class KdbConnector(BasicConnector):
 
     def close(self):
         if not self.is_shutdown:
-            self._controller.shutdown()
+            if hasattr(self, '_controller'):
+                self._controller.shutdown()
             self.is_shutdown = True
 
     def __del__(self):
