@@ -65,6 +65,7 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.learn.core.utils import ls_params, debug_output
     from qube.learn.core.base import signal_generator, SingleInstrumentComposer, PortfolioComposer
     from qube.learn.core.mlhelpers import gridsearch
+    from qube.examples.learn.generators import WalkForwardTest
 
     # - - - - Charting stuff - - - -
     from matplotlib import pyplot as plt

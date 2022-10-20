@@ -8,6 +8,7 @@ from qube.quantitative.tools import srows, scols, apply_to_frame, ohlc_resample
 from qube.learn.core.base import signal_generator
 from qube.learn.core.data_utils import pre_close_time_shift
 from qube.learn.core.utils import _check_frame_columns
+from qube.simulator.utils import rolling_forward_test_split
 
 
 def crossup(x, t: Union[pd.Series, float]):
@@ -271,3 +272,47 @@ class Equilibrium(BaseEstimator):
                 ((dK.shift(2) > -self.threshold) & ((dK.shift(1) > -self.threshold) & (dK < -self.threshold)))
             ].index)
         )
+
+
+@signal_generator
+class WalkForwardTest(BaseEstimator):
+    """
+    Run walk forward signals generation on consequent periods
+     | 18-Oct-22: removed unnecessary loop in predict()
+    """
+
+    def __init__(self, estimator: BaseEstimator, train_period=4, test_period=1, units='W'):
+        """
+        Create new WFT using provided estimator and train/test windows
+        By default it uses 4 weeks for training and 1 week for prediction
+        """
+        if estimator is None or not isinstance(estimator, BaseEstimator):
+            raise ValueError(f"Estimator must be non empty and be derived from BaseEstimator")
+
+        if train_period <= 0 or test_period <= 0:
+            raise ValueError(f"Train and Test periods must be postive number: {train_period} / {test_period}")
+
+        self.estimator = estimator
+        self.train_period = train_period
+        self.test_period = test_period
+        self.units = units
+        self.sigs = None
+
+    def fit(self, x: pd.DataFrame, y, **kwargs):
+        self.sigs = pd.Series(dtype='float64')
+        signals = []
+        for trn, tst in rolling_forward_test_split(x, self.train_period, self.test_period, units='W'):
+            self.estimator.fit(x.loc[trn], y, **kwargs)
+            signals.append(self.estimator.predict(x.loc[tst]))
+        self.sigs = srows(*signals)
+        return self
+
+    def predict(self, x):
+        if hasattr(self.estimator, 'exact_time'):
+            self.exact_time = self.estimator.exact_time
+        return self.sigs
+
+    def tracker(self, **kwargs):
+        if hasattr(self.estimator, 'tracker'):
+            return self.estimator.tracker(**kwargs)
+        return None
