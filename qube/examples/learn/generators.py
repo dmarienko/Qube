@@ -279,6 +279,7 @@ class WalkForwardTest(BaseEstimator):
     """
     Run walk forward signals generation on consequent periods
      | 18-Oct-22: removed unnecessary loop in predict()
+     | 25-Oct-22: added ability to attach pre-calculated or additional data
     """
 
     def __init__(self, estimator: BaseEstimator, train_period=4, test_period=1, units='W'):
@@ -301,6 +302,25 @@ class WalkForwardTest(BaseEstimator):
     def fit(self, x: pd.DataFrame, y, **kwargs):
         self.sigs = pd.Series(dtype='float64')
         signals = []
+
+        # - we may want to attach indicator as additional coliumn to avoid recalcuting it on every chank
+        #   because some indicators (SMA, RSI, ...) may have empty data in the begging
+        #   nans for first 'period' bars for SMA for exmaple
+        if hasattr(self.estimator, 'aux_data'):
+            aux_d = self.estimator.aux_data(x, **kwargs)
+            if aux_d is not None:
+                if isinstance(aux_d, pd.DataFrame):
+                    if [c for c in x.columns if c in aux_d.columns]:
+                        raise ValueError(f"Some aux dataframe column names '{aux_d.columns}' intersect with original dataframe columns !")
+                elif isinstance(aux_d, pd.Series):
+                    if aux_d.name in x.columns:
+                        raise ValueError(f"Aux data series name '{aux_d.name}' intersects with original dataframes columns !")
+                else:
+                    raise ValueError(f"Aux data has unrecognized type '{type(aux_d)}' !")
+
+                # attach aux data
+                x = scols(x.copy(), aux_d)
+
         for trn, tst in rolling_forward_test_split(x, self.train_period, self.test_period, units='W'):
             self.estimator.fit(x.loc[trn], y, **kwargs)
             signals.append(self.estimator.predict(x.loc[tst]))
