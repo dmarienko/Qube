@@ -240,7 +240,8 @@ def apply_to_frame(func, x, *args, **kwargs):
     return xp
 
 
-def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None) -> Union[pd.DataFrame, dict]:
+def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None,
+                  non_ohlc_columns_aggregator='last') -> Union[pd.DataFrame, dict]:
     """
     Resample OHLCV/tick series to new timeframe.
 
@@ -262,8 +263,9 @@ def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None
 
     :param df: input ohlc or bid/ask quotes or dict
     :param new_freq: how to resample rule (see pandas.DataFrame::resample)
-    :param vmpt: use volume weighted price for quotes (if false mid price will be used)
+    :param vmpt: use volume weighted price for quotes (if false midprice will be used)
     :param resample_tz: timezone for resample. For example, to create daily bars in the EET timezone
+    :param non_ohlc_columns_aggregator: how aggregate unknown columns
     :return: resampled ohlc / dict
     """
 
@@ -273,7 +275,7 @@ def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None
 
         # if we have bid/ask frame
         if 'ask' in _cols and 'bid' in _cols:
-            # if sizes are presented we can calc vmpt if need
+            # if sizes are presented we can calc vmpt if needed
             if is_vmpt and 'askvol' in _cols and 'bidvol' in _cols:
                 mp = (d.ask * d.bidvol + d.bid * d.askvol) / (d.askvol + d.bidvol)
                 return mp.resample(freq).agg('ohlc')
@@ -286,16 +288,18 @@ def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None
 
         # for OHLC case or just simple series
         if all([i in _cols for i in ['open', 'high', 'low', 'close']]) or isinstance(d, pd.Series):
-            ohlc_rules = {'open': 'first',
-                          'high': 'max',
-                          'low': 'min',
-                          'close': 'last',
-                          'ask_vol': 'sum',
-                          'bid_vol': 'sum',
-                          'volume': 'sum'
-                          }
+            ohlc_rules = {
+                'open': 'first', 'high': 'max', 'low': 'min', 'close': 'last',
+                'ask_vol': 'sum', 'bid_vol': 'sum',
+                'volume': 'sum'
+            }
             result = _tz_convert(d, resample_tz, _source_tz)
-            result = result.resample(freq).apply(dict(i for i in ohlc_rules.items() if i[0] in d.columns)).dropna()
+            # result = result.resample(freq).apply(dict(i for i in ohlc_rules.items() if i[0] in d.columns)).dropna()
+            #  25-Oct-2022: we allow other columns to be included in transformation (just use last value)
+            result = result.resample(freq).apply({
+                c: ohlc_rules.get(c, non_ohlc_columns_aggregator) for c in d.columns
+            }).dropna()
+
             # Convert timezone to back if it changed
             return result if not resample_tz else result.tz_convert(_source_tz)
 
