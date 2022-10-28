@@ -71,9 +71,9 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 5)
         print(" - - - - - - - - - - - - - - - - - - - ")
-        self.assertEqual(4, r.results[0].trackers_stat['ES']['takes'])
-        self.assertEqual(19, r.results[0].trackers_stat['ES']['stops'])
-        self.assertAlmostEqual(-732.5, r.results[0].portfolio['ES_PnL'].sum())
+        self.assertEqual(9, r.results[0].trackers_stat['ES']['takes'])
+        self.assertEqual(29, r.results[0].trackers_stat['ES']['stops'])
+        self.assertAlmostEqual(-455.0, r.results[0].portfolio['ES_PnL'].sum())
 
     def test_simulation_fixed_risk_trader_pct(self):
         m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
@@ -90,10 +90,10 @@ class Test(TestCase):
         print(" - - - - - - - - - - - - - - - - - - - ")
         debug_output(r.results[0].executions, 'Execs', 5)
         print(" - - - - - - - - - - - - - - - - - - - ")
-        self.assertEqual(6, r.results[0].trackers_stat['ES']['takes'])
-        self.assertEqual(10, r.results[0].trackers_stat['ES']['stops'])
+        self.assertEqual(12, r.results[0].trackers_stat['ES']['takes'])
+        self.assertEqual(18, r.results[0].trackers_stat['ES']['stops'])
 
-        self.assertAlmostEqual(-1019.9875, r.results[0].portfolio['ES_PnL'].sum(), 4)
+        self.assertAlmostEqual(-929.29999, r.results[0].portfolio['ES_PnL'].sum(), 4)
         op = r.results[0].executions.iloc[0].exec_price
         stp = r.results[0].executions.iloc[1].exec_price
         actual_loss_pct = 100 * (op / stp - 1)

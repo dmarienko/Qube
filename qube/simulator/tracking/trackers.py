@@ -81,6 +81,10 @@ class TakeStopTracker(Tracker):
         self._take_user_data = None
         self._stop_user_data = None
 
+        # 28-oct-2022: reset last signal
+        #   | otherwise it skips same direction signal after stop/take trigger !
+        self.last_signal = None
+
     def _can_modify_risks_for(self, signal, stop_risk, take_target, reset_risks_on_repeated_signals):
         can_modify_stop, can_modify_take = False, False
 
@@ -260,6 +264,9 @@ class MultiTakeStopTracker(Tracker):
         self._part_closed_values = 0.0
         self._part_closed_cumsize = 0.0
         self._stop_user_data = None
+
+        # 28-oct-2022: clean up last signal on reset
+        self.last_signal = None
 
     def __process_take_risk_management(self, timestamp, exec_price, fraction_to_close, user_data, is_long):
         pos_dir = 'long' if is_long else 'short'
