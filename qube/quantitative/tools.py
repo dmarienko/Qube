@@ -382,11 +382,11 @@ def drop_duplicated_indexes(df, keep='first'):
     return df[~df.index.duplicated(keep=keep)]
 
 
-def process_duplicated_indexes(data: Union[pd.DataFrame, pd.Series], ms=1):
+def process_duplicated_indexes(data: Union[pd.DataFrame, pd.Series], ns=1):
     """
-    Finds duplcated indxes in frame/series and add shift (in nS) to every repeating one
+    Finds duplicated indexes in frame/series and add shift (in nS) to every repeating one
     :param data: time indexed dataframe/series
-    :param ms: shift constant
+    :param ns: shift constant in nanosec
     :return: return dataframe with all no duplicated rows (each duplicate has own unique index)
     """
     values = data.index.duplicated(keep='first').astype(float)
@@ -398,7 +398,7 @@ def process_duplicated_indexes(data: Union[pd.DataFrame, pd.Series], ms=1):
     values[missings] = -diff
 
     # set new index (1 ms)
-    data.index = data.index + np.cumsum(values).astype(np.timedelta64) * ms
+    data.index = data.index.values + np.cumsum(values).astype(np.timedelta64) * ns
     return data
 
 
