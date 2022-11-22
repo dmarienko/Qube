@@ -374,7 +374,7 @@ def tsheet_report():
         if r_type.lower() == 'portfolios':
             path = set_name
 
-        sheet = tearsheet_report(r_type, project, path, entry, capital)
+        sheet = tearsheet_report(r_type, project, path, entry, capital, insample=insample)
         report = render_template(
             'tearsheet_report.html',
             title_id=entry,
