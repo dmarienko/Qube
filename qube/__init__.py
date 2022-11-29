@@ -3,7 +3,7 @@ from . import charting
 from . import datasource
 from . import utils
 
-__version__ = '0.1.9913'
+__version__ = '0.1.9914'
 
 from qube.utils.utils import runtime_env
 from cycler import cycler
@@ -101,8 +101,11 @@ if runtime_env() in ['notebook', 'shell']:
         # process data manager
         __manager = None
 
+        @line_magic
         def qubed(self):
             self.alphalab('dark')
+
+        @line_magic
         def qubel(self):
             self.alphalab('light')
 
