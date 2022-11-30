@@ -263,7 +263,12 @@ def get_combined_portfolio(project, entry, set_name):
         comb_portfolio = []
         for sp in p_data['simulations'][set_name].values():
             data = b_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
-            comb_portfolio.append(data.result.portfolio)
+
+            # - some simulations may be empty -so skiping it
+            if data is not None and hasattr(data, 'result'):
+                if data.result is not None and hasattr(data.result, 'portfolio'):
+                    comb_portfolio.append(data.result.portfolio)
+
         data = scols(*comb_portfolio)
     return data
 
@@ -281,7 +286,12 @@ def get_combined_executions(project, entry, set_name):
         comb_portfolio = []
         for sp in p_data['simulations'][set_name].values():
             data = b_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
-            comb_portfolio.append(data.result.executions)
+
+            # - some simulations may be empty -so skiping it
+            if data is not None and hasattr(data, 'result'):
+                if data.result is not None and hasattr(data.result, 'executions'):
+                    comb_portfolio.append(data.result.executions)
+
         data = srows(*comb_portfolio)
     return data
 
