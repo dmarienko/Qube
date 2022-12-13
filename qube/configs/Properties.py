@@ -50,7 +50,7 @@ def get_env():
         return os.environ[QUBE_ENV_VAR]
     else:
         # check if it's a test running from nose2
-        if sys.argv[0].endswith('nose2'):
+        if sys.argv[0].endswith('nose2') or sys.argv[0].endswith('_testlauncher.py'):
             return TEST_ENV
         # check if it's a test running from PyCharm 2016
         elif len(sys.argv) > 1 and 'test.py' in sys.argv[1].lower():

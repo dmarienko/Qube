@@ -13,15 +13,7 @@ from qube.simulator.tracking.trackers import (TakeStopTracker, DispatchTracker, 
                                               TimeExpirationTracker, TriggeredOrdersTracker,
                                               TriggerOrder, MultiTakeStopTracker, SignalBarTracker)
 from qube.simulator.core import Tracker
-
-
-def _read_csv_ohlc(symbol):
-    # return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
-    from os.path import exists
-    fpath = f'../data/{symbol}.csv'
-    if not exists(fpath):
-        fpath = f'qube/tests/data/{symbol}.csv'
-    return {symbol: pd.read_csv(fpath, parse_dates=True, header=0, index_col='time')}
+from qube.tests.utils_for_tests import _read_timeseries_data
 
 
 def _signals(sdata):
@@ -77,7 +69,7 @@ class _Test_StopTakeTracker(TakeStopTracker):
 class Trackers_test(unittest.TestCase):
 
     def test_dispatcher(self):
-        data = _read_csv_ohlc('EURUSD')
+        data = _read_timeseries_data('EURUSD', compressed=False, as_dict=True)
 
         s = _signals({
             '2020-08-17 04:10:00': {'EURUSD': 'regime:trend'},
@@ -119,7 +111,7 @@ class Trackers_test(unittest.TestCase):
         class _Test_SignalBarTracker(SignalBarTracker):
             pass
 
-        data = _read_csv_ohlc('RM1')
+        data = _read_timeseries_data('RM1', compressed=False, as_dict=True)
         s = _signals({
             '2020-08-17 00:05:01': {'RM1': -1},
             '2020-08-17 00:22:00': {'RM1': 0},
@@ -185,7 +177,7 @@ class Trackers_test(unittest.TestCase):
             def statistics(self):
                 return {'fired': self._fired, **super().statistics()}
 
-        data = _read_csv_ohlc('EURUSD')
+        data = _read_timeseries_data('EURUSD', compressed=False, as_dict=True)
 
         s = _signals({
             '2020-08-17 04:19:59': {'EURUSD': +1},
@@ -209,7 +201,7 @@ class Trackers_test(unittest.TestCase):
         )
 
     def test_take_stop_orders(self):
-        data = _read_csv_ohlc('RM1')
+        data = _read_timeseries_data('RM1', compressed=False, as_dict=True)
         s = _signals({
             '2020-08-17 00:00:01': {'RM1': +1},
             '2020-08-17 00:22:00': {'RM1': 0},
@@ -262,7 +254,7 @@ class Trackers_test(unittest.TestCase):
 
                 return signal_qty * self.size
 
-        data = _read_csv_ohlc('EURUSD')
+        data = _read_timeseries_data('EURUSD', compressed=False, as_dict=True)
         s = _signals({
             '2020-08-17 02:20:01': {'EURUSD': +1},  # 1 take + stop
             '2020-08-17 11:20:01': {'EURUSD': +1},  # all takes
@@ -288,7 +280,7 @@ class Trackers_test(unittest.TestCase):
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         # - - - - - - - - - test it as usual take/stop - - - - - - - - - - -
         # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-        data = _read_csv_ohlc('RM1')
+        data = _read_timeseries_data('RM1', compressed=False, as_dict=True)
         s = _signals({
             '2020-08-17 00:00:01': {'RM1': +1},
             '2020-08-17 00:22:00': {'RM1': 0},
@@ -360,7 +352,7 @@ class Trackers_test(unittest.TestCase):
             def statistics(self):
                 return {'fired': self._fired, **super().statistics()}
 
-        data = _read_csv_ohlc('EURUSD')
+        data = _read_timeseries_data('EURUSD', compressed=False, as_dict=True)
 
         s = _signals({
             '2020-08-17 04:19:59': {'EURUSD': +1},
@@ -446,7 +438,7 @@ class Trackers_test(unittest.TestCase):
             def statistics(self):
                 return {'fired': self._fired, **super().statistics()}
 
-        data = _read_csv_ohlc('EURUSD')
+        data = _read_timeseries_data('EURUSD', compressed=False, as_dict=True)
 
         s = _signals({
             '2020-08-17 08:25:01': {'EURUSD': +1},

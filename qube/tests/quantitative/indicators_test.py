@@ -10,6 +10,7 @@ from qube.quantitative.ta.indicators import (
     ema, shift, moving_ols, series_halflife, kama, dema, tema, denoised_trend, pivot_point, fdi, running_view
 )
 from qube.quantitative.tools import add_constant, ohlc_resample, nans
+from qube.tests.utils_for_tests import _read_timeseries_data
 
 
 class TestTimeSeriesUtils(unittest.TestCase):
@@ -161,7 +162,9 @@ class TestTimeSeriesUtils(unittest.TestCase):
                 (np.full([e_period, x.shape[-1] if len(x.shape) == 2 else 1], np.nan), fdi_result[1:]))
             return fdi_result
 
-        mt4data = pd.read_csv("FDI_test.csv", parse_dates=True, index_col='time').replace(-1, np.nan)
+        # mt4data = pd.read_csv("FDI_test.csv", parse_dates=True, index_col='time').replace(-1, np.nan)
+        mt4data = _read_timeseries_data("FDI_test", compressed=False).replace(-1, np.nan)
+
         debug_output(mt4data, "MT4")
 
         q_fdi_reference = fdi_classic(mt4data.close, 30)

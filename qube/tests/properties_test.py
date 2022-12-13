@@ -1,5 +1,6 @@
 import os
 import unittest
+from unittest import main
 
 from qube.configs import Properties
 
@@ -20,3 +21,7 @@ class PropertiesTest(unittest.TestCase):
             self.assertEqual(
                 Properties.get_properties(os.path.join(Properties.get_root_dir(), 'tests\\qube_props_test.json')),
                 {"test1": "hello", "test2": "world"})
+
+
+if __name__ == '__main__':
+    main()

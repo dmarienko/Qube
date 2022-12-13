@@ -13,6 +13,7 @@ from qube.learn.core.base import MarketDataComposer, signal_generator
 from qube.learn.core.metrics import ForwardDirectionScoring, ForwardReturnsSharpeScoring
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
+from qube.tests.utils_for_tests import _read_timeseries_data
 
 
 @signal_generator
@@ -42,7 +43,9 @@ class TesterSingle(BaseEstimator):
 class ScoringTests(unittest.TestCase):
 
     def test_scorer(self):
-        data = pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time'])
+        # data = pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time'])
+        data = _read_timeseries_data('ES', compressed=True)
+
         debug_output(data, 'Test OHLC')
 
         # wor = make_pipeline(_WeekOpenRange('4Min', 0.25), _RangeBreakoutDetector().fillna(0).as_classifier())
@@ -65,7 +68,7 @@ class ScoringTests(unittest.TestCase):
         self.assertAlmostEqual(0.48656, g1.best_score_, delta=1e-5)
 
     def test_scorer_open_close(self):
-        data = ohlc_resample(pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time']), '5Min')
+        data = ohlc_resample(_read_timeseries_data('ES', compressed=True), '5Min')
         # data = ohlc_resample(pd.read_csv('c:/data/ohlc/ES.csv.gz', parse_dates=True, index_col=['time']), '5Min')
 
         bs = make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector())
@@ -90,7 +93,7 @@ class ScoringTests(unittest.TestCase):
         self.assertAlmostEqual(0.45124, g1.best_score_, delta=1e-5)
 
     def test_scorer_ticks(self):
-        data = pd.read_csv('../data/XBTUSD.csv.gz', parse_dates=True, index_col=['time'])
+        data = _read_timeseries_data('XBTUSD', compressed=True)
 
         bs = make_pipeline(RollingRange('10S', 30, 6), RangeBreakoutDetector(0.5))
 
@@ -117,7 +120,7 @@ class ScoringTests(unittest.TestCase):
         self.assertAlmostEqual(0.68888, g1.best_score_, delta=1e-5)
 
     def test_sharpe_scorer_ticks(self):
-        data = pd.read_csv('../data/XBTUSD.csv.gz', parse_dates=True, index_col=['time'])
+        data = _read_timeseries_data('XBTUSD', compressed=True)
 
         bs = make_pipeline(RollingRange('10S', 30, 6), RangeBreakoutDetector(0.5))
 

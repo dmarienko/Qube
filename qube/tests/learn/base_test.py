@@ -14,6 +14,7 @@ from qube.learn.core.metrics import ForwardDirectionScoring
 from qube.learn.core.operations import Imply, Neg, Or, And
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output, ls_params
+from qube.tests.utils_for_tests import _read_timeseries_data
 
 
 @signal_generator
@@ -110,7 +111,7 @@ class Gp(BaseEstimator):
 
 class BaseFunctionalityTests(unittest.TestCase):
     def setUp(self):
-        self.data = pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time'])
+        self.data = _read_timeseries_data('ES', compressed=True, as_dict=False)
         debug_output(self.data, 'ES')
 
     def test_prediction_alignment(self):
