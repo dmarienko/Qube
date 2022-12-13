@@ -16,7 +16,12 @@ from qube.simulator.core import Tracker
 
 
 def _read_csv_ohlc(symbol):
-    return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
+    # return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
+    from os.path import exists
+    fpath = f'../data/{symbol}.csv'
+    if not exists(fpath):
+        fpath = f'qube/tests/data/{symbol}.csv'
+    return {symbol: pd.read_csv(fpath, parse_dates=True, header=0, index_col='time')}
 
 
 def _signals(sdata):
