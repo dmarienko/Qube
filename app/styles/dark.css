@@ -52,6 +52,14 @@ h1, h2 {
     color: #0eaf56 !important;
 }
 
+h2.logo-title {
+    color: #0eaf56 !important;
+    line-height: 48px;
+    position:relative;
+    text-indent:50px;
+    background: url("/images/qubelogo.png") no-repeat 0 0px;
+}
+
 /* --- Modal dialog --- */
 div.collapsible {
   background-color: #050505;
