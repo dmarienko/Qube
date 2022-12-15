@@ -1,4 +1,6 @@
 import unittest
+import mongomock
+from mongomock.gridfs import enable_gridfs_integration
 
 import numpy as np
 import pandas as pd
@@ -8,9 +10,12 @@ from qube.datasource import DataSource
 from qube.utils.DateUtils import DateUtils
 from qube.datasource.controllers.MongoController import MongoController
 
+enable_gridfs_integration()
+
 
 class MongoControllerTest(unittest.TestCase):
 
+    @mongomock.patch()
     def setUp(self):
         self.mongo = MongoController()
         self.table_name = '_test_name_'

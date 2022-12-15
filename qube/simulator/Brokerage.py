@@ -19,7 +19,7 @@ class BrokerInfo:
     def session_times(self):
         raise NotImplementedError("Do not use BrokerInfo directly !")
 
-    def create_position(self, instrument):
+    def create_position(self, instrument) -> Position:
         raise NotImplementedError("Do not use BrokerInfo directly !")
 
 
