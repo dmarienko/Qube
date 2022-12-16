@@ -4,6 +4,14 @@ import numpy as np
 import pandas as pd
 from typing import Any, Union
 from collections import defaultdict
+import mongomock
+from mongomock.gridfs import enable_gridfs_integration
+from qube.datasource.controllers.MongoController import MongoController
+from qube.learn.core.utils import debug_output
+
+from qube.tests.utils_for_tests import _read_timeseries_data
+
+enable_gridfs_integration()
 
 from qube.portfolio.performance import portfolio_stats
 from qube.quantitative.tools import scols
@@ -14,6 +22,7 @@ from qube.series.Indicators import ATR
 from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo
 from qube.simulator.core import Tracker, ExecutionLogger
+from qube.simulator.multisim import simulation
 from qube.tests.simulator.utilities import cross_ma_signals_generator, portfolio_from_executions
 
 
@@ -126,7 +135,7 @@ class TestSimulatorTracker(unittest.TestCase):
         pd.set_option('display.max_columns', 240)
         pd.set_option('display.width', 520)
 
-    def test_quoted_tracker(self):
+    def test_cloned_tracker(self):
         """
         New functionality test
         """
@@ -167,3 +176,43 @@ class TestSimulatorTracker(unittest.TestCase):
             print(dict(multitrack._n_positions))
             print(W.trackers_stat)
 
+    def __initialize_mongo_db(self):
+        print('Initializing database ...')
+        d1 = _read_timeseries_data('solusdt_15min', compressed=True)
+        d2 = _read_timeseries_data('ethusdt_15min', compressed=True)
+
+        self.mongo = MongoController('md_test')
+        self.mongo.save_data('m1/BINANCEF:SOLUSDT', d1, is_serialize=True)
+        self.mongo.save_data('m1/BINANCEF:ETHUSDT', d2, is_serialize=True)
+        self.mongo.close()
+
+    @mongomock.patch()
+    def test_tracker_on_mongo(self):
+
+        self.__initialize_mongo_db()
+
+        with DataSource('simulator::mongo-market-data-1min', self.DS_CFG_FILE) as ds:
+            prices = ds.load_data(['ETHUSDT', 'SOLUSDT'], start='2021-01-01', end='2021-02-01')
+
+            # entry signals on moving crossing
+            positions1 = cross_ma_signals_generator(prices, 'ETHUSDT', p_fast=7, p_slow=30)
+            positions2 = cross_ma_signals_generator(prices, 'SOLUSDT', p_fast=7, p_slow=30)
+            positions = scols(positions1, positions2)
+
+            multitrack = MultiTrackersDispatcher(1234)
+            r = simulation(
+                { 'Test0': [positions, multitrack] }, 
+                ds, 
+                'binance_um_vip0_usdt', 
+                start='2021-01-01', stop='2021-02-01',
+                instruments=['ETHUSDT', 'SOLUSDT']
+            )
+            # print(r.results[0].trackers_stat)
+            # debug_output(r.results[0].executions, 'Executions')
+            pst1 = portfolio_stats(r.results[0].portfolio, 50000, account_transactions=True)
+            self.assertAlmostEquals(pst1['sharpe'], -0.05029371157299659, places=4)
+
+
+if __name__ == '__main__':
+    unittest.main()
+        

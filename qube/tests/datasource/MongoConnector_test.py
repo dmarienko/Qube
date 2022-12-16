@@ -30,7 +30,7 @@ class MongoConnectorTest(unittest.TestCase):
         self._initalize()
 
         with DataSource("test::mongo-market-data-1min", self.DS_CFG_PATH) as ds:
-            data = ds.load_data(['BINANCEF:ETHUSDT', 'BINANCEF:SOLUSDT'], '2021-01-01 00:00', '2021-01-01 01:00')
+            data = ds.load_data(['ETHUSDT', 'SOLUSDT'], '2021-01-01 00:00', '2021-01-01 01:00')
             symbs = ds.series_list()
         
         # print(symbs)

@@ -9,6 +9,7 @@ from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
+from qube.datasource import DataSource
 
 from qube.learn.core.base import MarketDataComposer, SingleInstrumentComposer, PortfolioComposer
 from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
@@ -59,7 +60,8 @@ def _type(obj) -> _Types:
     return t
 
 
-def start_stop_sigs(data: Dict[pd.DataFrame, Dict], start=None, stop=None):
+def start_stop_sigs(data: Union[Dict[pd.DataFrame, Dict], DataSource], start=None, stop=None, 
+                    instruments: Union[List[str], str, None]=None) -> pd.DataFrame:
     """
     Generate stub signals (NaNs mainly for backtester progress)
     """
@@ -71,30 +73,51 @@ def start_stop_sigs(data: Dict[pd.DataFrame, Dict], start=None, stop=None):
         except:
             pass
 
-    for i, d in data.items():
-        start = d.index[0] if start is None else start
-        stop = d.index[-1] if stop is None else stop
+    # here we need to find first/last
+    if isinstance(data, DataSource):
+        # we need to have list of instruments 
+        if instruments is None or not instruments:
+            raise ValueError(f"Instruments list must be non empty for DataSource related data provider !")
 
-        d_sel = d[start:stop]
-        if d_sel.empty:
-            raise ValueError(f">>> There is no '{i}' historical data for period {start} : {stop} !")
+        # make life bit easier 
+        if start is None or stop is None:
+            raise ValueError(f"Start and stop dates must be provided to be used with DataSource data provider")
 
-        dx = max(len(d_sel) // 99, 1)
-        ix = d_sel.index[::dx]
-        last_idx = d_sel.index[-1]
-        if last_idx not in ix:
-            ix = ix.append(pd.DatetimeIndex([last_idx]))
-        r = pd.concat((r, pd.Series(np.nan, ix, name=i)), axis=1)
+        for s in instruments:
+            ix = pd.date_range(start, stop, periods=100).round('1Min')
+            r = pd.concat((r, pd.Series(np.nan, ix, name=s)), axis=1)
+
+    elif isinstance(data, Dict):
+        for i, d in data.items():
+            start = d.index[0] if start is None else start
+            stop = d.index[-1] if stop is None else stop
+
+            d_sel = d[start:stop]
+            if d_sel.empty:
+                raise ValueError(f">>> There is no '{i}' historical data for period {start} : {stop} !")
+
+            dx = max(len(d_sel) // 99, 1)
+            ix = d_sel.index[::dx]
+            last_idx = d_sel.index[-1]
+            if last_idx not in ix:
+                ix = ix.append(pd.DatetimeIndex([last_idx]))
+            r = pd.concat((r, pd.Series(np.nan, ix, name=i)), axis=1)
+    else:
+        raise ValueError(f"Unrecognized data of type ({type(data)}) for determing start | stop signals !")
+
     return r
 
 
 class SimSetup:
-    def __init__(self, signals, trackers, experiment_name, estimator_portfolio_composer: str, used_data: str):
+    def __init__(
+        self, signals, trackers, experiment_name, estimator_portfolio_composer: str, 
+        used_data: str, instruments: Union[List[str], None, str]):
         self.signals = signals
         self.signal_type: _Types = _type(signals)
         self.trackers = trackers
         self.name = experiment_name
         self.estimator_portfolio_composer = estimator_portfolio_composer
+        self.instruments = instruments
         self.used_data = used_data
 
     def _check_is_fitted(self, estimator):
@@ -104,7 +127,7 @@ class SimSetup:
 
         check_is_fitted(estimator)
 
-    def get_signals(self, data: Union[pd.DataFrame, pd.Series, Dict],
+    def get_signals(self, data: Union[pd.DataFrame, pd.Series, Dict, DataSource],
                     start: Union[str, pd.Timestamp, None],
                     stop: Union[str, pd.Timestamp, None],
                     fit_stop: Union[str, pd.Timestamp, None]):
@@ -112,7 +135,7 @@ class SimSetup:
 
         # - unknown type of signals
         if sx is None or self.signal_type == _Types.UKNOWN:
-            return start_stop_sigs(data, start, stop)
+            return start_stop_sigs(data, start, stop, self.instruments)
 
         # - if we got estimator / tracked estimator here
         if self.signal_type == _Types.ESTIMATOR or self.signal_type == _Types.TRACKED_ESTIMATOR:
@@ -172,38 +195,44 @@ def _is_tracker(obj):
 
 
 def _recognize(setup: Union[Dict, List, Tuple, pd.DataFrame, pd.Series, BaseEstimator, Pipeline],
-               name: str,
+               name: str, 
                portfolio_composer: str,
-               used_data: str,
+               used_data: str, 
+               instruments: Union[List[str], None], 
                **kwargs) -> List[SimSetup]:
+    """
+    Recognize setup information
+    """
     r = list()
 
     if isinstance(setup, dict):
         for n, v in setup.items():
             r.extend(_recognize(
-                v, name + '/' + n, portfolio_composer=portfolio_composer, used_data=used_data, **kwargs
+                v, name + '/' + n, portfolio_composer=portfolio_composer, 
+                used_data=used_data, instruments=instruments, **kwargs
             ))
 
     elif isinstance(setup, (list, tuple)):
         if len(setup) == 2 and _is_signal_or_generator(setup[0]) and _is_tracker(setup[1]):
-            r.append(SimSetup(setup[0], setup[1], name, portfolio_composer, used_data))
+            r.append(SimSetup(setup[0], setup[1], name, portfolio_composer, used_data, instruments))
         else:
             for j, s in enumerate(setup):
                 r.extend(_recognize(
-                    s, name + '/' + str(j), portfolio_composer=portfolio_composer, used_data=used_data, **kwargs)
+                    s, name + '/' + str(j), portfolio_composer=portfolio_composer, used_data=used_data, 
+                    instruments=instruments, **kwargs)
                 )
 
     elif _is_tracker(setup):
-        r.append(SimSetup(None, setup, name, portfolio_composer, used_data))
+        r.append(SimSetup(None, setup, name, portfolio_composer, used_data, instruments))
 
     elif isinstance(setup, (pd.DataFrame, pd.Series)):
-        r.append(SimSetup(setup, None, name, portfolio_composer, used_data))
+        r.append(SimSetup(setup, None, name, portfolio_composer, used_data, instruments))
 
     elif _is_generator(setup):
-        r.append(SimSetup(setup, None, name, portfolio_composer, used_data))
+        r.append(SimSetup(setup, None, name, portfolio_composer, used_data, instruments))
 
     elif _is_generator_with_tracker(setup):
-        r.append(SimSetup(setup, setup.tracker(**kwargs), name, portfolio_composer, used_data))
+        r.append(SimSetup(setup, setup.tracker(**kwargs), name, portfolio_composer, used_data, instruments))
 
     return r
 
@@ -336,15 +365,17 @@ class __ForeallProgress:
         self.i_in_sim = i
 
 
-def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=None,
+def simulation(setup, data: Union[Dict[str, pd.DataFrame], pd.DataFrame, DataSource], 
+               broker, project='', start=None, stop=None, fit_stop=None,
                spreads: Union[Dict, float] = 0,
                portfolio_composer: str = 'single',
                used_data: str = 'close',
+               instruments: Union[List[str], None] = None,
                tcc: TransactionCostsCalculator = None) -> MultiResults:
     """
     Simulate different setups
     """
-    sims = _recognize(setup, project, portfolio_composer, used_data)
+    sims = _recognize(setup, project, portfolio_composer, used_data, instruments)
     results = []
     progress = __ForeallProgress(len(sims))
 
@@ -462,9 +493,11 @@ class _SimulationTrackerTask(Task):
         else:
             data = s_data.ticks()
 
-        s = _recognize({
-            f"{task_name}.{t_id}": tracker_instance
-        }, run_name, self.estimator_portfolio_composer, self.estimator_used_data)[0]
+        s = _recognize(
+            { f"{task_name}.{t_id}": tracker_instance }, 
+            run_name, self.estimator_portfolio_composer, 
+            self.estimator_used_data, instruments=self.instrument
+        )[0]
 
         sim_result = backtest(
             s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,

@@ -32,6 +32,14 @@
         "port" : 7781,
         "init" : "ticks/db_test_5min_init.q",
         "timeout" : "10"
+    },
+
+    "simulator::mongo-market-data-1min" : {
+        "type" : "mongo_connector",
+        "database": "md_test",
+        "exchange": "BINANCEF",
+        "drop_exchange_name": true,
+        "path": "m1"
     }
 
 }

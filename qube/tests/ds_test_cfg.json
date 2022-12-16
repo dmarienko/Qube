@@ -112,6 +112,7 @@
   "test::mongo-market-data-1min" : {
         "type" : "mongo_connector",
         "database": "md_test",
+        "exchange": "BINANCEF",
         "drop_exchange_name": true,
         "path": "m1"
   }
