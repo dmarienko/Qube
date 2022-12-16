@@ -102,12 +102,17 @@
     "adjusted": true
   },
 
-
-
-    "simulations::*" : {
+  "simulations::*" : {
         "type" : "csv",
         "file" : "data/simulations/sim_$1.csv",
         "delimiter" : ",",
         "header" : 0
-    }
+  },
+
+  "test::mongo-market-data-1min" : {
+        "type" : "mongo_connector",
+        "database": "md_test",
+        "drop_exchange_name": true,
+        "path": "m1"
+  }
 }
