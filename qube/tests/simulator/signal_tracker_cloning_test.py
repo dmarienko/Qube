@@ -187,7 +187,7 @@ class TestSimulatorTracker(unittest.TestCase):
         self.mongo.close()
 
     @mongomock.patch()
-    def test_tracker_on_mongo(self):
+    def test_tracker_on_mongo_data(self):
 
         self.__initialize_mongo_db()
 
