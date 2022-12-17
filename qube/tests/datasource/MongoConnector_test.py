@@ -38,5 +38,7 @@ class MongoConnectorTest(unittest.TestCase):
         self.assertListEqual(sorted(['ETHUSDT', 'SOLUSDT']), sorted(symbs))
         self.assertEquals(len(data['ETHUSDT']), len(data['SOLUSDT']))
 
+
+from pytest import main
 if __name__ == '__main__':
-    unittest.main()
+    main()

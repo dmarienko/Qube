@@ -464,8 +464,11 @@ class _SimulationTrackerTask(Task):
     """
 
     def __init__(
-            self, instrument, simualtion_cfg: _SimulationConfigDescriptor, simulations_storage_db,
-            tracker_class, *tracker_args, **tracker_kwargs
+            self, instrument, simualtion_cfg: _SimulationConfigDescriptor, 
+            simulations_storage_db: str,      # database to store results
+            save_to_storage: bool,            # if we need to store results
+            tracker_class, 
+            *tracker_args, **tracker_kwargs
     ):
         super().__init__(tracker_class, *tracker_args, **tracker_kwargs)
         self.instrument = instrument
@@ -478,7 +481,7 @@ class _SimulationTrackerTask(Task):
         self.timeframe = simualtion_cfg.test_timeframe
         self.estimator_portfolio_composer = simualtion_cfg.estimator_portfolio_composer
         self.estimator_used_data = simualtion_cfg.estimator_used_data
-        self.save(True, simulations_storage_db)
+        self.save(save_to_storage, simulations_storage_db)
 
         # TODO: [1] Temp loader hack !!
         self.loader: _LoaderCallable = simualtion_cfg.loader
@@ -526,15 +529,15 @@ class Market:
             estimator_portfolio_composer=estimator_portfolio_composer, estimator_used_data=estimator_used_data
         )
 
-    def new_simulation(self, instrument, tracker, *tracker_args, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
+    def new_simulation(self, instrument, tracker, *tracker_args, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
         return _SimulationTrackerTask(
-            instrument, self.market_description, storage_db, tracker, *tracker_args, **tracker_kwargs
+            instrument, self.market_description, storage_db, save_to_storage, tracker, *tracker_args, **tracker_kwargs
         )
 
     def new_simulations_set(self, instrument, tracker, tracker_args_permutations,
-                            simulation_id_start=0, storage_db=DB_SIMULATION_RESULTS):
+                            simulation_id_start=0, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS):
         return {
             f'sim.{k}.{instrument}': self.new_simulation(
-                instrument, tracker, *[], **p, storage_db=storage_db
+                instrument, tracker, *[], **p, save_to_storage=save_to_storage, storage_db=storage_db
             ) for k, p in enumerate(tracker_args_permutations, simulation_id_start)
         }

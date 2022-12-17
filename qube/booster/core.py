@@ -1,6 +1,7 @@
 import getpass
 import logging
-import multiprocessing as mp
+import os
+
 import sys
 import time
 from collections import defaultdict
@@ -10,6 +11,14 @@ import numpy as np
 import pandas as pd
 import yaml
 from tqdm.auto import tqdm
+
+if os.name == 'nt':
+    try:
+        import multiprocess as mp
+    except ImportError:
+        print(" >>> For support multiprocessing under Windows 'multiprocess' module should be installed")
+else:
+    import multiprocessing as mp
 
 from qube.booster.simctrl import OCtrl
 from qube.booster.utils import (
@@ -71,6 +80,11 @@ class Booster:
         # configure logger
         self._logger = _NoLog()
         if log:
+
+            # check if folder exists
+            if not os.path.exists(LOGGER_FOLDER):
+                os.makedirs(LOGGER_FOLDER)
+
             self._logger = logging.getLogger('Booster')
             self._logger.setLevel(logging.INFO)
 
@@ -814,7 +828,7 @@ class Booster:
         if drop_index:
             b_del(f'portfolios/_index/{project}/{entry}')
 
-    def task_portfolio(self, entry_id: str, run=True, stats=True, capital=None):
+    def task_portfolio(self, entry_id: str, run=True, stats=True, capital=None, save_to_storage=True):
         """
         Portfolio estimator task
         """
@@ -890,6 +904,7 @@ class Booster:
                 estimator_used_data=estimator_used_data
             )
             simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0,
+                                                     save_to_storage=save_to_storage,
                                                      storage_db=BOOSTER_DB)
             self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")
             sims_names_by_symbol[symbol] = list(simulations.keys())

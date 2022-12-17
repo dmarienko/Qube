@@ -12,10 +12,11 @@ from qube.learn.core.utils import debug_output
 from qube.simulator.multisim import simulation
 from qube.simulator.tracking.sizers import FixedRiskSizer
 from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker
+from qube.tests.utils_for_tests import _read_timeseries_data
 
 
-def _read_csv_ohlc(symbol):
-    return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
+# def _read_csv_ohlc(symbol):
+    # return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
 
 
 def _signals(sdata, as_series=False):
@@ -29,13 +30,9 @@ def _signals(sdata, as_series=False):
 
 class Test(TestCase):
     def setUp(self):
-        self.data = pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time'])
-        self.ds = {'ES': self.data}
-
-        self.data_bnc = pd.read_csv(
-            '../data/binance_perpetual_futures__BTCUSDT_ohlcv_M1.csv.gz',
-            parse_dates=True, index_col=['time']
-        )
+        self.ds = _read_timeseries_data('ES', compressed=True, as_dict=True)
+        self.data_bnc = _read_timeseries_data(
+            'binance_perpetual_futures__BTCUSDT_ohlcv_M1', compressed=True, as_dict=False)
         self.ds_bnc = {'BTCUSDT': self.data_bnc}
 
     def test_simulation(self):
@@ -157,7 +154,8 @@ class Test(TestCase):
         self.assertAlmostEqual(c_spt * 0.04 / 0.1, c_fut, places=3)
 
     def test_ATR_tracker(self):
-        data = _read_csv_ohlc('EURUSD')
+        data = _read_timeseries_data('EURUSD', as_dict=True)
+
         s = _signals({
             '2020-08-17 08:25:01': {'EURUSD': +1},
             '2020-08-17 10:25:01': {'EURUSD': +1},
@@ -247,7 +245,7 @@ class Test(TestCase):
                     '2020-08-17 11:50:59': {'EURUSD': -1},
                     '2020-08-17 23:19:59': {'EURUSD': 0}
                 })
-        }, _read_csv_ohlc('EURUSD'),
+        }, _read_timeseries_data('EURUSD', as_dict=True),
             'forex', 'Test1', start=SIM_START, stop=SIM_END, fit_stop=FIT_END
         )
 
@@ -261,3 +259,8 @@ class Test(TestCase):
         self.assertAlmostEqual(-2.981, r.results[0].portfolio['EURUSD_PnL'].sum())
         self.assertEqual(0, r.results[0].trackers_stat['EURUSD']['takes'])
         self.assertEqual(2, r.results[0].trackers_stat['EURUSD']['stops'])
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

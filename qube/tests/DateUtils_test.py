@@ -134,3 +134,8 @@ class TestDateUtils(unittest.TestCase):
         self.assertIsNotNone(DateUtils._ALL_DATE_PATTERNS)
         dateformats = DateUtils._all_dateformats()
         self.assertEqual(len((list)(dateformats)), 64)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

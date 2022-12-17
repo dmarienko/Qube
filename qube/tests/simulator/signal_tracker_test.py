@@ -126,3 +126,8 @@ class TestSimulatorTracker(unittest.TestCase):
             self.assertAlmostEqual(pst1['broker_commissions'], 528.092445)
             self.assertAlmostEqual(pst0['equity'][-1] - pst1['equity'][-1], pst1['broker_commissions'])
             self.assertAlmostEqual(equity[-1], r[:equity.index[-1]].sum(), delta=0.01)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

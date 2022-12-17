@@ -462,3 +462,8 @@ class Trackers_test(unittest.TestCase):
             [1.183030, 1.183280, 1.184605, 1.184355, 1.185640, 1.18514],
             err_msg='Executions are not correct !'
         )
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

@@ -95,3 +95,8 @@ class TestDataSource(TestCase):
         self.assertEqual(
             [DateUtils.get_as_string(ser.index[idx], DateUtils.DEFAULT_DATE_FORMAT), ser['close'][idx]],
             [date_str, val_close])
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

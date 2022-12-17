@@ -111,3 +111,8 @@ class PortfolioStatsTests(unittest.TestCase):
                           (idx.strftime('%Y-%m-%d %H:%M'), s.at[idx, 'Closed'].strftime('%Y-%m-%d %H:%M'),
                            s.at[idx, 'MaxPL'], s.at[idx, 'MinPL'], s.at[idx, 'SignalPL'])) for i, idx in
          enumerate(s.index[:])]
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

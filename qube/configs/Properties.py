@@ -49,14 +49,15 @@ def get_env():
     if QUBE_ENV_VAR in os.environ:
         return os.environ[QUBE_ENV_VAR]
     else:
+        sa0 = sys.argv[0]
         # check if it's a test running from nose2
-        if sys.argv[0].endswith('nose2') or sys.argv[0].endswith('_testlauncher.py'):
+        if sa0.endswith('nose2') or sa0.endswith('_testlauncher.py') or 'pytest' in sa0:
             return TEST_ENV
         # check if it's a test running from PyCharm 2016
         elif len(sys.argv) > 1 and 'test.py' in sys.argv[1].lower():
             return TEST_ENV
         # check if it's a test running from PyCharm 2017
-        elif len(sys.argv) == 1 and '_jb_unittest_runner.py' in sys.argv[0].lower():
+        elif len(sys.argv) == 1 and '_jb_unittest_runner.py' in sa0.lower():
             return TEST_ENV
         else:
             return DEFAULT_ENV

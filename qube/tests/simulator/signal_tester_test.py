@@ -11,8 +11,7 @@ from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo, GenericForexBrokerInfo
 from qube.simulator.core import Tracker, ExecutionLogger
 from qube.simulator.utils import convert_ohlc_to_ticks, load_tick_price_block
-from qube.tests.simulator.utilities import MockDataSource, gen_pos, cumulative_pnl_calcs_eod, TickMockDataSource
-from qube.tests.simulator.utilities import cross_ma
+from qube.tests.simulator.utilities import MockDataSource, gen_pos, cumulative_pnl_calcs_eod, TickMockDataSource, cross_ma
 from qube.utils import QubeLogger
 
 
@@ -417,3 +416,8 @@ class TestSimulator(unittest.TestCase):
         W = sim.run_signals(pos)
         total_pnl = calculate_total_pnl(W.portfolio, split_cumulative=False)
         self.assertAlmostEqual(total_pnl['Total_PnL'].sum(), -0.03999, delta=0.0001)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

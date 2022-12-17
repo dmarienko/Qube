@@ -261,5 +261,6 @@ class Simulator_Position_test(unittest.TestCase):
         self.assertAlmostEqual(pnl, -250)
 
 
+from pytest import main
 if __name__ == '__main__':
-    unittest.main()
+    main()

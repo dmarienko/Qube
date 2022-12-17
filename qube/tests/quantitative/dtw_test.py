@@ -20,3 +20,8 @@ class DTWTest(unittest.TestCase):
         self.assertAlmostEqual(dtw_window_distance(ts1, ts3, 10), 22.4724828468, delta=0.00001)
         self.assertAlmostEqual(dtw_keogh_lower_bound(ts1, ts2, 20), 6.25389235159, delta=0.00001)
         self.assertAlmostEqual(dtw_keogh_lower_bound(ts1, ts3, 20), 19.9595478694, delta=0.00001)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

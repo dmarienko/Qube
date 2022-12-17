@@ -55,3 +55,8 @@ class ToolsTests(unittest.TestCase):
         self.assertEqual(resampled_eet2.iloc[1].open, 22)
         self.assertEqual(resampled_eet2.index[1], pd.Timestamp('2019-01-01 22:00:00'))
         self.assertEqual(resampled_eet2.index.tz, resampled2.index.tz)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

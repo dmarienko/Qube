@@ -1,4 +1,5 @@
 from unittest import TestCase
+from pytest import main
 
 import numpy as np
 from pandas.testing import assert_frame_equal
@@ -104,3 +105,7 @@ class TestBarsSeries(TestCase):
             quote = Quote(time, row['bid'], row['ask'], row['bidvol'], row['askvol'])
             s2.update_by_quote(quote)
         assert_frame_equal(s1.to_frame()[-5:], s2.to_frame(), check_dtype=False)
+
+
+if __name__ == '__main__':
+    main()

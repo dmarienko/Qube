@@ -1,6 +1,5 @@
 import os
 import unittest
-from unittest import main
 
 from qube.configs import Properties
 
@@ -23,5 +22,6 @@ class PropertiesTest(unittest.TestCase):
                 {"test1": "hello", "test2": "world"})
 
 
+from pytest import main
 if __name__ == '__main__':
     main()

@@ -182,3 +182,8 @@ class TestTimeSeriesUtils(unittest.TestCase):
 
         np.testing.assert_almost_equal(mt4data.fdi.values,
                                        q_fdi.values, decimal=3)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

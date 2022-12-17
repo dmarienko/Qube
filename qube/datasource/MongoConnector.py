@@ -31,7 +31,7 @@ class MongoConnector(BasicConnector):
                 ds = ds[start:]
             if end is not None:
                 ds = ds[:end]
-            data[self._process_name(s)] = ds 
+            data[self._process_name(s)] = ds.copy() 
         return data
 
     def close(self):

@@ -151,6 +151,8 @@ class Task:
 
         if self.save_to_storage:
             z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname=self.storage_db)
+        else:
+            print(f' >> runs/{run_name}/{task_name}/{run_id}: {task_ctor_class_name} | NOT SAVED |')
 
         return result_to_return
 

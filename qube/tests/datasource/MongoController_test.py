@@ -224,3 +224,8 @@ class MongoControllerTest(unittest.TestCase):
 class TestObject:
     def test_method(self):
         return 'test_string'
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

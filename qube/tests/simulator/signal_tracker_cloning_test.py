@@ -213,6 +213,7 @@ class TestSimulatorTracker(unittest.TestCase):
             self.assertAlmostEquals(pst1['sharpe'], -0.05029371157299659, places=4)
 
 
+from pytest import main
 if __name__ == '__main__':
-    unittest.main()
+    main()
         

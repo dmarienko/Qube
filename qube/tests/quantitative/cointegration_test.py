@@ -54,3 +54,8 @@ class CointTest(unittest.TestCase):
 
         # test eigen values
         np.testing.assert_almost_equal(result.eig, eig_test, 4, err_msg='Eigen values are not equal')
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()
