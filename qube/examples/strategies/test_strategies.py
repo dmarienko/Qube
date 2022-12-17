@@ -1,6 +1,10 @@
+from collections import defaultdict
+from typing import Any
+import numpy as np
+
 from qube.series.BarSeries import BarSeries
-from qube.series.Indicators import Ema, KAMA
-from qube.simulator.tracking.trackers import TriggerOrder, TriggeredOrdersTracker
+from qube.series.Indicators import Ema, KAMA, ATR
+from qube.simulator.tracking.trackers import TriggerOrder, TriggeredOrdersTracker, Tracker
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import mstruct
 
@@ -151,3 +155,108 @@ class TestTrader(TriggeredOrdersTracker):
 
     def __repr__(self):
         return self._id_str
+
+
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+# Test for supervised strategies
+# - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class IMonitor:
+    def on_tracker_event(self, tracker: Tracker, data: Any):
+        pass
+
+    def on_tracker_position_opening(self, tracker: Tracker, data: Any):
+        pass
+
+
+class TestingTracker(Tracker):
+    def __init__(self, parameter: Any, monitor: IMonitor, debug=False):
+        self.monitor = monitor 
+        self.parameter = parameter
+        self.debug = debug
+
+    def initialize(self):
+        self.h = self.get_ohlc_series('1d')
+        self.vol = ATR(12)
+        self.h.attach(self.vol)
+        self.stop = None
+        self.take = None
+        self.monitor.on_tracker_event(self, 'Initialized !')
+        self.n_openings = 0
+
+    def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
+        if self._position.quantity > 0:
+            if bid >= self.take:
+                if self.debug:
+                    print(f' + take long [{self._instrument}] at {bid}')
+                self.trade(quote_time, 0, comment="Take Long", market_order=False)
+                return
+
+            if ask <= self.stop:
+                if self.debug:
+                    print(f' - stop long [{self._instrument}] at {ask}')
+                self.trade(quote_time, 0, comment="Stop Long")
+                return
+
+        if self._position.quantity < 0:
+            if ask <= self.take:
+                if self.debug:
+                    print(f' + take short [{self._instrument}] at {ask}')
+                self.trade(quote_time, 0, comment="Take Short", market_order=False)
+                return
+
+            if bid >= self.stop:
+                if self.debug:
+                    print(f' - stop short [{self._instrument}] at {bid}')
+                self.trade(quote_time, 0, comment="Stop Short")
+                return
+
+    def on_signal(self, signal_time, signal_qty, quote_time, bid, ask, bid_size, ask_size):
+        v = self.vol[0]
+        v = 0 if np.isnan(v) else v
+        signal_qty = int(signal_qty * 1000 * v)
+        
+        if self.debug:
+            print(f'\t[{quote_time} | {signal_time}] -> {self._instrument} {signal_qty}', end='')
+
+        if signal_qty != 0:
+            self.stop = self.h[0].low - v if signal_qty > 0 else self.h[0].high + v
+            self.take = self.h[0].high + 2 * v if signal_qty > 0 else self.h[0].low - 2 * v
+            entry = ask if signal_qty > 0 else bid
+
+            if self.debug:
+                print(f' @ {entry} x {self.stop:.2f} + {self.take:.2f}', end='')
+
+            # - notify monitor -
+            self.monitor.on_tracker_event(self, ' <<<< SIGNAL ' + str(signal_qty) + " >>>>")
+            self.monitor.on_tracker_position_opening(self, signal_qty)
+            self.n_openings += 1
+
+        if self.debug:
+            print()
+
+        return signal_qty
+    
+    def statistics(self) -> dict:
+        return {'openings': self.n_openings}
+
+
+class ExampleMultiTrackersDispatcher(Tracker, IMonitor):
+    def __init__(self, param) -> None:
+        super().__init__()
+        self.param = param
+        self._trackers = {}
+        self._n_positions = defaultdict(lambda: 0)
+
+    def on_tracker_event(self, tracker: Tracker, data: Any):
+        print(f" >> {str(tracker._position.symbol)} -> event {data} ")
+
+    def on_tracker_position_opening(self, tracker: Tracker, data: Any):
+        symbol = tracker._position.symbol
+        print(f" >> {symbol} -> {data} ")
+        self._n_positions[symbol] += 1
+
+    def __on_tracker_cloning__(self, instrument: str, is_aux=False) -> Tracker:
+        tr = TestingTracker(self.param, self)
+        print(f'{instrument} --> {str(tr)}')
+        self._trackers[instrument] = tr
+        return tr 
