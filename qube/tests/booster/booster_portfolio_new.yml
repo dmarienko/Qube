@@ -1,0 +1,44 @@
+# ============================================================================
+x-runner: &runner-15-cores
+    spreads: 0
+    max_cpus: 1
+    max_tasks_per_proc: 10
+
+x-symbols: &binance-perp-futures 
+    [ 'BINANCEF:ETHUSDT', 'BINANCEF:SOLUSDT' ]
+
+# ============================================================================
+x-param-variations: &param_variations
+    param: 'GENERATE'
+
+TestPortfolio:
+    config:
+        project: BooTest
+        description: Testing running as portfolio
+        instrument: *binance-perp-futures
+        capital: 5000
+        simulator_timeframe: "15Min"
+        broker: 'binance_um_vip0_usdt'
+        start_date: "2021-01-01"
+        end_date: "2021-02-01"
+
+        # - test config - 
+        mode: 'portfolio'
+        datasource:
+            type: "mongo_connector"
+            database: "md_test"
+            exchange: "BINANCEF"
+            path: "m1"
+        # - - - - - - - - 
+
+        debug: true
+    
+    portfolio:
+        <<: *runner-15-cores
+        task: qube.examples.strategies.test_strategies.ExampleMultiTrackersDispatcher
+        parameters:
+            <<: *param_variations
+    
+    
+    
+        

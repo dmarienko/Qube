@@ -60,6 +60,23 @@ class BoosterTest(unittest.TestCase):
             decimal=1
         )
 
+    @mongomock.patch()
+    def test_portfolio_config(self):
+        _init_mongo_db_with_market_data('md')
+        boo = Booster('qube/tests/booster/booster_portfolio_new.yml', log=True)
+        # print(boo.get_all_entries())
+
+        boo.task_portfolio('TestPortfolio', run=True, save_to_storage=True)
+        print(z_ls('portfolios/.*', dbname='booster'))
+        print(z_ls('runs/.*', dbname='booster'))
+        print(z_ls('stats/.*', dbname='booster'))
+        print(z_ld('runs/BooTest/sim.0.BINANCEF:ETHUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+        print(z_ld('runs/BooTest/sim.0.BINANCEF:SOLUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+
+        # - test report -
+        rep0 = z_ld('portfolios/BooTest/TestPortfolio', dbname='booster')['report']
+        print(rep0)
+
 
 from pytest import main
 if __name__ == '__main__':

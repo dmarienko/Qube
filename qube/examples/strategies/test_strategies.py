@@ -168,10 +168,14 @@ class IMonitor:
         pass
 
 
-class TestingTracker(Tracker):
+class _TestTracker(Tracker):
+    TICKS_TO_OPEN = 20
+
     def __init__(self, parameter: Any, monitor: IMonitor, debug=False):
         self.monitor = monitor 
         self.parameter = parameter
+        # - special case -
+        self._n_ticks_to_open = _TestTracker.TICKS_TO_OPEN
         self.debug = debug
 
     def initialize(self):
@@ -184,6 +188,17 @@ class TestingTracker(Tracker):
         self.n_openings = 0
 
     def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
+        if not np.isnan(self.vol[0]) and self.parameter == 'GENERATE':
+            if self._position.quantity == 0:
+                if self._n_ticks_to_open > 0:
+                    self._n_ticks_to_open -= 1
+                    if self._n_ticks_to_open <= 0:
+                        # print(quote_time, bid, ask)
+                        self.trade(quote_time, +1000, comment="Open Position", market_order=True)
+                        self.on_signal(quote_time, +1, quote_time, bid, ask, 0, 0)
+                        self._n_ticks_to_open = _TestTracker.TICKS_TO_OPEN
+                        return
+
         if self._position.quantity > 0:
             if bid >= self.take:
                 if self.debug:
@@ -256,7 +271,7 @@ class ExampleMultiTrackersDispatcher(Tracker, IMonitor):
         self._n_positions[symbol] += 1
 
     def __on_tracker_cloning__(self, instrument: str, is_aux=False) -> Tracker:
-        tr = TestingTracker(self.param, self)
+        tr = _TestTracker(self.param, self)
         print(f'{instrument} --> {str(tr)}')
         self._trackers[instrument] = tr
         return tr 
