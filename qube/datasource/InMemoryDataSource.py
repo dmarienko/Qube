@@ -1,3 +1,4 @@
+from typing import Tuple
 import pandas as pd
 
 from qube.datasource import DataSource
@@ -29,3 +30,15 @@ class InMemoryDataSource(DataSource):
 
     def series_list(self, pattern=r".*"):
         raise NotImplementedError("series_list() is not implemented for %s" % self.__class__.__name__)
+
+    def get_range(self, symbol: str) -> Tuple:
+        """
+        Get start / end for given symbol data 
+        """
+        if isinstance(self.data, pd.DataFrame):
+            return self.data.index[0], self.data.index[-1]
+        elif isinstance(self.data, dict) and symbol.upper() in self.data:
+            data = self.data[symbol.upper()]
+            return data.index[0], data.index[-1]
+        return None, None
+

@@ -70,8 +70,8 @@ class BoosterTest(unittest.TestCase):
         print(z_ls('portfolios/.*', dbname='booster'))
         print(z_ls('runs/.*', dbname='booster'))
         print(z_ls('stats/.*', dbname='booster'))
-        print(z_ld('runs/BooTest/sim.0.BINANCEF:ETHUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
-        print(z_ld('runs/BooTest/sim.0.BINANCEF:SOLUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+        print(z_ld('runs/BooTest/sim.0.ETHUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+        print(z_ld('runs/BooTest/sim.0.SOLUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
 
         # - test report -
         rep0 = z_ld('portfolios/BooTest/TestPortfolio', dbname='booster')['report']

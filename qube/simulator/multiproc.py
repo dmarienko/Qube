@@ -137,6 +137,7 @@ class Task:
             import traceback
             stack_trace = traceback.format_exc()
             err = f"{run_name}/{task_name}: {str(exc)} | {stack_trace}"
+            print(f'ERROR: {err}')
 
         finish_time = datetime.now()
         # avoid of using class stored into DB !

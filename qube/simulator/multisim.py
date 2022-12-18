@@ -13,6 +13,7 @@ from qube.datasource import DataSource
 
 from qube.learn.core.base import MarketDataComposer, SingleInstrumentComposer, PortfolioComposer
 from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
+from qube.quantitative.tools import ohlc_resample
 from qube.simulator.backtester import backtest
 from qube.simulator.core import Tracker, SimulationResult, DB_SIMULATION_RESULTS
 from qube.simulator.multiproc import Task, RunningInfoManager
@@ -448,7 +449,7 @@ class _LoaderCallable:
 class _SimulationConfigDescriptor:
     broker: str
     tcc: TransactionCostsCalculator
-    loader: _LoaderCallable
+    loader: Union[_LoaderCallable, DataSource]
     start: str
     stop: str
     fit_stop: str
@@ -464,7 +465,8 @@ class _SimulationTrackerTask(Task):
     """
 
     def __init__(
-            self, instrument, simualtion_cfg: _SimulationConfigDescriptor, 
+            self, instrument: Union[str, List[str]], 
+            simualtion_cfg: _SimulationConfigDescriptor, 
             simulations_storage_db: str,      # database to store results
             save_to_storage: bool,            # if we need to store results
             tracker_class, 
@@ -484,23 +486,28 @@ class _SimulationTrackerTask(Task):
         self.save(save_to_storage, simulations_storage_db)
 
         # TODO: [1] Temp loader hack !!
-        self.loader: _LoaderCallable = simualtion_cfg.loader
+        self.loader: Union[_LoaderCallable, DataSource] = simualtion_cfg.loader
 
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
         # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
 
         # - loading data
-        s_data = self.loader(self.instrument, start=self.start, end=self.stop)
-        if self.timeframe is not None:
-            data = s_data.ohlc(self.timeframe)
+        if isinstance(self.loader, DataSource):  
+            data = self.loader.load_data(self.instrument, start=self.start, end=self.stop)
+            if self.timeframe is not None:
+                data = ohlc_resample(data, self.timeframe)
         else:
-            data = s_data.ticks()
+            # - TODO: old one - loader // to be removed !!!
+            s_data = self.loader(self.instrument, start=self.start, end=self.stop)
+            if self.timeframe is not None:
+                data = s_data.ohlc(self.timeframe)
+            else:
+                data = s_data.ticks()
 
         s = _recognize(
             { f"{task_name}.{t_id}": tracker_instance }, 
             run_name, self.estimator_portfolio_composer, 
-            self.estimator_used_data, instruments=self.instrument
-        )[0]
+            self.estimator_used_data, instruments=self.instrument)[0]
 
         sim_result = backtest(
             s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,
@@ -517,7 +524,8 @@ class Market:
     """
 
     def __init__(self, broker: str, start: str, stop: str, fit_stop: str,
-                 spreads: Union[float, Dict[str, float]], data_loader: _LoaderCallable,
+                 spreads: Union[float, Dict[str, float]], 
+                 data_loader: Union[_LoaderCallable, DataSource],
                  tcc: TransactionCostsCalculator = None,
                  test_timeframe: Union[str, None] = None,
                  estimator_portfolio_composer: str = 'single',

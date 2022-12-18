@@ -5,7 +5,7 @@ x-runner: &runner-15-cores
     max_tasks_per_proc: 10
 
 x-symbols: &binance-perp-futures 
-    [ 'BINANCEF:ETHUSDT', 'BINANCEF:SOLUSDT' ]
+    [ 'ETHUSDT', 'SOLUSDT' ]
 
 # ============================================================================
 x-param-variations: &param_variations
@@ -23,12 +23,11 @@ TestPortfolio:
         end_date: "2021-02-01"
 
         # - test config - 
-        mode: 'portfolio'
+        # mode: 'portfolio'
+        mode: 'each'
         datasource:
-            type: "mongo_connector"
-            database: "md_test"
-            exchange: "BINANCEF"
-            path: "m1"
+            name: "mongo::binance-perpetual-1min"
+            path: 'qube/configs/config-test/datasource.json'
         # - - - - - - - - 
 
         debug: true

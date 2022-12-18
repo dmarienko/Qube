@@ -26,6 +26,7 @@ from qube.booster.utils import (
     average_trades_per_period, b_ld, b_ls, b_del, b_save, BOOSTER_DB
 )
 from qube.datasource.loaders import load_data, get_data_time_range
+from qube.datasource.DataSource import DataSource
 from qube.quantitative.tools import srows, scols
 from qube.simulator import simulation, Market
 from qube.simulator.multiproc import run_tasks
@@ -641,7 +642,7 @@ class Booster:
                     return False
 
         # get available data ranges
-        data_start_date, data_end_date = get_data_time_range(config.instrument)
+        data_start_date, data_end_date = get_data_time_range(config.instrument, None)
         self._logger.info(f"Available data for {symbol} : {data_start_date} / {data_end_date}")
 
         # start/end dates
@@ -828,11 +829,18 @@ class Booster:
         if drop_index:
             b_del(f'portfolios/_index/{project}/{entry}')
 
+    def _create_data_source(self, dsinfo: Union[mstruct, None]) -> Union[DataSource, callable]:
+        # TODO: to be removed !!!
+        if dsinfo is None or dsinfo == '(load-data)':
+            return load_data
+
+        if isinstance(dsinfo, mstruct):
+            return DataSource(dsinfo._get_('name'), dsinfo._get_('path'))
+
     def task_portfolio(self, entry_id: str, run=True, stats=True, capital=None, save_to_storage=True):
         """
         Portfolio estimator task
         """
-        self._logger.info(f" - - - - - - -< Start portfolio estimation for {red(entry_id)}  >- - - - - - -")
 
         # general config
         config = self.load_entry_config(entry_id)
@@ -850,8 +858,18 @@ class Booster:
         estimator_composer = config._get_('estimator_composer', 'single')
         estimator_used_data = config._get_('estimator_data', 'close')
 
+        # - mode / datasource config
+        mode = config._get_('mode', 'each')
+        datasource = config._get_('datasource', '(load-data)')
+
+        self._logger.info(f" - - - - - - -< Portfolio backtest for {red(entry_id)} in [{mode}] mode >- - - - - - -")
+        self._logger.info(f" - Datasource {datasource} | {start_date} - {end_date}")
+
         # default key for portfolio task
         cfg_key = f"{entry_id}_PORTFOLIO"
+
+        # - instantiate data loader
+        ds = self._create_data_source(datasource)
 
         # we need portfolio config
         pfl = self._cfg[entry_id].get('portfolio')
@@ -892,23 +910,40 @@ class Booster:
         # - collect all simulations configs
         sims = dict()
         sims_names_by_symbol = dict()
-        for symbol in symbols:
-            data_start_date, data_end_date = get_data_time_range(symbol)
+        # - new 'portfolio' mode backtest
+        if mode == 'portfolio':
+            if start_date is None or end_date is None:
+                raise ValueError("Both start_date and end_date must be defined in mode='portfolio' !")
+
             market = Market(
                 broker,
                 start=start_date, stop=end_date, fit_stop=fit_end_date,
                 spreads=sprds.get(symbol, 0),
-                data_loader=load_data,
+                data_loader=ds,
                 test_timeframe=simulator_timeframe,
                 estimator_portfolio_composer=estimator_composer,
                 estimator_used_data=estimator_used_data
             )
-            simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0,
-                                                     save_to_storage=save_to_storage,
-                                                     storage_db=BOOSTER_DB)
-            self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")
-            sims_names_by_symbol[symbol] = list(simulations.keys())
-            sims = {**sims, **simulations}
+
+            raise ValueError('Not implemented yet')
+        else:
+            for symbol in symbols:
+                data_start_date, data_end_date = get_data_time_range(symbol, ds)
+                market = Market(
+                    broker,
+                    start=start_date, stop=end_date, fit_stop=fit_end_date,
+                    spreads=sprds.get(symbol, 0),
+                    data_loader=ds,
+                    test_timeframe=simulator_timeframe,
+                    estimator_portfolio_composer=estimator_composer,
+                    estimator_used_data=estimator_used_data
+                )
+                simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0,
+                                                        save_to_storage=save_to_storage,
+                                                        storage_db=BOOSTER_DB)
+                self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")
+                sims_names_by_symbol[symbol] = list(simulations.keys())
+                sims = {**sims, **simulations}
 
         # - run backtests
         if run:

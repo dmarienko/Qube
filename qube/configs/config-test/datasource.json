@@ -16,5 +16,21 @@
 		"db_path": "kdb/yahoo",
 		"init": "../databases/yahoo/YahooLoad.q",
 		"timeout": 10
-	}
+	},
+
+  	"mongo::binance-perpetual-1min" : {
+        "type" : "mongo_connector",
+        "database": "md",
+        "exchange": "BINANCEF",
+        "drop_exchange_name": true,
+        "path": "m1"
+  	},
+
+  	"mongo::binance-spot-1min" : {
+        "type" : "mongo_connector",
+        "database": "md",
+        "exchange": "BINANCE",
+        "drop_exchange_name": true,
+        "path": "m1"
+  	}
 }

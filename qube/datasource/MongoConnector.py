@@ -1,5 +1,5 @@
 
-from typing import List, Union
+from typing import List, Tuple, Union
 
 from qube.datasource.controllers.MongoController import MongoController
 from .DataSource import BasicConnector
@@ -41,3 +41,10 @@ class MongoConnector(BasicConnector):
         recs = self._mctrl.ls_data(f'{self._path}/{self._exchange}:{pattern}' if self._path is not None else pattern)
         pat = f'/{self._exchange}:' if self._drop_exch_name else '/' 
         return [ r.split(pat)[1] for r in recs if r is not None ]
+
+    def get_range(self, symbol: str) -> Tuple:
+        """
+        Get start / end for given symbol data 
+        """
+        data = self.load_data([symbol], None, None)[symbol]
+        return (data.index[0], data.index[-1]) if data is not None else (None, None)
