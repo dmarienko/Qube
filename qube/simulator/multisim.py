@@ -473,7 +473,7 @@ class _SimulationTrackerTask(Task):
             *tracker_args, **tracker_kwargs
     ):
         super().__init__(tracker_class, *tracker_args, **tracker_kwargs)
-        self.instrument = instrument
+        self.instruments = instrument
         self.broker = simualtion_cfg.broker
         self.start = simualtion_cfg.start
         self.stop = simualtion_cfg.stop
@@ -485,29 +485,27 @@ class _SimulationTrackerTask(Task):
         self.estimator_used_data = simualtion_cfg.estimator_used_data
         self.save(save_to_storage, simulations_storage_db)
 
-        # TODO: [1] Temp loader hack !!
+        # TODO: _LoaderCallable is hack and should be removed in future !!
         self.loader: Union[_LoaderCallable, DataSource] = simualtion_cfg.loader
 
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
-        # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
-
         # - loading data
         if isinstance(self.loader, DataSource):  
-            data = self.loader.load_data(self.instrument, start=self.start, end=self.stop)
+            data = self.loader.load_data(self.instruments, start=self.start, end=self.stop)
             if self.timeframe is not None:
                 data = ohlc_resample(data, self.timeframe)
         else:
             # - TODO: old one - loader // to be removed !!!
-            s_data = self.loader(self.instrument, start=self.start, end=self.stop)
+            s_data = self.loader(self.instruments, start=self.start, end=self.stop)
             if self.timeframe is not None:
                 data = s_data.ohlc(self.timeframe)
             else:
                 data = s_data.ticks()
 
-        s = _recognize(
-            { f"{task_name}.{t_id}": tracker_instance }, 
-            run_name, self.estimator_portfolio_composer, 
-            self.estimator_used_data, instruments=self.instrument)[0]
+        # try to recognize what we have 
+        s = _recognize({ f"{task_name}.{t_id}": tracker_instance }, 
+                       run_name, self.estimator_portfolio_composer, 
+                       self.estimator_used_data, instruments=self.instruments)[0]
 
         sim_result = backtest(
             s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,
@@ -537,15 +535,21 @@ class Market:
             estimator_portfolio_composer=estimator_portfolio_composer, estimator_used_data=estimator_used_data
         )
 
-    def new_simulation(self, instrument, tracker, *tracker_args, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
+    def new_simulation(self, instrument: Union[str, List[str]], tracker, *tracker_args, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
         return _SimulationTrackerTask(
             instrument, self.market_description, storage_db, save_to_storage, tracker, *tracker_args, **tracker_kwargs
         )
 
-    def new_simulations_set(self, instrument, tracker, tracker_args_permutations,
+    def new_simulations_set(self, instrument: Union[str, List[str], Tuple[str]], tracker, tracker_args_permutations, 
                             simulation_id_start=0, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS):
-        return {
-            f'sim.{k}.{instrument}': self.new_simulation(
-                instrument, tracker, *[], **p, save_to_storage=save_to_storage, storage_db=storage_db
-            ) for k, p in enumerate(tracker_args_permutations, simulation_id_start)
-        }
+        if isinstance(instrument, (list, tuple)):
+            simset = {
+                f'sim.{k}.(PORTFOLIO)': self.new_simulation(instrument, tracker, *[], **p, save_to_storage=save_to_storage, storage_db=storage_db) 
+                        for k, p in enumerate(tracker_args_permutations, simulation_id_start)
+            }
+        else:
+            simset = {f'sim.{k}.{instrument}': 
+                        self.new_simulation(instrument, tracker, *[], **p, save_to_storage=save_to_storage, storage_db=storage_db) 
+                        for k, p in enumerate(tracker_args_permutations, simulation_id_start)
+            }
+        return simset

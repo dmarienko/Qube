@@ -9,7 +9,7 @@ x-symbols: &binance-perp-futures
 
 # ============================================================================
 x-param-variations: &param_variations
-    param: 'GENERATE'
+    param: ['GENERATE1', 'GENERATE2']
 
 TestPortfolio:
     config:
@@ -23,8 +23,8 @@ TestPortfolio:
         end_date: "2021-02-01"
 
         # - test config - 
-        # mode: 'portfolio'
-        mode: 'each'
+        mode: 'portfolio'
+        # mode: 'each'
         datasource:
             name: "mongo::binance-perpetual-1min"
             path: 'qube/configs/config-test/datasource.json'

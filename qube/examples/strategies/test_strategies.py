@@ -188,14 +188,15 @@ class _TestTracker(Tracker):
         self.n_openings = 0
 
     def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
-        if not np.isnan(self.vol[0]) and self.parameter == 'GENERATE':
+        if not np.isnan(self.vol[0]) and 'GENERATE' in self.parameter:
+            direction = +1 if self.parameter == 'GENERATE1' else -1
             if self._position.quantity == 0:
                 if self._n_ticks_to_open > 0:
                     self._n_ticks_to_open -= 1
                     if self._n_ticks_to_open <= 0:
                         # print(quote_time, bid, ask)
-                        self.trade(quote_time, +1000, comment="Open Position", market_order=True)
-                        self.on_signal(quote_time, +1, quote_time, bid, ask, 0, 0)
+                        self.trade(quote_time, +1000 * direction, comment=f"Open {direction} Position", market_order=True)
+                        self.on_signal(quote_time, direction, quote_time, bid, ask, 0, 0)
                         self._n_ticks_to_open = _TestTracker.TICKS_TO_OPEN
                         return
 

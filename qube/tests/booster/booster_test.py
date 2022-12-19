@@ -70,12 +70,31 @@ class BoosterTest(unittest.TestCase):
         print(z_ls('portfolios/.*', dbname='booster'))
         print(z_ls('runs/.*', dbname='booster'))
         print(z_ls('stats/.*', dbname='booster'))
-        print(z_ld('runs/BooTest/sim.0.ETHUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
-        print(z_ld('runs/BooTest/sim.0.SOLUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+        # print(z_ld('runs/BooTest/sim.0.ETHUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+        # print(z_ld('runs/BooTest/sim.0.SOLUSDT/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+
+        print(z_ld('runs/BooTest/sim.0.(PORTFOLIO)/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
 
         # - test report -
         rep0 = z_ld('portfolios/BooTest/TestPortfolio', dbname='booster')['report']
-        print(rep0)
+        print(rep0['Set0'])
+        print(rep0['Set1'])
+        np.testing.assert_almost_equal(
+            rep0['Set0']['Gain'].values, 
+            [703.166439, 703.166439, 87.895805], 
+            decimal=6
+        )
+        np.testing.assert_almost_equal(
+            rep0['Set1']['Gain'].values, 
+            [-811.910265, -811.910265, -101.488783], 
+            decimal=6
+        )
+
+        # how about the deletion ?
+        boo.delete_previous_portfolio_runs('BooTest', 'TestPortfolio')
+        print(z_ls('portfolios/.*', dbname='booster'))
+        self.assertEqual(z_ls('runs/.*', dbname='booster'), [])
+        self.assertEqual(z_ls('stats/.*', dbname='booster'), [])
 
 
 from pytest import main

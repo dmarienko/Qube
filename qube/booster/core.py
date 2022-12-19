@@ -907,26 +907,35 @@ class Booster:
             conditions=eval(pfl['conditions']) if 'conditions' in pfl else None
         )
 
-        # - collect all simulations configs
+        # - collect all simulations configs -
         sims = dict()
-        sims_names_by_symbol = dict()
+
         # - new 'portfolio' mode backtest
         if mode == 'portfolio':
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            #   PORTFOLIO mode
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             if start_date is None or end_date is None:
                 raise ValueError("Both start_date and end_date must be defined in mode='portfolio' !")
 
             market = Market(
                 broker,
                 start=start_date, stop=end_date, fit_stop=fit_end_date,
-                spreads=sprds.get(symbol, 0),
+                spreads=sprds if sprds else 0,
                 data_loader=ds,
                 test_timeframe=simulator_timeframe,
                 estimator_portfolio_composer=estimator_composer,
                 estimator_used_data=estimator_used_data
             )
 
-            raise ValueError('Not implemented yet')
+            sims = market.new_simulations_set(symbols, task_class, parameters, simulation_id_start=0,
+                                              save_to_storage=save_to_storage, storage_db=BOOSTER_DB)
+            self._logger.info(f" > {yellow('PORTFOLIO')} : {start_date} / {end_date} -> {len(sims)} runs")
+
         else:
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            #  EACH (one by one) mode 
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
             for symbol in symbols:
                 data_start_date, data_end_date = get_data_time_range(symbol, ds)
                 market = Market(
@@ -939,21 +948,20 @@ class Booster:
                     estimator_used_data=estimator_used_data
                 )
                 simulations = market.new_simulations_set(symbol, task_class, parameters, simulation_id_start=0,
-                                                        save_to_storage=save_to_storage,
-                                                        storage_db=BOOSTER_DB)
+                                                         save_to_storage=save_to_storage, storage_db=BOOSTER_DB)
                 self._logger.info(f" > {green(symbol)} : {data_start_date} / {data_end_date} -> {len(simulations)} runs")
-                sims_names_by_symbol[symbol] = list(simulations.keys())
                 sims = {**sims, **simulations}
 
-        # - run backtests
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        #  Run backtests
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         if run:
             # cleanup previous runs results if exist
             self.delete_previous_portfolio_runs(config.project, entry_id)
 
             def run_fn():
                 run_tasks(config.project, sims, max_cpus=max_cpus,
-                          max_tasks_per_proc=config._get_('max_tasks_per_proc', 10), cleanup=1,
-                          superseded_run_id=cfg_key)
+                          max_tasks_per_proc=config._get_('max_tasks_per_proc', 10), cleanup=1, superseded_run_id=cfg_key)
 
             self._logger.info(f'start {len(sims)} runs for {red(entry_id)} @ {broker}')
 
@@ -967,7 +975,9 @@ class Booster:
             task.join()
             self._logger.info(f'{green(cfg_key)} / process {red(f_id)}  finished')
 
-        # - calculate stats
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+        #  Calculate statistics
+        # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
         if stats:
             pobj = OCtrl()
             projects_simulations = pobj / config.project
@@ -980,8 +990,7 @@ class Booster:
 
             # simulations results list
             self._logger.info(f"Calculating performance stats for {config.project} | {entry_id} ...")
-            projects_simulations / cfg_key // pobj.stats(capital, force_calc=True,
-                                                         performance_statistics_period=DEFAULT_STATS_PERIOD)
+            projects_simulations / cfg_key // pobj.stats(capital, force_calc=True, performance_statistics_period=DEFAULT_STATS_PERIOD)
             self._logger.info("Done")
 
         # - after stats is ready let's get final report
@@ -1005,7 +1014,9 @@ class Booster:
             # add records
             symbol_records = {}
             set_portfolio, set_execs = None, None
-            for s in symbols:
+
+            iterated_names = symbols if mode != 'portfolio' else ['(PORTFOLIO)']
+            for s in iterated_names:
                 # sims_names_by_symbol[s]
                 _run = self._ld_simulation_run_data(config.project, f'sim.{i}.{s}', cfg_key)
 
