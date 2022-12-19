@@ -188,7 +188,7 @@ class _TestTracker(Tracker):
         self.n_openings = 0
 
     def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
-        if not np.isnan(self.vol[0]) and 'GENERATE' in self.parameter:
+        if not np.isnan(self.vol[0]) and isinstance(self.parameter, str) and 'GENERATE' in self.parameter:
             direction = +1 if self.parameter == 'GENERATE1' else -1
             if self._position.quantity == 0:
                 if self._n_ticks_to_open > 0:
