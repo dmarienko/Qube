@@ -36,3 +36,8 @@ class Kalman_LR_Estimator(unittest.TestCase):
                                        np.array([[1., 0.51351351, 0.50013808, 0.50000078],
                                                  [1., 0.51351351, 0.50013808, 0.50000078]]),
                                        decimal=3)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

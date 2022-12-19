@@ -27,3 +27,8 @@ class MemcacheControllerTest(unittest.TestCase):
         self.memcache.append_data('testappend', {'a': 1})
         self.memcache.append_data('testappend', {'a': 2})
         self.assertEqual([{'a': 1}, {'a': 2}], self.memcache.get_data('testappend'))
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

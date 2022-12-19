@@ -145,3 +145,8 @@ class ScoringTests(unittest.TestCase):
         print(g1.best_params_)
         print(g1.best_score_)
         self.assertAlmostEqual(1.07625, g1.best_score_, delta=1e-5)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

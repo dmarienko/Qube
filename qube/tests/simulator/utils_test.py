@@ -273,3 +273,8 @@ class SignalsUtilTest(unittest.TestCase):
     def test_list_of_brokers(self):
         for x in ls_brokers():
             print(x)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

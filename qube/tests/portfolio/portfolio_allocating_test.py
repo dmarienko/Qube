@@ -86,3 +86,8 @@ class PortfolioAllocatingTest(TestCase):
         self.assertEqual(first_hour_vals, 0)
         self.assertEqual(second_hour_vals, 100)
         self.assertEqual(third_hour_vals, 0)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

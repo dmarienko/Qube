@@ -203,8 +203,7 @@ class SignalTester:
         if self.__ds_info is None:
 
             # getting datasource info
-            self.__ds_info = recognize_datasource_structure(self.__data_src, instruments, sim_start, sim_end,
-                                                            self.__logger)
+            self.__ds_info = recognize_datasource_structure(self.__data_src, instruments, sim_start, sim_end, self.__logger)
 
             if self.__ds_info.type == dstype.UNKNOWN:
                 raise ValueError("Can't recognize datasource structure: it doesn't provide OHLC, bid/ask or price data")
@@ -278,7 +277,7 @@ class SignalTester:
 
         return signals
 
-    def __run_simulation_on_ticks(self, pos_trackings, instruments, signals: pd.DataFrame,
+    def __run_simulation_on_ticks(self, pos_trackings: List[Position], instruments, signals: pd.DataFrame,
                                   portfolio_logger,
                                   run_id, progress_listener, terminator=None,
                                   execution_logger=None,
@@ -310,6 +309,13 @@ class SignalTester:
         verbose_logger = self.__logger if kwargs.get(VERBOSE_MODE) else None
         jupyter_progress_listener = kwargs.get(JUPYTER_PROGRESS_LISTENER, None)
 
+        def _copy_or_dispatch_tracker(tracker: Tracker, instrument: str, is_aux: bool) -> Union[Tracker, None]:
+            new_tracker = tracker
+            if isinstance(tracker, Tracker):
+                new_tracker = tracker.__on_tracker_cloning__(instrument, is_aux)
+                new_tracker = new_tracker if new_tracker is not None else deepcopy(tracker)
+            return new_tracker
+
         # create tracks for every symbol
         if isinstance(tracker, dict):
             aux_instr = {
@@ -326,12 +332,13 @@ class SignalTester:
             aux_instr = {
                 ai: _InstrumentTrack(
                     self.__broker_info.create_position(ai), None,
-                    verbose_logger, execution_logger, tracker if single_tracker_for_all else deepcopy(tracker)
+                    verbose_logger, execution_logger, 
+                    tracker if single_tracker_for_all else _copy_or_dispatch_tracker(tracker, ai, True)
                 ) for ai in aux_instrs_names}
             tob_trackings = [
                 _InstrumentTrack(
                     t, aux_instr.get(t.aux_instrument), verbose_logger, execution_logger,
-                    tracker if single_tracker_for_all else deepcopy(tracker)
+                    tracker if single_tracker_for_all else _copy_or_dispatch_tracker(tracker, t.symbol, True)
                 ) for t in pos_trackings]
 
         instruments += aux_instrs_names

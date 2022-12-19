@@ -82,3 +82,8 @@ class IndicatorDemoTest(unittest.TestCase):
         print(">> Volatility 1 (ATR)", xdata[instruments[0]].vol[:])
         print(">> Volatility 2 (Std on returns)", xdata[instruments[0]].vol_std[:])
         self.assertTrue(len(xdata[instruments[0]].ohlc) > 0)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

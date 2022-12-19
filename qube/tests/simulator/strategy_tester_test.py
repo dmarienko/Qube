@@ -101,3 +101,8 @@ class TestStrategy(unittest.TestCase):
         right_pnl = right_pnl_1 + right_pnl_2
 
         self.assertAlmostEqual(r['Total_PnL'].sum(), right_pnl[-1], delta=0.01)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

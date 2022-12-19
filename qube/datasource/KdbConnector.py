@@ -1,6 +1,7 @@
 import datetime
 import socket
 from collections import OrderedDict
+from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -246,6 +247,16 @@ class KdbConnector(BasicConnector):
                 'It looks like all ports are occupied at moment or some kdb connection leak issue has occurred for %s.' % self.get_name())
 
         return kdb_port
+
+    def get_range(self, symbol: str) -> Tuple:
+        """
+        Get start / end for given symbol data 
+        """
+        try:
+            ranges = self._controller.exec(f'select start:first time, stop:last time from {symbol.upper()}')
+            return (ranges.iloc[0].start, ranges.iloc[0].stop)
+        except:
+            return (None, None)
 
     def series_list(self, pattern=r".*"):
         if self.is_shutdown:

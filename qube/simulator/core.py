@@ -119,6 +119,13 @@ class Tracker:
         Custom statistic generator
         """
         return None
+    
+    def __on_tracker_cloning__(self, instrument: str, is_aux=False) -> Union['Tracker', None]:
+        """
+        It's possible to override this method to control what's returned on cloning this tracker.
+        For example in case when we want to control all cloned trackers in parent one for multi assets portfolio
+        """
+        return None
 
     def __repr__(self):
         """

@@ -4,7 +4,7 @@ import re
 import sys
 import time
 from os.path import dirname
-from typing import Union
+from typing import Union, Tuple
 
 import pandas as pd
 
@@ -86,6 +86,9 @@ class BasicConnector:
 
     def reload(self):
         pass
+
+    def get_range(self, symbol: str) -> Tuple:
+        raise NotImplementedError(f"{type(self).__name__} doesn't support range discovery for {symbol} !")
 
     def close(self):
         pass
@@ -221,6 +224,9 @@ class DataSource:
 
     def reload(self):
         self.__connector.reload()
+
+    def get_range(self, symbol: str) -> Tuple:
+        return self.__connector.get_range(symbol)
 
     def close(self, sleep_period=0):
         # connector may be empty for IN_MEMORY_DATASOURCE_NAME for example

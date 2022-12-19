@@ -29,3 +29,8 @@ class NtpTest(unittest.TestCase):
         ntp_client = ntplib.NTPClient()
         response = ntp_client.request(ntp.NTP_SERVERS_LIST[0])
         self.assertAlmostEqual(ntp.get_now().timestamp(), response.tx_time, places=0)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

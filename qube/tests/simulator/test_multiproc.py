@@ -49,3 +49,8 @@ class MultiProcTest(unittest.TestCase):
         for r in res:
             print(r.run_id, r.task_id, r.result)
         ri.close()
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

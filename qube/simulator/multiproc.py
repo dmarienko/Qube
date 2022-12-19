@@ -137,6 +137,7 @@ class Task:
             import traceback
             stack_trace = traceback.format_exc()
             err = f"{run_name}/{task_name}: {str(exc)} | {stack_trace}"
+            print(f'ERROR: {err}')
 
         finish_time = datetime.now()
         # avoid of using class stored into DB !
@@ -151,6 +152,8 @@ class Task:
 
         if self.save_to_storage:
             z_save(f'runs/{run_name}/{task_name}/{run_id}', result_to_return, dbname=self.storage_db)
+        else:
+            print(f' >> runs/{run_name}/{task_name}/{run_id}: {task_ctor_class_name} | NOT SAVED |')
 
         return result_to_return
 

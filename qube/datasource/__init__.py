@@ -5,6 +5,7 @@ _CONNECTORS_LOOKUP = {
     'kdb': 'KdbConnector',
     'kdb_connector': 'KdbConnector',
     'dukas_outlook': 'DukasOutlookConnector',
+    'mongo_connector': 'MongoConnector'
 }
 
 from .DataSource import *

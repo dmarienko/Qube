@@ -68,3 +68,8 @@ class AbsMaxDDtest(unittest.TestCase):
 
         # None data
         self.assertIsNone(dd_freq_stats([0]))
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

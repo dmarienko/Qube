@@ -288,3 +288,8 @@ class BaseFunctionalityTests(unittest.TestCase):
         print(
             ((g01 >> g11) * 2).fit(self.data, None).predict(self.data)
         )
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

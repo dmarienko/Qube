@@ -9,9 +9,11 @@ from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_is_fitted
+from qube.datasource import DataSource
 
 from qube.learn.core.base import MarketDataComposer, SingleInstrumentComposer, PortfolioComposer
 from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
+from qube.quantitative.tools import ohlc_resample
 from qube.simulator.backtester import backtest
 from qube.simulator.core import Tracker, SimulationResult, DB_SIMULATION_RESULTS
 from qube.simulator.multiproc import Task, RunningInfoManager
@@ -59,7 +61,8 @@ def _type(obj) -> _Types:
     return t
 
 
-def start_stop_sigs(data: Dict[pd.DataFrame, Dict], start=None, stop=None):
+def start_stop_sigs(data: Union[Dict[pd.DataFrame, Dict], DataSource], start=None, stop=None, 
+                    instruments: Union[List[str], str, None]=None) -> pd.DataFrame:
     """
     Generate stub signals (NaNs mainly for backtester progress)
     """
@@ -71,30 +74,51 @@ def start_stop_sigs(data: Dict[pd.DataFrame, Dict], start=None, stop=None):
         except:
             pass
 
-    for i, d in data.items():
-        start = d.index[0] if start is None else start
-        stop = d.index[-1] if stop is None else stop
+    # here we need to find first/last
+    if isinstance(data, DataSource):
+        # we need to have list of instruments 
+        if instruments is None or not instruments:
+            raise ValueError(f"Instruments list must be non empty for DataSource related data provider !")
 
-        d_sel = d[start:stop]
-        if d_sel.empty:
-            raise ValueError(f">>> There is no '{i}' historical data for period {start} : {stop} !")
+        # make life bit easier 
+        if start is None or stop is None:
+            raise ValueError(f"Start and stop dates must be provided to be used with DataSource data provider")
 
-        dx = max(len(d_sel) // 99, 1)
-        ix = d_sel.index[::dx]
-        last_idx = d_sel.index[-1]
-        if last_idx not in ix:
-            ix = ix.append(pd.DatetimeIndex([last_idx]))
-        r = pd.concat((r, pd.Series(np.nan, ix, name=i)), axis=1)
+        for s in instruments:
+            ix = pd.date_range(start, stop, periods=100).round('1Min')
+            r = pd.concat((r, pd.Series(np.nan, ix, name=s)), axis=1)
+
+    elif isinstance(data, Dict):
+        for i, d in data.items():
+            start = d.index[0] if start is None else start
+            stop = d.index[-1] if stop is None else stop
+
+            d_sel = d[start:stop]
+            if d_sel.empty:
+                raise ValueError(f">>> There is no '{i}' historical data for period {start} : {stop} !")
+
+            dx = max(len(d_sel) // 99, 1)
+            ix = d_sel.index[::dx]
+            last_idx = d_sel.index[-1]
+            if last_idx not in ix:
+                ix = ix.append(pd.DatetimeIndex([last_idx]))
+            r = pd.concat((r, pd.Series(np.nan, ix, name=i)), axis=1)
+    else:
+        raise ValueError(f"Unrecognized data of type ({type(data)}) for determing start | stop signals !")
+
     return r
 
 
 class SimSetup:
-    def __init__(self, signals, trackers, experiment_name, estimator_portfolio_composer: str, used_data: str):
+    def __init__(
+        self, signals, trackers, experiment_name, estimator_portfolio_composer: str, 
+        used_data: str, instruments: Union[List[str], None, str]):
         self.signals = signals
         self.signal_type: _Types = _type(signals)
         self.trackers = trackers
         self.name = experiment_name
         self.estimator_portfolio_composer = estimator_portfolio_composer
+        self.instruments = instruments
         self.used_data = used_data
 
     def _check_is_fitted(self, estimator):
@@ -104,7 +128,7 @@ class SimSetup:
 
         check_is_fitted(estimator)
 
-    def get_signals(self, data: Union[pd.DataFrame, pd.Series, Dict],
+    def get_signals(self, data: Union[pd.DataFrame, pd.Series, Dict, DataSource],
                     start: Union[str, pd.Timestamp, None],
                     stop: Union[str, pd.Timestamp, None],
                     fit_stop: Union[str, pd.Timestamp, None]):
@@ -112,7 +136,7 @@ class SimSetup:
 
         # - unknown type of signals
         if sx is None or self.signal_type == _Types.UKNOWN:
-            return start_stop_sigs(data, start, stop)
+            return start_stop_sigs(data, start, stop, self.instruments)
 
         # - if we got estimator / tracked estimator here
         if self.signal_type == _Types.ESTIMATOR or self.signal_type == _Types.TRACKED_ESTIMATOR:
@@ -172,38 +196,44 @@ def _is_tracker(obj):
 
 
 def _recognize(setup: Union[Dict, List, Tuple, pd.DataFrame, pd.Series, BaseEstimator, Pipeline],
-               name: str,
+               name: str, 
                portfolio_composer: str,
-               used_data: str,
+               used_data: str, 
+               instruments: Union[List[str], None], 
                **kwargs) -> List[SimSetup]:
+    """
+    Recognize setup information
+    """
     r = list()
 
     if isinstance(setup, dict):
         for n, v in setup.items():
             r.extend(_recognize(
-                v, name + '/' + n, portfolio_composer=portfolio_composer, used_data=used_data, **kwargs
+                v, name + '/' + n, portfolio_composer=portfolio_composer, 
+                used_data=used_data, instruments=instruments, **kwargs
             ))
 
     elif isinstance(setup, (list, tuple)):
         if len(setup) == 2 and _is_signal_or_generator(setup[0]) and _is_tracker(setup[1]):
-            r.append(SimSetup(setup[0], setup[1], name, portfolio_composer, used_data))
+            r.append(SimSetup(setup[0], setup[1], name, portfolio_composer, used_data, instruments))
         else:
             for j, s in enumerate(setup):
                 r.extend(_recognize(
-                    s, name + '/' + str(j), portfolio_composer=portfolio_composer, used_data=used_data, **kwargs)
+                    s, name + '/' + str(j), portfolio_composer=portfolio_composer, used_data=used_data, 
+                    instruments=instruments, **kwargs)
                 )
 
     elif _is_tracker(setup):
-        r.append(SimSetup(None, setup, name, portfolio_composer, used_data))
+        r.append(SimSetup(None, setup, name, portfolio_composer, used_data, instruments))
 
     elif isinstance(setup, (pd.DataFrame, pd.Series)):
-        r.append(SimSetup(setup, None, name, portfolio_composer, used_data))
+        r.append(SimSetup(setup, None, name, portfolio_composer, used_data, instruments))
 
     elif _is_generator(setup):
-        r.append(SimSetup(setup, None, name, portfolio_composer, used_data))
+        r.append(SimSetup(setup, None, name, portfolio_composer, used_data, instruments))
 
     elif _is_generator_with_tracker(setup):
-        r.append(SimSetup(setup, setup.tracker(**kwargs), name, portfolio_composer, used_data))
+        r.append(SimSetup(setup, setup.tracker(**kwargs), name, portfolio_composer, used_data, instruments))
 
     return r
 
@@ -336,15 +366,17 @@ class __ForeallProgress:
         self.i_in_sim = i
 
 
-def simulation(setup, data, broker, project='', start=None, stop=None, fit_stop=None,
+def simulation(setup, data: Union[Dict[str, pd.DataFrame], pd.DataFrame, DataSource], 
+               broker, project='', start=None, stop=None, fit_stop=None,
                spreads: Union[Dict, float] = 0,
                portfolio_composer: str = 'single',
                used_data: str = 'close',
+               instruments: Union[List[str], None] = None,
                tcc: TransactionCostsCalculator = None) -> MultiResults:
     """
     Simulate different setups
     """
-    sims = _recognize(setup, project, portfolio_composer, used_data)
+    sims = _recognize(setup, project, portfolio_composer, used_data, instruments)
     results = []
     progress = __ForeallProgress(len(sims))
 
@@ -417,7 +449,7 @@ class _LoaderCallable:
 class _SimulationConfigDescriptor:
     broker: str
     tcc: TransactionCostsCalculator
-    loader: _LoaderCallable
+    loader: Union[_LoaderCallable, DataSource]
     start: str
     stop: str
     fit_stop: str
@@ -433,11 +465,15 @@ class _SimulationTrackerTask(Task):
     """
 
     def __init__(
-            self, instrument, simualtion_cfg: _SimulationConfigDescriptor, simulations_storage_db,
-            tracker_class, *tracker_args, **tracker_kwargs
+            self, instrument: Union[str, List[str]], 
+            simualtion_cfg: _SimulationConfigDescriptor, 
+            simulations_storage_db: str,      # database to store results
+            save_to_storage: bool,            # if we need to store results
+            tracker_class, 
+            *tracker_args, **tracker_kwargs
     ):
         super().__init__(tracker_class, *tracker_args, **tracker_kwargs)
-        self.instrument = instrument
+        self.instruments = instrument
         self.broker = simualtion_cfg.broker
         self.start = simualtion_cfg.start
         self.stop = simualtion_cfg.stop
@@ -447,24 +483,29 @@ class _SimulationTrackerTask(Task):
         self.timeframe = simualtion_cfg.test_timeframe
         self.estimator_portfolio_composer = simualtion_cfg.estimator_portfolio_composer
         self.estimator_used_data = simualtion_cfg.estimator_used_data
-        self.save(True, simulations_storage_db)
+        self.save(save_to_storage, simulations_storage_db)
 
-        # TODO: [1] Temp loader hack !!
-        self.loader: _LoaderCallable = simualtion_cfg.loader
+        # TODO: _LoaderCallable is hack and should be removed in future !!
+        self.loader: Union[_LoaderCallable, DataSource] = simualtion_cfg.loader
 
     def run(self, tracker_instance, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
-        # TODO: [1] Temp loader hack: very stupid raw implementation here - need to re-do it better !!!!
-
         # - loading data
-        s_data = self.loader(self.instrument, start=self.start, end=self.stop)
-        if self.timeframe is not None:
-            data = s_data.ohlc(self.timeframe)
+        if isinstance(self.loader, DataSource):  
+            data = self.loader.load_data(self.instruments, start=self.start, end=self.stop)
+            if self.timeframe is not None:
+                data = ohlc_resample(data, self.timeframe)
         else:
-            data = s_data.ticks()
+            # - TODO: old one - loader // to be removed !!!
+            s_data = self.loader(self.instruments, start=self.start, end=self.stop)
+            if self.timeframe is not None:
+                data = s_data.ohlc(self.timeframe)
+            else:
+                data = s_data.ticks()
 
-        s = _recognize({
-            f"{task_name}.{t_id}": tracker_instance
-        }, run_name, self.estimator_portfolio_composer, self.estimator_used_data)[0]
+        # try to recognize what we have 
+        s = _recognize({ f"{task_name}.{t_id}": tracker_instance }, 
+                       run_name, self.estimator_portfolio_composer, 
+                       self.estimator_used_data, instruments=self.instruments)[0]
 
         sim_result = backtest(
             s.get_signals(data, self.start, self.stop, self.fit_stop), data, self.broker,
@@ -481,7 +522,8 @@ class Market:
     """
 
     def __init__(self, broker: str, start: str, stop: str, fit_stop: str,
-                 spreads: Union[float, Dict[str, float]], data_loader: _LoaderCallable,
+                 spreads: Union[float, Dict[str, float]], 
+                 data_loader: Union[_LoaderCallable, DataSource],
                  tcc: TransactionCostsCalculator = None,
                  test_timeframe: Union[str, None] = None,
                  estimator_portfolio_composer: str = 'single',
@@ -493,15 +535,21 @@ class Market:
             estimator_portfolio_composer=estimator_portfolio_composer, estimator_used_data=estimator_used_data
         )
 
-    def new_simulation(self, instrument, tracker, *tracker_args, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
+    def new_simulation(self, instrument: Union[str, List[str]], tracker, *tracker_args, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS, **tracker_kwargs):
         return _SimulationTrackerTask(
-            instrument, self.market_description, storage_db, tracker, *tracker_args, **tracker_kwargs
+            instrument, self.market_description, storage_db, save_to_storage, tracker, *tracker_args, **tracker_kwargs
         )
 
-    def new_simulations_set(self, instrument, tracker, tracker_args_permutations,
-                            simulation_id_start=0, storage_db=DB_SIMULATION_RESULTS):
-        return {
-            f'sim.{k}.{instrument}': self.new_simulation(
-                instrument, tracker, *[], **p, storage_db=storage_db
-            ) for k, p in enumerate(tracker_args_permutations, simulation_id_start)
-        }
+    def new_simulations_set(self, instrument: Union[str, List[str], Tuple[str]], tracker, tracker_args_permutations, 
+                            simulation_id_start=0, save_to_storage=True, storage_db=DB_SIMULATION_RESULTS):
+        if isinstance(instrument, (list, tuple)):
+            simset = {
+                f'sim.{k}.(PORTFOLIO)': self.new_simulation(instrument, tracker, *[], **p, save_to_storage=save_to_storage, storage_db=storage_db) 
+                        for k, p in enumerate(tracker_args_permutations, simulation_id_start)
+            }
+        else:
+            simset = {f'sim.{k}.{instrument}': 
+                        self.new_simulation(instrument, tracker, *[], **p, save_to_storage=save_to_storage, storage_db=storage_db) 
+                        for k, p in enumerate(tracker_args_permutations, simulation_id_start)
+            }
+        return simset

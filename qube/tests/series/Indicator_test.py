@@ -518,3 +518,8 @@ class IndicatorTest(unittest.TestCase):
         np.testing.assert_almost_equal(wr1[::], wr2[::])
         self.assertAlmostEqual(wr1[2], -80.093, delta=0.01)
         self.assertAlmostEqual(wr1[6], -83.7209, delta=0.01)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

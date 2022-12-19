@@ -3,11 +3,12 @@ from collections import defaultdict
 from dataclasses import dataclass
 from os import makedirs
 from os.path import join, expanduser
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 from tqdm.notebook import tqdm
+from qube.datasource import DataSource
 
 from qube.learn.core.data_utils import series_period_as_str
 from qube.quantitative.tools import drop_duplicated_indexes, ohlc_resample
@@ -238,24 +239,33 @@ def update_info_data(exchange: str):
     print("[OK]")
 
 
-def get_data_time_range(instrument):
+def get_data_time_range(instrument: str, ds: Union[DataSource, callable]) -> Tuple[str]:
     """
     Find data ranges for given instrument
     :parameter instrument: instrument spec (exchange:symbol)
     """
-    exchange, symbol = instrument.split(':')
+    if isinstance(ds, DataSource):
+        ranges = ds.get_range(instrument)
+        if ranges and ranges[0] is not None:
+            data_start_date = str(ranges[0].date() + pd.Timedelta('1d'))
+            data_end_date = str(ranges[0].date())
+        else:
+            raise ValueError(f"Can't find start/stop dates for {instrument}")
+    else:
+        # - TODO: to be removed in future !
+        exchange, symbol = instrument.split(':')
 
-    t_dates = _md_ld(f'INFO/{exchange}')
-    if t_dates is None or instrument not in t_dates.index:
-        update_info_data(exchange)
+        t_dates = _md_ld(f'INFO/{exchange}')
+        if t_dates is None or instrument not in t_dates.index:
+            update_info_data(exchange)
 
-    t_dates = _md_ld(f'INFO/{exchange}')
-    if instrument not in t_dates.index:
-        raise ValueError(f"Can't find information in INFO/{exchange} table for {symbol}")
+        t_dates = _md_ld(f'INFO/{exchange}')
+        if instrument not in t_dates.index:
+            raise ValueError(f"Can't find information in INFO/{exchange} table for {symbol}")
 
-    s_info = t_dates.loc[instrument]
-    data_start_date = str(s_info.Start.date() + pd.Timedelta('1d'))
-    data_end_date = str(s_info.End.date())
+        s_info = t_dates.loc[instrument]
+        data_start_date = str(s_info.Start.date() + pd.Timedelta('1d'))
+        data_end_date = str(s_info.End.date())
 
     return data_start_date, data_end_date
 

@@ -55,3 +55,8 @@ class KdbConnector_test(TestCase):
         # print(data['spy'])
         self.assertEquals(10, data['SPY'].shape[0])
         ds.close()
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

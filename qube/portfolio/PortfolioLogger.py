@@ -98,19 +98,18 @@ class PortfolioLogger:
         self.__save_log_executor.shutdown(True)
 
     def _autosave_final_row(self):
-        prices_time = max(
-            [pos.last_update_time if pos.last_update_time else DateUtils.MIN_DATE for pos in self.watching_positions])
+        prices_time = max([
+            pos.last_update_time if pos.last_update_time else DateUtils.MIN_DATE for pos in self.watching_positions
+        ])
         if prices_time > DateUtils.MIN_DATE:  # doing if there were any updates
             final_row = []
-            [final_row.extend([pos.quantity, pos.pnl, pos.price, pos.market_value_usd, pos.commissions]) for pos in
-             self.watching_positions]
+            [final_row.extend([pos.quantity, pos.pnl, pos.price, pos.market_value_usd, pos.commissions]) for pos in self.watching_positions]
             final_log_time = DateUtils.round_time(prices_time, self._log_freq_msec)
             self.__autosave_row(final_log_time, final_row, True)
 
     def _append_positions_to_buffers(self, pm_log_time):
         row = []
-        [row.extend([pos.quantity, pos.pnl, pos.price, pos.market_value_usd, pos.commissions]) for pos in
-         self.watching_positions]
+        [row.extend([pos.quantity, pos.pnl, pos.price, pos.market_value_usd, pos.commissions]) for pos in self.watching_positions]
         self.rows_buff.append(row)
         self.index_buff.append(pm_log_time)
 

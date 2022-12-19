@@ -58,3 +58,8 @@ class CommissionsTest(unittest.TestCase):
 
         self.assertAlmostEqual(-24.9999, pnl, places=3)
         self.assertAlmostEqual(2.0, p.commissions, places=3)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()

@@ -1,4 +1,6 @@
 import unittest
+import mongomock
+from mongomock.gridfs import enable_gridfs_integration
 from collections import deque
 from datetime import timedelta
 from io import StringIO
@@ -10,6 +12,8 @@ from qube.portfolio.Position import Position, ForexPosition, CryptoPosition, Cry
 from qube.utils import QubeLogger
 from qube.datasource.controllers.MongoController import MongoController
 
+
+enable_gridfs_integration()
 
 def _upd_prt(self, timestamp, price):
     self.update_pnl(parse(timestamp), price)
@@ -172,6 +176,7 @@ class Simulator_Position_test(unittest.TestCase):
         pnl = p1.r_pnl
         self.assertAlmostEqual(pnl, 9.0744, delta=0.001)
 
+    @mongomock.patch(servers=(('localhost', 27017),), on_new='create')
     def test_save_and_position_change_logging(self):
         logger = QubeLogger.getLogger('qube.test.test_pos_change_logging')
         stringio = StringIO()
@@ -254,3 +259,8 @@ class Simulator_Position_test(unittest.TestCase):
         pnl = p.update_position_bid_ask(0, -100, 500, 505)
         self.assertAlmostEqual(p.r_pnl, -125)
         self.assertAlmostEqual(pnl, -250)
+
+
+from pytest import main
+if __name__ == '__main__':
+    main()
