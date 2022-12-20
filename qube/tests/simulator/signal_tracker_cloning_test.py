@@ -101,7 +101,7 @@ class TestSimulatorTracker(unittest.TestCase):
                 ds, 
                 'binance_um_vip0_usdt', 
                 start='2021-01-01', stop='2021-02-01',
-                instruments=['ETHUSDT', 'SOLUSDT']
+                instruments=['ETHUSDT', 'SOLUSDT'], silent=True
             )
             # print(r.results[0].trackers_stat)
             # debug_output(r.results[0].executions, 'Executions')

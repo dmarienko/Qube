@@ -338,13 +338,13 @@ class MultiResults:
 
 
 class __ForeallProgress:
-    def __init__(self, n_sims, descr='backtest'):
+    def __init__(self, n_sims, silent=False, descr='backtest'):
         if runtime_env() == 'notebook':
             from tqdm.notebook import tqdm
         else:
             from tqdm import tqdm
 
-        self.p = tqdm(total=100 * n_sims, unit_divisor=1, unit_scale=1, unit=' signals', desc=descr)
+        self.p = tqdm(total=100 * n_sims, unit_divisor=1, unit_scale=1, unit=' signals', desc=descr, disable=silent)
         self.sim = 0
         self.i_in_sim = 0
 
@@ -372,13 +372,15 @@ def simulation(setup, data: Union[Dict[str, pd.DataFrame], pd.DataFrame, DataSou
                portfolio_composer: str = 'single',
                used_data: str = 'close',
                instruments: Union[List[str], None] = None,
-               tcc: TransactionCostsCalculator = None) -> MultiResults:
+               tcc: TransactionCostsCalculator = None,
+               silent=False  # if no any progress bar
+               ) -> MultiResults:
     """
     Simulate different setups
     """
     sims = _recognize(setup, project, portfolio_composer, used_data, instruments)
     results = []
-    progress = __ForeallProgress(len(sims))
+    progress = __ForeallProgress(len(sims), silent=silent)
 
     for i, s in enumerate(sims):
         # print(s)
