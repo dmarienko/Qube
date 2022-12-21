@@ -17,7 +17,9 @@ class MongoConnector(BasicConnector):
         self._path = _cfg['path'] 
         self._exchange = _cfg['exchange'] 
         self._drop_exch_name = _cfg.get('drop_exchange_name', True)
-        self._mctrl = MongoController(self._dbase)
+        # we need to use lazy initialization here to be able to use this
+        # in multiprocessing environment
+        self.__mctrl: MongoController = None
 
     def _process_name(self, name):
         return name if self._drop_exch_name else f'{self._exchange}:{name}'
@@ -26,7 +28,7 @@ class MongoConnector(BasicConnector):
         data = {}
         for s in series:
             key = f'{self._path}/{self._exchange}:{s}' if self._path is not None else s
-            ds = self._mctrl.load_data(key)['data']
+            ds = self._cntrl().load_data(key)['data']
             if start is not None:
                 ds = ds[start:]
             if end is not None:
@@ -35,10 +37,15 @@ class MongoConnector(BasicConnector):
         return data
 
     def close(self):
-        self._mctrl.close()
+        self._cntrl().close()
+    
+    def _cntrl(self) -> MongoController:
+        if self.__mctrl is None:
+            self.__mctrl = MongoController(self._dbase)
+        return self.__mctrl 
 
     def series_list(self, pattern=r".*"):
-        recs = self._mctrl.ls_data(f'{self._path}/{self._exchange}:{pattern}' if self._path is not None else pattern)
+        recs = self._cntrl().ls_data(f'{self._path}/{self._exchange}:{pattern}' if self._path is not None else pattern)
         pat = f'/{self._exchange}:' if self._drop_exch_name else '/' 
         return [ r.split(pat)[1] for r in recs if r is not None ]
 

@@ -8,11 +8,6 @@ import pandas as pd
 
 from qube.utils.utils import is_localhost
 
-try:
-    import queue
-except:
-    import Queue as queue
-
 from os.path import join, isfile, abspath, isabs
 from .DataSource import BasicConnector
 from qube.utils.DateUtils import DateUtils
