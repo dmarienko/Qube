@@ -522,7 +522,8 @@ class SignalTester:
 
             bid = prices_buffer_matrix[i_prices, i_idx]
             if np.isnan(bid):
-                return
+                # 2022-12-28: we shouldn't skip other instruments - so let's check them too
+                continue
 
             ask = bid
             if n_cols > 1:

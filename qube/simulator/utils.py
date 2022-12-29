@@ -1,3 +1,4 @@
+from functools import reduce
 import hashlib
 import types
 from datetime import timedelta
@@ -424,6 +425,19 @@ def load_tick_price_block(data_src: DataSource, info: Union[None, dsinfo],
     else:
         prices_df = prices_df.fillna(method='ffill').fillna(method='bfill')
 
+    # 2022-Dec-29: if we have more than 1 instrument in this block and they are not intesected in time
+    #              so it might happened that first instrument has all NaNs in 'is_real' field
+    #              as result all simulation would be skipped for this price block 
+    #              we need to get combined (from all instruments) 'is_real' column 
+    #              and propagate it to all instruments to avoid exclusion from simulation
+    if 'is_real' in prices_df.columns.get_level_values(level=1):
+        idx = pd.IndexSlice
+        # we need to use 'keys' here instead of instruments because we may have multiple 
+        # entries for single symbol in case when we use aux instruments
+        combined = reduce(lambda x,y: x.combine_first(y), [prices_df[s]['is_real'].copy() for s in keys])
+        for s in keys:
+            prices_df.loc[idx[:, (s, 'is_real')]] = combined
+
     if not prices_df.empty:
         if logger is not None:
             logger.info('Loaded %d tick price records [%s ~ %s]' %
@@ -440,8 +454,7 @@ def generate_simulation_identificator(clz, brok, date):
     """
     Create simulation ID from class, broker and simulation date
     """
-    return hashlib.sha256(('%s/%s/%s' % (clz, brok, date)).encode('utf-8')).hexdigest()[:3].upper() + pd.Timestamp(
-        date).strftime('%y%m%d%H%M')
+    return hashlib.sha256(('%s/%s/%s' % (clz, brok, date)).encode('utf-8')).hexdigest()[:3].upper() + pd.Timestamp(date).strftime('%y%m%d%H%M')
 
 
 def _wrap_single_list(param_grid: Union[List, Dict]):

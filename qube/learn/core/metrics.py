@@ -182,3 +182,27 @@ class ReverseSignalsSharpeScoring(ForwardReturnsSharpeScoring):
         prices = prices.reindex(index=revere_pts.index, method='ffill')
         f_prices = prices.shift(-1)
         return self._returns_with_commissions_crypto_aware(prices, f_prices, signals)
+    
+
+class TripleBarrierScoring:
+    """
+    TODO: implement tripple barrier scoring
+    """
+    pass
+
+
+class SwingReversalsScoring:
+    """
+    TODO: implement swings reversal scoring
+           +.5 +1 +.5
+          \    /\
+           \  /  \
+            \/
+        +.5 +1 +.5 
+
+        We assign +1 if signal hits exact point of reversal (bar where reversal happened)
+        and +.5 if signal in the neighborhood of reversal point (N bars before / after)  
+        otherwise we use -1
+        Probably we need to use adjustable weights ?
+    """
+    pass
