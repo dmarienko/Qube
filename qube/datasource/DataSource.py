@@ -226,7 +226,10 @@ class DataSource:
         self.__connector.reload()
 
     def get_range(self, symbol: str) -> Tuple:
-        return self.__connector.get_range(symbol)
+        if self.__connector:
+            return self.__connector.get_range(symbol) 
+        else:
+            return None, None
 
     def close(self, sleep_period=0):
         # connector may be empty for IN_MEMORY_DATASOURCE_NAME for example

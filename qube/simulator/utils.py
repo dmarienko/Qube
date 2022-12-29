@@ -191,6 +191,15 @@ def recognize_datasource_structure(data_src: DataSource, series_names, start, en
 
     for name in series_names:
         d0 = start.date()
+
+        # - try to speed up everything and ask datasource if there is any data ranges
+        try:
+            _s, _ = data_src.get_range(name)
+            if _s is not None:
+                d0 = pd.Timestamp(_s).date()
+        except:
+            pass
+
         test_data = None
         while (test_data is None or test_data.empty) and d0 <= end.date():
             # trying to load any data from simulation start to {d+1}:10:00
