@@ -188,11 +188,17 @@ class SimulationResult:
             t.instrument: t.tracker.statistics() if t.tracker is not None else None for t in tracks
         }
         self.number_processed_signals = number_processed_signals
+
+        if isinstance(instruments, (list, tuple, set)):
+            _symbols_list = ','.join(instruments) if len(instruments) < 5 else f"{len(instruments)}"
+        else:
+            _symbols_list = instruments 
+
         self.description = f"Interval: {sim_start} ~ {sim_end} | " \
                            f"Time: {str(self.simulation_time)} | " \
                            f"Signals: {number_processed_signals} | " \
                            f"Execs: {len(self.executions) if self.executions is not None else '???'} | " \
-                           f"Symbols: {','.join(instruments if isinstance(instruments, (list, tuple, set)) else [instruments])}"
+                           f"Symbols: {_symbols_list}"
 
     def performance(self, init_cash, risk_free=0,
                     rolling_sharpe_window=252, account_transactions=True,
