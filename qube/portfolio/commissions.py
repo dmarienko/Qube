@@ -85,6 +85,36 @@ _FTX_SPOT_FUTURES_FEES = {
     't6': _entusd0([0.000, 0.040]),
 }
 
+_KRAKEN_SPOT_FEES = {
+    #                maker  taker
+    '0':    _entusd0([0.16, 0.26]),
+    '50K':	_entusd0([0.14,	0.24]),
+    '100K':	_entusd0([0.12,	0.22]),
+    '250K':	_entusd0([0.10,	0.20]),
+    '500K':	_entusd0([0.08,	0.18]),
+    '1M':	_entusd0([0.06,	0.16]),
+    '2.5M':	_entusd0([0.04,	0.14]),
+    '5M':	_entusd0([0.02,	0.12]),
+    '10M':	_entusd0([0.00,	0.10])
+}
+
+_KRAKEN_FUTURES_FEES = {
+    #                maker  taker
+    '0':    _entusd0([0.0200, 0.0500]),
+    '100K':	_entusd0([0.0150, 0.0400]),
+    '1M':	_entusd0([0.0125, 0.0300]),
+    '5M':	_entusd0([0.0100, 0.0250]),
+    '10M':	_entusd0([0.0075, 0.0200]),
+    '20M':	_entusd0([0.0050, 0.0150]),
+    '50M':	_entusd0([0.0025, 0.0125]),
+    '100M':	_entusd0([0.0000, 0.0100]),
+}
+
+_KRAKEN_FEES = {
+    'spot': _KRAKEN_SPOT_FEES,
+    'futures': _KRAKEN_FUTURES_FEES,
+}
+
 
 class TransactionCostsCalculator:
     def __init__(self, taker, maker):
@@ -159,6 +189,34 @@ class WooXRatesCommon(TransactionCostsCalculator):
             raise ValueError(f"Incorrect rates data for {asset_type} / {fees_currency} on WooX")
 
         super().__init__(maker=rates[0] / 100, taker=rates[1] / 100, )
+
+
+class KrakenRatesCommon(TransactionCostsCalculator):
+    """
+    Kraken rates
+    """
+
+    def __init__(self, asset_type, level, fees_currency='USD'):
+        fees_data = _KRAKEN_FEES.get(asset_type)
+
+        if not fees_data:
+            raise ValueError(f"Can't find fee rates data for {asset_type} on Kraken")
+
+        fees = fees_data.get(level)
+        if not fees:
+            raise ValueError(f"Can't find fee rates data for {asset_type} | {level} on Kraken")
+
+        if isinstance(fees, dict):
+            rates = fees.get(fees_currency)
+            if rates is None:
+                raise ValueError(f"Can't find {asset_type} rates data for {fees_currency} on Kraken")
+        else:
+            rates = fees
+
+        if len(rates) < 2:
+            raise ValueError(f"Incorrect rates data for {asset_type} / {fees_currency} on Kraken")
+
+        super().__init__(maker=rates[0] / 100, taker=rates[1] / 100)
 
 
 class FTXRatesCommon(TransactionCostsCalculator):
