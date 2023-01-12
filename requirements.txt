@@ -1,8 +1,9 @@
 # There is list of required packages for Qube
 numpy
-pandas==1.3.4
+pandas==1.5.2
 pandas-datareader
 sklearn
+scikit-learn
 qpython
 matplotlib
 statsmodels
@@ -21,10 +22,12 @@ bs4
 dill
 sortedcontainers
 cython
-plotly==5.8.0
+plotly==5.11.0
 numba
 seaborn
 rich
 pyyaml
 requests
 tqdm
+mongomock
+multiprocess
