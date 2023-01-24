@@ -330,6 +330,7 @@ def dict_to_frame(x: dict, index_type=None, orient='index', columns=None, column
     return y
 
 def njit_optional(func=None, *args, **kwargs):
+    """decorator instead njit from numba for solving situation without imported/installed numba"""
     if func is None:
         return partial(njit_optional, *args, **kwargs)
 
@@ -343,6 +344,7 @@ def njit_optional(func=None, *args, **kwargs):
     return inner
 
 def jit_optional(func=None, *args, **kwargs):
+    """decorator instead jit from numba for solving situation without imported/installed numba"""
     if func is None:
         return partial(njit_optional, *args, **kwargs)
 
