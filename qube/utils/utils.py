@@ -1,13 +1,20 @@
 import codecs
 import glob
+import sys
 import os
 import pickle
 import urllib.parse
 from collections import OrderedDict, namedtuple
 from os.path import basename, exists, dirname, join, expanduser
+from functools import wraps, partial
 
 import pandas as pd
 import requests
+
+try:
+    from numba import njit, jit
+except:
+    print('numba package is not found !')
 
 from qube.configs import Properties
 from qube.datasource.controllers.MongoController import MongoController
@@ -321,3 +328,29 @@ def dict_to_frame(x: dict, index_type=None, orient='index', columns=None, column
         y = y.astype(_existing_cols_conversion)
 
     return y
+
+def njit_optional(func=None, *args, **kwargs):
+    if func is None:
+        return partial(njit_optional, *args, **kwargs)
+
+    @wraps(func)
+    def inner(*i_args, **i_kwargs):
+        module_name = 'numba'
+        if module_name in sys.modules:
+            return njit(*args, **kwargs)(func)(*i_args, **i_kwargs)
+        else:
+            return func(*i_args, **i_kwargs)
+    return inner
+
+def jit_optional(func=None, *args, **kwargs):
+    if func is None:
+        return partial(njit_optional, *args, **kwargs)
+
+    @wraps(func)
+    def inner(*i_args, **i_kwargs):
+        module_name = 'numba'
+        if module_name in sys.modules:
+            return jit(*args, **kwargs)(func)(*i_args, **i_kwargs)
+        else:
+            return func(*i_args, **i_kwargs)
+    return inner

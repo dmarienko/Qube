@@ -1,25 +1,23 @@
 import numpy as np
 import pandas as pd
-from numba import njit
-
-from qube.utils.utils import mstruct
+from qube.utils.utils import mstruct, njit_optional
 
 """
     Implementation of probabilistic exponential weighted ma (https://sci-hub.shop/10.1109/SSP.2012.6319708)
 """
 
 
-@njit(cache=True)
+@njit_optional(cache=True)
 def norm_pdf(x):
     return np.exp(-x ** 2 / 2) / np.sqrt(2 * np.pi)
 
 
-@njit(cache=True)
+@njit_optional(cache=True)
 def lognorm_pdf(x, s):
     return np.exp(-np.log(x) ** 2 / (2 * s ** 2)) / (x * s * np.sqrt(2 * np.pi))
 
 
-@njit(cache=True)
+@njit_optional(cache=True)
 def _pwma(_x, a, beta, T):
     _mean, _std, _var = np.zeros(_x.shape), np.zeros(_x.shape), np.zeros(_x.shape)
     _mean[0] = _x[0]
@@ -44,7 +42,7 @@ def pwma(x, alpha, beta, T):
     return pd.DataFrame({'m': m, 'v': v, 's': s}, index=x.index)
 
 
-@njit(cache=True)
+@njit_optional(cache=True)
 def _pwma_outliers_detector(x, a, beta, T, z_th, dist):
     x0 = 0 if np.isnan(x[0]) else x[0]
     s1, s2, s1_n, std_n = x0, x0 ** 2, x0, 0
