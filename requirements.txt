@@ -1,10 +1,10 @@
 # There is list of required packages for Qube
 numpy
-pandas==1.5.2
+pandas==1.5.3
 pandas-datareader
 sklearn
 scikit-learn
-qpython
+qpython3
 matplotlib
 statsmodels
 pymongo
