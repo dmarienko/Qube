@@ -4,10 +4,9 @@ from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
-from numba import njit
 from numpy.lib.stride_tricks import as_strided as stride
 
-from qube.utils.utils import mstruct
+from qube.utils.utils import mstruct, njit_optional
 
 
 def column_vector(x):
@@ -21,7 +20,7 @@ def column_vector(x):
     return np.reshape(x, (x.shape[0], -1))
 
 
-@njit
+@njit_optional
 def shift(xs: np.ndarray, n: int, fill=np.nan) -> np.ndarray:
     """
     Shift data in numpy array (aka lag function):
@@ -165,7 +164,7 @@ def isscalar(x):
     return not isinstance(x, (list, tuple, dict, np.ndarray))
 
 
-@njit
+@njit_optional
 def nans(dims):
     """
     nans((M,N,P,...)) is an M-by-N-by-P-by-... array of NaNs.
@@ -176,7 +175,7 @@ def nans(dims):
     return np.nan * np.ones(dims)
 
 
-@njit
+@njit_optional
 def rolling_sum(x: np.ndarray, n: int) -> np.ndarray:
     """
     Fast running sum for numpy array (matrix) along columns.
