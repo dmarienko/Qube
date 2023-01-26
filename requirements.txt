@@ -31,3 +31,4 @@ requests
 tqdm
 mongomock
 multiprocess
+pytest
