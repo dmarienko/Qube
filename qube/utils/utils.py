@@ -1,20 +1,13 @@
 import codecs
 import glob
-import sys
 import os
 import pickle
 import urllib.parse
 from collections import OrderedDict, namedtuple
 from os.path import basename, exists, dirname, join, expanduser
-from functools import wraps, partial
 
 import pandas as pd
 import requests
-
-try:
-    from numba import njit, jit
-except:
-    print('numba package is not found !')
 
 from qube.configs import Properties
 from qube.datasource.controllers.MongoController import MongoController
