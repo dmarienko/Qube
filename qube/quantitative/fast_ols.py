@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
-from numba import njit, jit
 
 from qube.quantitative.tools import column_vector, nans
-from qube.utils.utils import mstruct
+from qube.utils.utils import mstruct, njit_optional, jit_optional
 
 
-@njit
+@njit_optional
 def __fast_ols(x, y):
     n = len(x)
     p, _, _, _ = np.linalg.lstsq(x, y, rcond=-1)
@@ -20,7 +19,7 @@ def fast_ols(x, y):
     return mstruct(const=c, beta=b, r2=r2)
 
 
-@jit
+@jit_optional
 def fast_alpha(x, order=1, factor=10, min_threshold=1e-10):
     """
     Returns alpha based on following calculations:
@@ -42,7 +41,7 @@ def fast_alpha(x, order=1, factor=10, min_threshold=1e-10):
     return np.exp(-factor * (1 - r2)), r2, slope, intercept
 
 
-@jit
+@jit_optional
 def __rolling_slope(x, period, alpha_factor):
     ri = nans((len(x), 2))
 
