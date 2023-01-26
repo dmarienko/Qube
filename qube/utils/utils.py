@@ -329,19 +329,24 @@ def dict_to_frame(x: dict, index_type=None, orient='index', columns=None, column
 
     return y
 
-def njit_optional(func=None, *args, **kwargs):
-    """decorator instead njit from numba for solving situation without imported/installed numba"""
-    if func is None:
-        return partial(njit_optional, *args, **kwargs)
+if "numba" in sys.modules:
+    njit_optional = njit
+else:
+    njit_optional = lambda f: f
 
-    @wraps(func)
-    def inner(*i_args, **i_kwargs):
-        module_name = 'numba'
-        if module_name in sys.modules:
-            return njit(*args, **kwargs)(func)(*i_args, **i_kwargs)
-        else:
-            return func(*i_args, **i_kwargs)
-    return inner
+# def njit_optional(func=None, *args, **kwargs):
+#     """decorator instead njit from numba for solving situation without imported/installed numba"""
+#     if func is None:
+#         return partial(njit_optional, *args, **kwargs)
+#
+#     @wraps(func)
+#     def inner(*i_args, **i_kwargs):
+#         module_name = 'numba'
+#         if module_name in sys.modules:
+#             return njit(*args, **kwargs)(func)(*i_args, **i_kwargs)
+#         else:
+#             return func(*i_args, **i_kwargs)
+#     return inner
 
 def jit_optional(func=None, *args, **kwargs):
     """decorator instead jit from numba for solving situation without imported/installed numba"""
