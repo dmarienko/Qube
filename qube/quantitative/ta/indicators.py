@@ -9,15 +9,7 @@ from statsmodels.regression.linear_model import OLS
 from qube.quantitative.tools import (column_vector, shift, sink_nans_down,
                                      lift_nans_up, nans, rolling_sum, apply_to_frame, ohlc_resample, scols,
                                      infer_series_frequency)
-
-try:
-    from numba import njit
-except:
-    print('numba package is not found !')
-
-
-    def njit(f):
-        return f
+from qube.utils.utils import njit_optional
 
 
 def __has_columns(x, *args):
@@ -240,7 +232,7 @@ def sma(x, period):
     return lift_nans_up(s, ix)
 
 
-@njit
+@njit_optional
 def _calc_kama(x, period, fast_span, slow_span):
     x = x.astype(np.float64)
     for i in range(0, x.shape[1]):
@@ -280,7 +272,7 @@ def kama(x, period, fast_span=2, slow_span=30):
     return _calc_kama(x, period, fast_span, slow_span)
 
 
-@njit
+@njit_optional
 def _calc_ema(x, span, init_mean=True, min_periods=0):
     alpha = 2.0 / (1 + span)
     x = x.astype(np.float64)
@@ -1017,7 +1009,7 @@ def stochastic(x, period, smooth_period, smoother='sma'):
     return scols(k, d, names=['K', 'D'])
 
 
-@njit
+@njit_optional
 def _laguerre_calc(xx, g):
     l0, l1, l2, l3, f = np.zeros(len(xx)), np.zeros(len(xx)), np.zeros(len(xx)), np.zeros(len(xx)), np.zeros(
         len(xx))
@@ -1037,7 +1029,7 @@ def laguerre_filter(x, gamma=0.8):
     return pd.Series(_laguerre_calc(x.values.flatten(), gamma), x.index)
 
 
-@njit
+@njit_optional
 def _lrsi_calc(xx, g):
     l0, l1, l2, l3, f = np.zeros(len(xx)), np.zeros(len(xx)), np.zeros(len(xx)), np.zeros(len(xx)), np.zeros(
         len(xx))
@@ -1079,7 +1071,7 @@ def lrsi(x, gamma=0.5):
     return pd.Series(_lrsi_calc(x.values.flatten(), gamma), x.index)
 
 
-@njit
+@njit_optional
 def calc_ema_time(t, vv, period, min_time_quant, with_correction=True):
     index = np.empty(len(vv) - 1, dtype=np.int64)
     values = np.empty(len(vv) - 1, dtype=np.float64)
@@ -1123,7 +1115,7 @@ def ema_time(x, period, min_time_quant=pd.Timedelta('1ms'), with_correction=True
     return res
 
 
-@njit
+@njit_optional
 def _rolling_rank(x, period, pctls):
     x = np.reshape(x, (x.shape[0], -1)).flatten()
     r = nans((len(x)))
@@ -1215,7 +1207,7 @@ def fractals(data, nf, actual_time=True, align_with_index=False):
     return scols(ht, lt, names=['U', 'L'])
 
 
-@njit
+@njit_optional
 def _jma(x, period, phase, power):
     x = x.astype(np.float64)
 
@@ -1380,7 +1372,7 @@ def choppyness(data, period, upper=61.8, lower=38.2, atr_smoother='sma'):
     return f0.ffill().fillna(False)
 
 
-@njit(cache=True)
+@njit_optional(cache=True)
 def __psar(close, high, low, iaf, maxaf):
     """
     PSAR loop in numba
@@ -1484,7 +1476,7 @@ def fdi(x: Union[pd.Series, pd.DataFrame, np.array], e_period=30) -> Union[np.nd
     return fdi_result
 
 
-@njit
+@njit_optional
 def _fdi(work_data, e_period=30, shape_len=1) -> np.ndarray:
     idx = np.argmax(work_data, -1)
     flat_idx = np.arange(work_data.size, step=work_data.shape[-1]) + idx.ravel()

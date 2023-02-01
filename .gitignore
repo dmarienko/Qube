@@ -6,3 +6,4 @@ tags
 .ipynb_checkpoints/
 _pyxbld/
 .pytest_cache/
+.venv
