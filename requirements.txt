@@ -23,7 +23,6 @@ dill
 sortedcontainers
 cython
 plotly==5.11.0
-numba
 seaborn
 rich
 pyyaml

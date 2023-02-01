@@ -12,8 +12,8 @@ import pandas as pd
 from qube import runtime_env
 from qube.datasource import DataSource
 from qube.portfolio.commissions import (
-    TransactionCostsCalculator, ZeroTCC, BinanceRatesCommon, WooXRatesCommon,
-    StockTCC, ForexTCC, BitmexTCC, FxcmTCC, FTXRatesCommon
+    _KRAKEN_FUTURES_FEES, _KRAKEN_SPOT_FEES, TransactionCostsCalculator, ZeroTCC, BinanceRatesCommon, WooXRatesCommon,
+    StockTCC, ForexTCC, BitmexTCC, FxcmTCC, FTXRatesCommon, KrakenRatesCommon
 )
 from qube.portfolio.performance import split_cumulative_pnl
 from qube.quantitative.tools import infer_series_frequency
@@ -564,6 +564,18 @@ def __create_brokerage_instances(spread: Union[dict, float], tcc: TransactionCos
         return {f'ftx_t{i + 1}_{c.lower()}': _f(broker_class, f't{i + 1}', c.upper()) for i in range(6)
                 for c in currencies}
 
+    def _kraken_generator(broker_class, mtype, currencies):
+        def _f(_cl, _t, _i, _c):
+            return lambda: _cl(spread=spread, tcc=KrakenRatesCommon(_t, _i, _c))
+
+        if mtype.lower() == 'spot':
+            return {f'kraken_spot_{i}_{c.lower()}': _f(broker_class, mtype, i, c.upper()) for i in _KRAKEN_SPOT_FEES.keys() for c in currencies}
+
+        if mtype.lower() == 'futures':
+            return {f'kraken_futures_{i}_{c.lower()}': _f(broker_class, mtype, i, c.upper()) for i in _KRAKEN_FUTURES_FEES.keys() for c in currencies}
+        
+        raise ValueError(f"Unknown instruments type {mtype} for Kraken exchange !")
+
     return {
         'stock': lambda: GenericStockBrokerInfo(spread=spread, tcc=StockTCC(0.05 / 100) if tcc is None else tcc),
         'forex': lambda: GenericForexBrokerInfo(spread=spread,
@@ -589,6 +601,12 @@ def __create_brokerage_instances(spread: Union[dict, float], tcc: TransactionCos
 
         # - FTX
         **_ftx_generator(GenericCryptoFuturesBrokerInfo, ['USD']),
+
+        # - Kraken spot
+        **_kraken_generator(GenericCryptoBrokerInfo, 'spot', ['USD']),
+
+        # - Kraken futures
+        **_kraken_generator(GenericCryptoFuturesBrokerInfo, 'futures', ['USD']),
 
         'dukas': lambda: GenericForexBrokerInfo(spread=spread, tcc=ForexTCC(35 / 1e6, 35 / 1e6)),
         'dukas_premium': lambda: GenericForexBrokerInfo(spread=spread, tcc=ForexTCC(17.5 / 1e6, 17.5 / 1e6)),
