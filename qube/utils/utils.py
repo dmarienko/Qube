@@ -15,10 +15,15 @@ from qube.configs import Properties
 from qube.datasource.controllers.MongoController import MongoController
 from qube.utils import QubeLogger
 
+
+__numba_is_available = False
 try:
     from numba import njit, jit
+    njit_optional = njit
+    __numba_is_available = True
 except:
-    print('numba package is not found !')
+    njit_optional = lambda f: f
+    print('WARNING: Numba package is not found')
 
 __logger = QubeLogger.getLogger(__name__)
 
@@ -329,35 +334,19 @@ def dict_to_frame(x: dict, index_type=None, orient='index', columns=None, column
 
     return y
 
-if "numba" in sys.modules:
-    njit_optional = njit
-else:
-    njit_optional = lambda f: f
-
-# def njit_optional(func=None, *args, **kwargs):
-#     """decorator instead njit from numba for solving situation without imported/installed numba"""
-#     if func is None:
-#         return partial(njit_optional, *args, **kwargs)
-#
-#     @wraps(func)
-#     def inner(*i_args, **i_kwargs):
-#         module_name = 'numba'
-#         if module_name in sys.modules:
-#             return njit(*args, **kwargs)(func)(*i_args, **i_kwargs)
-#         else:
-#             return func(*i_args, **i_kwargs)
-#     return inner
 
 def jit_optional(func=None, *args, **kwargs):
-    """decorator instead jit from numba for solving situation without imported/installed numba"""
+    """
+    Decorator used instead of jit from numba for resolving situation when numba is not presented
+    """
     if func is None:
         return partial(njit_optional, *args, **kwargs)
 
     @wraps(func)
     def inner(*i_args, **i_kwargs):
-        module_name = 'numba'
-        if module_name in sys.modules:
+        if __numba_is_available:
             return jit(*args, **kwargs)(func)(*i_args, **i_kwargs)
         else:
             return func(*i_args, **i_kwargs)
+
     return inner
