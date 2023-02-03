@@ -22,7 +22,11 @@ try:
     njit_optional = njit
     __numba_is_available = True
 except:
-    njit_optional = lambda f: f
+    def njit_optional(*args, **kwargs):
+        if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
+            return args[0]
+        else:
+            return lambda f: f
     print('WARNING: Numba package is not found')
 
 __logger = QubeLogger.getLogger(__name__)
