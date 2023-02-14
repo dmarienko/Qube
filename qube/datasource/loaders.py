@@ -153,17 +153,44 @@ class MarketMultiSymbolData:
 
 
 def load_instrument_data(instrument, start, end, timeframe, dbtype, path):
+    """
+    Try to load insrument's data
+    """
     instr, exch, symbol = (lambda x: (x, *x.split(':')))(instrument)
-    if dbtype == 'mongo':
-        data = _md_ld(f'ticks/{instr}')
+    data = None
 
-        # try 1 minutes
-        if data is None:
-            data = _md_ld(f'm1/{instr}')
+    # transform hinted timeframe
+    if timeframe is not None:
+        _t = re.match('(\d+)(\w+)', timeframe)
+        timeframe = f"{_t[2][0].lower()}{_t[1]}" if _t and len(_t.groups()) > 1 else timeframe
+
+    if dbtype == 'mongo':
+        _path = f'{timeframe}/{instr}'
+        if timeframe is not None and _md_ls(_path):
+            data = _md_ld(_path)
+        else:
+            # try to find optimal timeframe
+            last_available = None
+            search_next = False
+            for pfx in ['ticks', 'm1', 'm5', 'm15', 'h1', 'd', 'w', 'm']:
+                _path = f'{pfx}/{instr}'
+                
+                if _md_ls(_path):
+                    last_available = _path
+                    
+                if pfx == timeframe or not search_next:
+                    if last_available is not None: 
+                        data = _md_ld(last_available)
+                        break
+                    else:
+                        search_next = False
     else:
         raise ValueError(f"Unupported database '{dbtype}'")
 
+    if data is None:
+        raise ValueError(f"Can't find stored data in '{dbtype}' for {instrument} | {timeframe} !")
     return MarketData(instrument, symbol, exch, data)
+
 
 
 def load_data(*instrument, start='2000-01-01', end='2200-01-01', timeframe='1Min', dbtype='mongo',
