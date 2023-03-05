@@ -2,6 +2,6 @@ include qube/configs/config-default/*
 include qube/configs/config-test/*
 include qube/portfolio/report_templates/*
 include qube/booster/app/templates/*
-include qube/booster/app/data/*
+include qube/booster/data/*
 include qube/examples/booster/*
 prune tests *
