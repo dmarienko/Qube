@@ -95,6 +95,7 @@ class BoosterTest(unittest.TestCase):
         print(z_ls('portfolios/.*', dbname='booster'))
         self.assertEqual(z_ls('runs/.*', dbname='booster'), [])
         self.assertEqual(z_ls('stats/.*', dbname='booster'), [])
+        print(z_ld('portfolios/_index/BooTest/TestPortfolio', dbname='booster'))
 
 
 from pytest import main

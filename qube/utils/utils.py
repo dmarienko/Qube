@@ -276,27 +276,27 @@ class mstruct:
     def __setstate__(self, state):
         self.__init__(**state)
 
-    def __ms2d(self, m):
+    def __ms2d(self, m) -> dict:
         r = {}
         for f in m._fields:
             v = m.__getattr__(f)
             r[f] = self.__ms2d(v) if isinstance(v, mstruct) else v
         return r
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """
         Return this structure as dictionary
         """
         return self.__ms2d(self)
 
-    def copy(self):
+    def copy(self) -> 'mstruct':
         """
         Returns copy of this structure
         """
         return dict2struct(self.to_dict())
 
 
-def dict2struct(d: dict):
+def dict2struct(d: dict) -> mstruct:
     """
     Convert dictionary to structure
     >>> s = dict2struct({'f_1_0': 1, 'z': {'x': 1, 'y': 2}})

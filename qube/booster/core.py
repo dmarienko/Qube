@@ -118,15 +118,16 @@ class Booster:
         cfg = self.load_entry_config(entry_id)
         return b_save(f"blends/{cfg.project}/{entry_id}", data)
 
-    def _save_portfolio_task_report(self, project: str, entry_id: str, data: dict):
-        # todo: use another DB (dbname='booster') !!!
-        path = f"portfolios/{project}/{entry_id}"
-        b_save(f'portfolios/_index/{project}/{entry_id}', {
+    def _save_portfolio_task_report(self, config: mstruct, entry_id: str, data: dict):
+        path = f"portfolios/{config.project}/{entry_id}"
+        b_save(f'portfolios/_index/{config.project}/{entry_id}', {
             'path': path,
             'experiment': entry_id,
             'description': data.get('description', ''),
             'timestamp': data.get('timestamp', ''),
-            'status': data.get('status', '???')
+            'status': data.get('status', '???'),
+            # 2023-03-05: store experiment configuration
+            'config': config.to_dict(),
         })
         return b_save(path, data)
 
@@ -155,7 +156,7 @@ class Booster:
                 raise ValueError(f"Mandatory key '{k}' not found in config {c}")
         return c
 
-    def load_entry_config(self, entry_id, skip_reload_config=False):
+    def load_entry_config(self, entry_id, skip_reload_config=False) -> mstruct:
         """
         Load configuration. It reloads data from file if _reload_config is set and skip_reload_config
         is not set.
@@ -890,7 +891,7 @@ class Booster:
             'symbols': symbols,
             'status': 'STARTED',
         }
-        self._save_portfolio_task_report(config.project, entry_id, experiment_result)
+        self._save_portfolio_task_report(config, entry_id, experiment_result)
 
         # - check if all required fields are there  
         self._check_mandatory_keys(pfl, _PORTFOLIO_KEYS)
@@ -971,7 +972,7 @@ class Booster:
             self._logger.info(f">>> {green(cfg_key)} -> {red(f_id)}")
             task.start()
             self._logger.info(f">>> waiting for finishing {red(f_id)} ... ")
-            self._save_portfolio_task_report(config.project, entry_id, _amend(experiment_result, status="RUNNING"))
+            self._save_portfolio_task_report(config, entry_id, _amend(experiment_result, status="RUNNING"))
             task.join()
             self._logger.info(f'{green(cfg_key)} / process {red(f_id)}  finished')
 
@@ -984,8 +985,10 @@ class Booster:
             if projects_simulations is None:
                 self._logger.error(
                     f"Can't find any simulations for '{entry_id}' in {config.project} project. Try to start 'run' command first !")
-                self._save_portfolio_task_report(config.project, entry_id,
-                                                 _amend(experiment_result, status="Error: Can't find any simulations"))
+                self._save_portfolio_task_report(
+                    config, entry_id, 
+                    _amend(experiment_result, status="Error: Can't find any simulations")
+                )
                 return
 
             # simulations results list
@@ -1091,6 +1094,6 @@ class Booster:
             parameters=sets_parameters,
             status='FINISHED'
         )
-        self._save_portfolio_task_report(config.project, entry_id, experiment_result)
+        self._save_portfolio_task_report(config, entry_id, experiment_result)
         self._logger.info(f"Portfolio task for {config.project} | {entry_id} is finished")
         return experiment_result
