@@ -85,6 +85,9 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.utils.utils import (terminal, mstruct, add_project_to_system_path, dict2struct, urange)
     from qube.utils.ui_utils import (green, yellow, cyan, magenta, white, blue, red)
 
+    # - - - - Booster stuff (very preliminary) - - - -
+    from qube.booster.boosterai import Boo
+
     # setup short numpy output format
     np_fmt_short()
     
