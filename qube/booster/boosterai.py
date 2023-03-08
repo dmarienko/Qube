@@ -19,7 +19,7 @@ def _dive(d, tags):
     return None
 
 
-def _select_market(where: str, file: str):
+def _select_market(query: str, file: str):
     if not exists(file):
         file = join(dirname(abspath(inspect.getfile(Do))), file)
         
@@ -29,7 +29,7 @@ def _select_market(where: str, file: str):
     with open(file) as f:
         known_sets = yaml.safe_load(f)
         
-    tags = where.split(' ')
+    tags = query.split(' ')
     instrs = _dive(known_sets, tags)
     
     if instrs is None:
@@ -37,12 +37,14 @@ def _select_market(where: str, file: str):
 
     if 'noprefix' in tags:
         instrs = [s.split(':')[1] if ':' in s else s for s in instrs]
-        
-    pm = re.findall('([+,-])([a-zA-Z,:]+)', where)
+
+    pm = re.findall('([+-])([a-zA-Z\._:0-9]+)', query)
     for s, w in pm:
-        if s == '+': instrs.append(w)
-        if s == '-' and w.upper() in instrs: 
-            instrs.remove(w.upper())
+        if s == '+': instrs.append(w.upper())
+        if s == '-':
+            wu = w.upper()
+            to_rm = [x for x in instrs if x.startswith(wu) or (':' + wu) in x] 
+            [instrs.remove(x) for x in to_rm]       
 
     # - very dirty lookup for broker's name - may produce wrong matches !
     ranks = {}
@@ -87,8 +89,8 @@ def _strategy_params(clz, **kwargs):
     return {'portfolio': c}
 
 
-def _get_all_key_vals(where):
-    m = re.findall('\ ?([\w,_]+)\ *?[:,=,]\ *?([\w,_,-]+)', where)
+def _get_all_key_vals(query):
+    m = re.findall('\ ?([\w,_]+)\ *?[:,=,]\ *?([\w,_,-]+)', query)
     return dict(m)
 
 
@@ -255,3 +257,15 @@ class Boo:
 Boo.do = Do
 Boo.portfolio = get_combined_portfolio
 Boo.executions = get_combined_executions
+
+def __selector_helper(query, file='data/markets.yml'):
+    """
+    Use query for get symbols: 'binance futures all '
+    """
+    try:
+        return _select_market(query, file).get('instrument', '')
+    except Exception as e:
+        print(f"Error> {str(e)}")
+    return None
+
+Boo.symbols = __selector_helper
