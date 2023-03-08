@@ -3,14 +3,17 @@
 		"type": "yahoo",
 		"adjusted": "True"
 	},
+
 	"yahoo::daily": {
 		"type": "yahoo",
 		"adjusted": "False"
 	},
+
 	"dukas_outlook": {
 		"type": "dukas_outlook",
 		"dukas_outlook_file": "dukas_outlook.csv"
 	},
+
 	"kdb::yahoo.daily.adjusted": {
 		"type": "kdb",
 		"host": "localhost",
@@ -32,6 +35,30 @@
         "type" : "mongo_connector",
         "database": "md",
         "exchange": "BINANCE",
+        "drop_exchange_name": true,
+        "path": "m1"
+  	},
+
+  	"mongo::dukas-fx-1min" : {
+        "type" : "mongo_connector",
+        "database": "md",
+        "exchange": "DUKAS",
+        "drop_exchange_name": true,
+        "path": "m1"
+  	},
+
+  	"mongo::kraken-perpetual-1min" : {
+        "type" : "mongo_connector",
+        "database": "md",
+        "exchange": "KRAKENPF",
+        "drop_exchange_name": true,
+        "path": "m1"
+  	}, 
+
+  	"mongo::kraken-spot-1min" : {
+        "type" : "mongo_connector",
+        "database": "md",
+        "exchange": "KRAKEN",
         "drop_exchange_name": true,
         "path": "m1"
   	}

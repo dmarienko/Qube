@@ -6,6 +6,7 @@ from os.path import exists, expanduser, abspath, dirname, join
 from subprocess import Popen
 
 from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
+from qube.simulator.utils import ls_brokers
 
 
 def _dive(d, tags):
@@ -42,12 +43,18 @@ def _select_market(where: str, file: str):
         if s == '+': instrs.append(w)
         if s == '-' and w.upper() in instrs: 
             instrs.remove(w.upper())
-    
-    return dict(
-        broker='binance_um_vip0_usdt', # TODO !!!
-        instrument=instrs
-    )
 
+    # - very dirty lookup for broker's name - may produce wrong matches !
+    ranks = {}
+    aliases = {'futures': 'um'}
+    for b in ls_brokers():
+        b_name = b.split('(')[0]
+        ranks[b_name] = sum([-z*(t in b_name or aliases.get(t, '^') in b_name) for z, t in enumerate(tags, -len(tags))]) 
+        
+    broker = max(ranks, key=ranks.get)
+    
+    return dict(broker=broker, instrument=instrs)
+    
 
 def _strategy_params(clz, **kwargs):
     sgn = inspect.signature(clz.__init__)
