@@ -43,15 +43,18 @@ def smooth(x, stype: Union[str, types.FunctionType], *args, **kwargs) -> pd.Seri
     """
     Smooth series using either given function or find it by name from registered smoothers
     """
-    smoothers = {'sma': sma, 'ema': ema, 'tema': tema, 'dema': dema,
-                 'zlema': zlema, 'kama': kama, 'jma': jma, 'wma': wma}
+    smoothers = {
+        'sma': sma, 'ema': ema, 'tema': tema, 'dema': dema,
+        'zlema': zlema, 'kama': kama, 'jma': jma, 'wma': wma, 
+        'mcginley': mcginley
+    }
 
     f_sm = __empty_smoother
     if isinstance(stype, str):
         if stype in smoothers:
             f_sm = smoothers.get(stype)
         else:
-            raise ValueError("Smoothing method '%s' is not supported !" % stype)
+            raise ValueError(f"Smoothing method '{stype}' is not supported, supported methods: {list(smoothers.keys())}")
 
     if isinstance(stype, types.FunctionType):
         f_sm = stype
@@ -175,7 +178,7 @@ def moving_ols(y, x, window):
         err[i - 1] = y[i - 1] - (x[i - 1, :] * lr.params).sum()
         sd[i - 1] = lr.resid.std()
 
-    # convert to datafra?e if need
+    # convert to dataframe if need
     if x_col_names is not None and idx_line is not None:
         _non_empy = lambda c, idx: c if c else idx
         _bts = pd.DataFrame({
@@ -1433,6 +1436,9 @@ def __psar(close, high, low, iaf, maxaf):
 
 
 def psar(ohlc, iaf=0.02, maxaf=0.2):
+    """
+    Parabolic SAR indicator
+    """
     __check_frame_columns(ohlc, 'high', 'low', 'close')
 
     # do cycle in numba
@@ -1498,3 +1504,68 @@ def _fdi(work_data, e_period=30, shape_len=1) -> np.ndarray:
     fdi_vs = 1.0 + (np.log(length) + np.log(2.0)) / np.log(2 * e_period)
 
     return fdi_vs
+
+
+@njit_optional
+def __mcginley(xs, es, period):
+    g = 0.0
+    gs = []
+    for x, e in zip(xs, es):
+        if g == 0.0:
+            g = e
+        g = g + (x - g)/(period * np.power(x/g, 4)) 
+        gs.append(g)
+    return gs
+
+    
+def mcginley(xs: pd.Series, period: int):
+    """
+    McGinley dynamic moving average
+    """
+    x = column_vector(xs)
+    es0 = ema(xs, period, init_mean=False)
+    return pd.Series(__mcginley(x.reshape(1, -1)[0], es0.reshape(1, -1)[0], period), index=xs.index) 
+
+
+def stdev(x, window):
+    """
+    Standard deviation of x on rolling basis period (as in tranding view)
+    """
+    x = x.copy()
+    a = smooth(np.power(x, 2), sma, window)
+    sm = pd.Series(rolling_sum(column_vector(x), window).reshape(1, -1)[0], x.index)
+    b = np.power(sm, 2) / np.power(window, 2)
+    return np.sqrt(a - b)
+
+
+def waexplosion(data: pd.DataFrame, fastLength=20, slowLength=40, channelLength=20, sensitivity=150, mult=2.0, source='close', 
+                tuning_F1 = 3.7, tuning_atr_period=100,
+                tuning_macd_smoother = 'ema'):
+    """
+    Waddah Attar Explosion indicator (version from TradingView)
+
+    Example:
+    - - - - 
+
+    wae = waexplosion(ohlc)
+    LookingGlass(ohlc, {
+        'WAE': [
+            'dots', wae.dead_zone, 'line', wae.explosion, 'area', 'green', wae.trend_up, 'orange', 'area', wae.trend_down
+            ],
+        }).look('2023-Feb-01', '2023-Feb-17').hover()
+
+    """
+    __check_frame_columns(data, 'open', 'high', 'low', 'close')
+    x = data[source]
+    
+    dead_zone = tuning_F1 * atr(data, 2 * tuning_atr_period + 1, 'ema')
+    macd1 = smooth(x, tuning_macd_smoother, fastLength) - smooth(x, tuning_macd_smoother, slowLength)
+    t1 = sensitivity * macd1.diff()
+    
+    e1 = 2 * mult * stdev(x, channelLength)
+    trend_up = t1.where(t1 > 0, 0)
+    trend_dw = -t1.where(t1 < 0, 0)
+
+    return scols(
+        dead_zone, e1, trend_up, trend_dw, names=['dead_zone', 'explosion', 'trend_up', 'trend_down'] 
+    )

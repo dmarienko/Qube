@@ -24,7 +24,7 @@ if runtime_env() in ['notebook', 'shell']:
         holt_winters_second_order_ewma, series_halflife, running_view, smooth,
         bollinger, bollinger_atr, detrend, moving_detrend, moving_ols,
         rolling_std_with_mean, macd, trend_detector, fractals, denoised_trend,
-        stochastic, laguerre_filter, psar
+        stochastic, laguerre_filter, psar, mcginley, waexplosion, fdi, stdev, rolling_percentiles
     )
     from qube.quantitative.ta.swings.swings_splitter import (
         find_movements, find_movements_hilo
@@ -52,7 +52,7 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.simulator.tracking.trackers import (
         FixedRiskTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
         MultiTakeStopTracker, SignalBarTracker,
-        TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker
+        TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker 
     )
     from qube.simulator.tracking.sizers import (IPositionSizer, FixedSizer, FixedRiskSizer)
 
@@ -79,11 +79,14 @@ if runtime_env() in ['notebook', 'shell']:
     # - - - - Utils - - - -
     from qube.quantitative.tools import (
         isscalar, nans, apply_to_frame, ohlc_resample, scols, srows, drop_duplicated_indexes,
-        retain_columns_and_join
+        retain_columns_and_join, roll
     )
     from qube.utils.nb_functions import *
     from qube.utils.utils import (terminal, mstruct, add_project_to_system_path, dict2struct, urange)
     from qube.utils.ui_utils import (green, yellow, cyan, magenta, white, blue, red)
+
+    # - - - - Loaders - - - -
+    from qube.datasource.loaders import load_data, ls_data
 
     # - - - - Booster stuff (very preliminary) - - - -
     from qube.booster.boosterai import Boo
