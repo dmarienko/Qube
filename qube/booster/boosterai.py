@@ -2,6 +2,8 @@ import yaml
 import re
 import inspect
 import hashlib
+import string 
+from itertools import cycle
 from os.path import exists, expanduser, abspath, dirname, join
 from subprocess import Popen
 
@@ -151,11 +153,29 @@ def _config(clz, notes, where, datasource=None, markets_description_file='data/m
     return {'config': c}
 
 
-def _generate_experiment_id(clz, descr, ver, symbols):
+__VOWS = "aeiou"
+__CONS = "".join(set(string.ascii_lowercase) - set(__VOWS))
+
+def _generate_name_like_id(content, n1, ns=0):
+    __NV, __NC = len(__VOWS), len(__CONS)
+    hdg = hashlib.sha256(content.encode('utf-8')).hexdigest().upper()
+    w = ''
+    for i, x in enumerate(hdg[ns:n1+ns]):
+        if i % 2 == 0:
+            w += __CONS[int(x, 16) % __NC]
+        else:
+            w += __VOWS[int(x, 16) % __NV]
+    return w[0].upper() + w[1:]
+
+
+def _generate_experiment_id(clz, descr, ver, symbols, human_name_like=True):
     symbs = ''.join(sorted(symbols)) if symbols else ''
     ver = inspect.cleandoc(inspect.getdoc(clz))
-    id1 = hashlib.sha256(('%s/%s/%s/%s' % (clz.__name__, descr, ver, symbs)
-                         ).encode('utf-8')).hexdigest()[:5].upper()
+    content = '%s/%s/%s/%s' % (clz.__name__, descr, ver, symbs)
+    if human_name_like:
+        id1 = _generate_name_like_id(content, 8)
+    else:
+        id1 = hashlib.sha256(content.encode('utf-8')).hexdigest()[:5].upper()
     return f"{clz.__name__}-{id1}"
 
 
