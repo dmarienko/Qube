@@ -288,4 +288,15 @@ def __selector_helper(query, file='data/markets.yml'):
         print(f"Error> {str(e)}")
     return None
 
+
+def __ls_parameters(clz):
+    pls = _strategy_params(clz)
+    args = ''
+    if pls and 'portfolio' in pls:
+        args = '\t\n' + ',\n'.join([f"\t{k} = {repr(v)}" for k,v in pls['portfolio'].get('parameters', {}).items()])
+        args += '\n'
+    print(f"\n\n{clz.__name__}({args})")
+
 Boo.symbols = __selector_helper
+Boo.parameters = __ls_parameters
+
