@@ -254,6 +254,7 @@ class Do:
         return self
 
     def _write_config(self):
+        d0 = {}
         if exists(self.filename):
             with open(self.filename, 'r') as fs:
                 d0 = yaml.safe_load(fs)
