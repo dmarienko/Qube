@@ -307,7 +307,7 @@ def __show_backtest(entry_id):
 def __show_config(entry_id):
     b = Booster(None, reload_config=False)
     b.load_entry_config(entry_id)
-    print(yaml.dump(yaml.b._cfg[entry_id], sort_keys=False, default_flow_style=None, indent=4, Dumper=Do._MyDumper))
+    print(yaml.dump(b._cfg[entry_id], sort_keys=False, default_flow_style=None, indent=4, Dumper=Do._MyDumper))
 
 
 def __selector_helper(query, file='data/markets.yml'):
