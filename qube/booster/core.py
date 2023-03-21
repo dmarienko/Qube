@@ -284,9 +284,16 @@ class Booster:
         config = self.load_entry_config(entry_id)
         b_cfg = self._cfg[entry_id].get('blender')
         opts = self._cfg[entry_id].get('optimizations')
+        portfolio = self._cfg[entry_id].get('portfolio')
         print(f"-- ({green(entry_id)}) --")
         for k, v in config.to_dict().items():
             print(f"  {blue(k)}:\t{v}")
+
+        # show portfolio config if presented
+        if portfolio and isinstance(portfolio, dict):
+            print(f"\n - Portfolio config -")
+            for k, v in portfolio.items():
+                print(f"  {green(k)}:\t{v}")
 
         # more info about this project
         projects_simulations = OCtrl() / config.project
@@ -861,8 +868,18 @@ class Booster:
         max_cpus = min(config._get_('max_cpus', mp.cpu_count() - 1), mp.cpu_count() - 1)
         start_date = config._get_('start_date')
         sprds = config._get_('spreads', {})
+
+        # end date
+        now_time_str = pd.Timestamp('now').strftime('%Y-%m-%d %H:%M:00')
         end_date = config._get_('end_date')
+        if not end_date or end_date.lower() == 'now':
+            end_date = now_time_str
+
+        # end date
         fit_end_date = config._get_('fit_end_date')
+        if not fit_end_date or fit_end_date.lower() == 'now':
+            fit_end_date = now_time_str
+
         symbols = [config.instrument] if isinstance(config.instrument, str) else config.instrument
         total_cap = capital * len(symbols)
         simulator_timeframe = config._get_('simulator_timeframe', None)

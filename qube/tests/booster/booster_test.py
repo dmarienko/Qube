@@ -93,6 +93,13 @@ class BoosterTest(unittest.TestCase):
         # |> test restart functionality
         print('==================================================')
         boo2 = Booster(None, log=True)
+
+        # |> new show functionality
+        boo2.show('TestPortfolio')
+
+        print('==================================================')
+
+        # |> do restart
         boo2.task_portfolio('TestPortfolio', run=True, save_to_storage=True)
         print(z_ld('runs/BooTest/sim.0.(PORTFOLIO)/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
 

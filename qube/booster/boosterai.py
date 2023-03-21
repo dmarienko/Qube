@@ -3,12 +3,17 @@ import re
 import inspect
 import hashlib
 import string 
+import tempfile
 from itertools import cycle
 from os.path import exists, expanduser, abspath, dirname, join
 from subprocess import Popen
 
 from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
+from qube.booster.core import Booster
 from qube.simulator.utils import ls_brokers
+from qube.utils.ui_utils import red, green
+
+DEFAULT_TEMP_CONFIGS = '/var/qube/booster/configs/'
 
 
 def _dive(d, tags):
@@ -117,16 +122,23 @@ def _config(clz, notes, where, datasource=None, markets_description_file='data/m
     docs = inspect.cleandoc(inspect.getdoc(clz))
     ver = _get_ver(clz)
     info = _select_market(where, file=markets_description_file)
+
+    # try to extract backtesting intervals
     m = re.match('.*?\ ?(\w+-\w+-\w+)\ *?->\ *?(\w+-\w+-\w+).*', where)
+
+    # check if 'now' specified
+    if not m:
+        m = re.match('.*?\ ?(\w+-\w+-\w+)\ *?->\ *?(now).*', where)
+
     if m:
         start, stop = m.groups()
     else:
-        print("ERR: Backtest interval not specified. Use '2020-01-01 -> 2021-01-01' in where parameter")
+        print(red("ERR: Backtest interval not specified. Use '2020-01-01 -> 2021-01-01' in description or '2020-01-01 -> now'"))
         return
         
     prj = kv.get('project')
     if not prj:
-        print('ERR: project is not specified !')
+        print(red('ERR: project is not specified !'))
         return 
     else:
         if '/' in prj:
@@ -181,7 +193,7 @@ def _generate_experiment_id(clz, descr, ver, symbols, human_name_like=True):
 
 def _booster_cfg(clz, where, notes, datasource=None, markets_description_file='data/markets.yml', **kwargs):
     if not notes:
-        raise ValueError(" > Notes mist not be empty !")
+        raise ValueError(" > Notes must be non-empty !")
     cfg = _config(clz, notes, where, datasource=datasource, markets_description_file=markets_description_file)
     cc = cfg['config']
     capital = cc['capital']
@@ -238,6 +250,10 @@ class Do:
     def __rshift__(self, dest):
         d0 = {}
         self.filename = expanduser((dest + '.yml') if not dest.endswith('.yml') else dest)
+        self._write_config()
+        return self
+
+    def _write_config(self):
         if exists(self.filename):
             with open(self.filename, 'r') as fs:
                 d0 = yaml.safe_load(fs)
@@ -245,12 +261,14 @@ class Do:
                 
         with open(self.filename, 'w') as fs:
             self.dump_yaml({**d0, **{self.experiment: self.cfg}}, fs)
-            
-        return self
     
     def __and__(self, cmd):
         if self.filename is None:
-            raise ValueError("First you need to dump config into file !")
+            if not exists(DEFAULT_TEMP_CONFIGS):
+                raise ValueError(f" > Directory for temporary files '{DEFAULT_TEMP_CONFIGS}' not exists !")
+            self.filename = tempfile.mktemp(prefix=DEFAULT_TEMP_CONFIGS, suffix='.yml')
+            print(f" > Generating temporary config file: {green(self.filename)}")
+            self._write_config()
             
         with open(f"{self.experiment}.log", 'ab') as logfile:
             if cmd.startswith('run'):
@@ -274,9 +292,23 @@ class Do:
 class Boo:
     pass
 
-Boo.do = Do
-Boo.portfolio = get_combined_portfolio
-Boo.executions = get_combined_executions
+def __delete_backtest(entry_id: str):
+    Booster(None, reload_config=False).task_delete(entry_id)
+
+
+def __list_backtest():
+    Booster(None, reload_config=False).ls()
+
+
+def __show_backtest(entry_id):
+    Booster(None, reload_config=False).show(entry_id)
+
+
+def __show_config(entry_id):
+    b = Booster(None, reload_config=False)
+    b.load_entry_config(entry_id)
+    print(yaml.dump(yaml.b._cfg[entry_id], sort_keys=False, default_flow_style=None, indent=4, Dumper=Do._MyDumper))
+
 
 def __selector_helper(query, file='data/markets.yml'):
     """
@@ -297,6 +329,14 @@ def __ls_parameters(clz):
         args += '\n'
     print(f"\n\n{clz.__name__}({args})")
 
+
+Boo.do = Do
+Boo.portfolio = get_combined_portfolio
+Boo.executions = get_combined_executions
+Boo.delete = __delete_backtest
+Boo.ls = __list_backtest
+Boo.config = __show_config
+Boo.show = __show_backtest
 Boo.symbols = __selector_helper
 Boo.parameters = __ls_parameters
 
