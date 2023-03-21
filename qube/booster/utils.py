@@ -3,6 +3,7 @@
 """
 import pandas as pd
 from tqdm.auto import tqdm
+import re
 
 from qube.portfolio.allocating import tang_portfolio
 from qube.quantitative.tools import scols
@@ -56,6 +57,32 @@ def rm_blend_data(project, entry_id):
     print(red("REMOVING: ") + f"{project} / {entry_id} bleneded data ... ", end='')
     b_del(f'blends/{project}/{entry_id}')
     print(green("[OK]"))
+
+
+def restore_configs_from_records():
+    """
+    Restore config from database records 
+    """
+    def __safe_upd(ds, k, v):
+        while k in ds: 
+            vs = re.split('(.*)_(\d+)$', k)
+            v, ver = k, 0
+            if len(vs) > 1:
+                v = vs[1]
+                ver = int(vs[2])
+                
+            k = v + "_" + str(ver+1) 
+        ds[k] = v
+        return ds
+
+    config = {}
+
+    for s in b_ls('portfolios/_index'):
+        ix = b_ld(s)
+        if ix:
+            e_id = ix.get('experiment')
+            config = __safe_upd(config, e_id, ix.get(e_id, {}))
+    return config
 
 
 def get_best_simulation(opt_data, criterion, ordering):

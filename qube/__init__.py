@@ -94,8 +94,6 @@ if runtime_env() in ['notebook', 'shell']:
     from IPython.core.magic import (Magics, magics_class, line_magic, line_cell_magic)
     from IPython import get_ipython
 
-    from os.path import isdir, isfile, join, basename, expanduser, relpath
-
     @magics_class
     class QubeMagics(Magics):
         # process data manager

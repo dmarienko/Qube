@@ -22,7 +22,7 @@ else:
 
 from qube.booster.simctrl import OCtrl
 from qube.booster.utils import (
-    rm_sim_data, rm_blend_data, check_model_already_exists, class_import, calculate_weights, short_performace_report,
+    restore_configs_from_records, rm_sim_data, rm_blend_data, check_model_already_exists, class_import, calculate_weights, short_performace_report,
     average_trades_per_period, b_ld, b_ls, b_del, b_save, BOOSTER_DB
 )
 from qube.datasource.loaders import load_data, get_data_time_range
@@ -81,7 +81,6 @@ class Booster:
         # configure logger
         self._logger = _NoLog()
         if log:
-
             # check if folder exists
             if not os.path.exists(LOGGER_FOLDER):
                 os.makedirs(LOGGER_FOLDER)
@@ -118,8 +117,15 @@ class Booster:
         cfg = self.load_entry_config(entry_id)
         return b_save(f"blends/{cfg.project}/{entry_id}", data)
 
-    def _save_portfolio_task_report(self, config: mstruct, entry_id: str, data: dict):
+    def _save_portfolio_task_report(self, entry_id: str, data: dict, 
+                                    config: mstruct, portfolio_config: dict):
         path = f"portfolios/{config.project}/{entry_id}"
+
+        cfg_to_save = {
+            'config': config.to_dict(),
+            'portfolio': portfolio_config
+        }
+        
         b_save(f'portfolios/_index/{config.project}/{entry_id}', {
             'path': path,
             'experiment': entry_id,
@@ -127,7 +133,7 @@ class Booster:
             'timestamp': data.get('timestamp', ''),
             'status': data.get('status', '???'),
             # 2023-03-05: store experiment configuration
-            'config': config.to_dict(),
+            entry_id: cfg_to_save,
         })
         return b_save(path, data)
 
@@ -143,12 +149,16 @@ class Booster:
         return _repl.get(xs, xs)
 
     def _load_config_from_file(self):
-        # read config yaml file
-        with open(self._config_file, 'r') as stream:
-            try:
-                self._cfg = self._preproc(yaml.safe_load(stream))
-            except yaml.YAMLError as exc:
-                raise ValueError(exc)
+        # try to restore config from existing records
+        if self._config_file is None:
+            self._cfg = restore_configs_from_records()
+        else:
+            # read config yaml file
+            with open(self._config_file, 'r') as stream:
+                try:
+                    self._cfg = self._preproc(yaml.safe_load(stream))
+                except yaml.YAMLError as exc:
+                    raise ValueError(exc)
 
     def _check_mandatory_keys(self, c: dict, keys: list):
         for k in keys:
@@ -873,8 +883,8 @@ class Booster:
         ds = self._create_data_source(datasource)
 
         # we need portfolio config
-        pfl = self._cfg[entry_id].get('portfolio')
-        if pfl is None or not pfl:
+        portfolio_config = self._cfg[entry_id].get('portfolio')
+        if portfolio_config is None or not portfolio_config:
             raise ValueError(f"Can't find portfolio section in '{entry_id}'")
 
         # create new entry in db
@@ -891,21 +901,21 @@ class Booster:
             'symbols': symbols,
             'status': 'STARTED',
         }
-        self._save_portfolio_task_report(config, entry_id, experiment_result)
+        self._save_portfolio_task_report(entry_id, experiment_result, config, portfolio_config)
 
         # - check if all required fields are there  
-        self._check_mandatory_keys(pfl, _PORTFOLIO_KEYS)
+        self._check_mandatory_keys(portfolio_config, _PORTFOLIO_KEYS)
 
         # - instantiate model
-        task_class = class_import(pfl.get('task'))
+        task_class = class_import(portfolio_config.get('task'))
 
         # - check instruments
         self._logger.info(f"\tportfolio: {','.join([green(s) for s in symbols])}")
 
         # - generate permutation for parameters
         parameters = permutate_params(
-            pfl["parameters"],
-            conditions=eval(pfl['conditions']) if 'conditions' in pfl else None
+            portfolio_config["parameters"],
+            conditions=eval(portfolio_config['conditions']) if 'conditions' in portfolio_config else None
         )
 
         # - collect all simulations configs -
@@ -972,7 +982,7 @@ class Booster:
             self._logger.info(f">>> {green(cfg_key)} -> {red(f_id)}")
             task.start()
             self._logger.info(f">>> waiting for finishing {red(f_id)} ... ")
-            self._save_portfolio_task_report(config, entry_id, _amend(experiment_result, status="RUNNING"))
+            self._save_portfolio_task_report(entry_id, _amend(experiment_result, status="RUNNING"), config, portfolio_config)
             task.join()
             self._logger.info(f'{green(cfg_key)} / process {red(f_id)}  finished')
 
@@ -986,8 +996,9 @@ class Booster:
                 self._logger.error(
                     f"Can't find any simulations for '{entry_id}' in {config.project} project. Try to start 'run' command first !")
                 self._save_portfolio_task_report(
-                    config, entry_id, 
-                    _amend(experiment_result, status="Error: Can't find any simulations")
+                    entry_id, 
+                    _amend(experiment_result, status="Error: Can't find any simulations"),
+                    config, portfolio_config
                 )
                 return
 
@@ -1094,6 +1105,6 @@ class Booster:
             parameters=sets_parameters,
             status='FINISHED'
         )
-        self._save_portfolio_task_report(config, entry_id, experiment_result)
+        self._save_portfolio_task_report(entry_id, experiment_result, config, portfolio_config)
         self._logger.info(f"Portfolio task for {config.project} | {entry_id} is finished")
         return experiment_result

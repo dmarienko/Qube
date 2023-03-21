@@ -90,7 +90,33 @@ class BoosterTest(unittest.TestCase):
             decimal=6
         )
 
-        # how about the deletion ?
+        # |> test restart functionality
+        print('==================================================')
+        boo2 = Booster(None, log=True)
+        boo2.task_portfolio('TestPortfolio', run=True, save_to_storage=True)
+        print(z_ld('runs/BooTest/sim.0.(PORTFOLIO)/TestPortfolio_PORTFOLIO', dbname='booster').result.executions)
+
+        # - test report after restart (test new functionality from 2023-Mar-21) -
+        rep1 = z_ld('portfolios/BooTest/TestPortfolio', dbname='booster')['report']
+        print(rep1['Set0'])
+        print(rep1['Set1'])
+        np.testing.assert_almost_equal(
+            rep1['Set0']['Gain'].values, 
+            [703.166439, 703.166439, 87.895805], 
+            decimal=6
+        )
+        np.testing.assert_almost_equal(
+            rep1['Set1']['Gain'].values, 
+            [-811.910265, -811.910265, -101.488783], 
+            decimal=6
+        )
+        print('##################################################')
+
+        boo2.ls()
+
+        print('##################################################')
+
+        # how about the deletion
         boo.delete_previous_portfolio_runs('BooTest', 'TestPortfolio')
         print(z_ls('portfolios/.*', dbname='booster'))
         self.assertEqual(z_ls('runs/.*', dbname='booster'), [])

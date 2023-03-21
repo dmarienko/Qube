@@ -179,20 +179,36 @@ def remote_save_mongo_table(host: str, table_name: str, data, is_serialize=True,
 def add_project_to_system_path():
     """
     Add path to projects folder to system python path to be able importing any modules from project
-    from alpha.Models.handy_utils import some_module
+    from test.Models.handy_utils import some_module
     """
     import sys
-    from os.path import expanduser, relpath, exists
+    from os.path import expanduser, relpath
+    from pathlib import Path
+    
+    # we want to track folders with these files as separate paths
+    toml = Path('pyproject.toml')
+    src = Path('src')
+    
     try:
-        project_path = relpath(expanduser('~/projects'))
+        prj = Path(relpath(expanduser('~/projects')))
     except ValueError as e:
         # This error can occur on Windows if user folder and python file are on different drives
-        print("Error during get relpath to projects folder:\n%s" % e)
+        print(f"Qube> Error during get path to projects folder:\n{e}")
     else:
-        if exists(project_path):
-            sys.path.insert(0, relpath(expanduser('~/projects')))
+        insert_path_iff = lambda p: sys.path.insert(0, p.as_posix()) if p.as_posix() not in sys.path else None
+        if prj.exists():
+            insert_path_iff(prj)
+            
+            for di in prj.iterdir():
+                _src = di / src
+                if (di / toml).exists():
+                    # when we have src/
+                    if _src.exists() and _src.is_dir():
+                        insert_path_iff(_src)
+                    else:
+                        insert_path_iff(di)
         else:
-            print('qube> %s seems to be not existed !' % project_path)
+            print(f'Qube> Cant find "projects/" folder for adding to python path !')
 
 
 def is_localhost(host):
@@ -306,6 +322,9 @@ def dict2struct(d: dict) -> mstruct:
     """
     m = mstruct()
     for k, v in d.items():
+        # skip if key is not valid identifier
+        if not k.isidentifier():
+            continue
         if isinstance(v, dict):
             v = dict2struct(v)
         m.__setattr__(k, v)

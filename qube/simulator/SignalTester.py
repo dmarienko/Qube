@@ -161,7 +161,7 @@ class SignalTester:
         Execute prepared signals of specified datasource data
 
         TODO: write detailed doc + examples
-        TODO:  progress_listener NEED to rework from func with predefined args to ira.utils.utils.IProgressListener
+        TODO:  progress_listener NEED to rework from func with predefined args to qube.utils.utils.IProgressListener
 
         :param signals: pd.DataFrame or Series within trading signals to test
         :param portfolio_logger: portfolio logging object

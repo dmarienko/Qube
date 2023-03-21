@@ -79,7 +79,7 @@ def main(config, command, *args):
     elif command in ['ls', 'list']:
         boo.ls()
 
-    elif command in ['runx']:
+    elif command in ['runx', 'run']:
         options = args[1] if len(args) > 1 else ''
         _run = not 'norun' in options
         _stats = not 'nostats' in options
@@ -112,7 +112,7 @@ def main(config, command, *args):
             print(red(str(e)), trace)
             sys.exit(2)
 
-    elif command in ['optimize', 'run']:
+    elif command in ['optimize', 'runopt']:
         for a in split_comma_sep(args[0]):
             boo.task_optimizations(a)
 
