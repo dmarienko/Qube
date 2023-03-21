@@ -59,13 +59,15 @@ def main(config, command, *args):
         return
 
     # check config
-    config = config if config.endswith('.yml') or config.endswith('.yaml') else config + '.yml'
-    fpath = expanduser(config)
-    if not exists(fpath):
-        fpath = join(BOOSTER_CONFIG_PATH, fpath)
+    fpath = None
+    if config:
+        config = config if config.endswith('.yml') or config.endswith('.yaml') else config + '.yml'
+        fpath = expanduser(config)
         if not exists(fpath):
-            print(red(f" >>> Can't find specified config file from '{config}'\n"))
-            sys.exit(2)
+            fpath = join(BOOSTER_CONFIG_PATH, fpath)
+            if not exists(fpath):
+                print(red(f" >>> Can't find specified config file from '{config}'\n"))
+                sys.exit(2)
 
     print(blue(f" >>> Using config from {yellow(fpath)} \n"))
     boo = Booster(fpath)
@@ -152,13 +154,22 @@ def main(config, command, *args):
 
 
 if __name__ == '__main__':
-    print(f"\n >>> {green('Qube Portfolio Booster')} utility ver. {red(VERSION)}\n")
+    # print(f"\n >>> {green('Qube Portfolio Booster')} utility ver. {red(VERSION)}\n")
+    print(
+    f"""
+             {green(".-----.")} 
+           {green(".-----.'|")}   QUBE | Portfolio Booster Utility
+           {green("| : + | |")}     ver. ({red(VERSION)})   
+           {green("|,'---|.'")} 
+           {green("'-----'")}    
+    """
+    )
     parser = argparse.ArgumentParser(description='Booster cli')
 
     parser.add_argument('command', type=str, nargs='+',
                         help='booster command: show|ls|run|runoos|blend|rep|del|stats|clean|progress')
-    parser.add_argument('-c', type=str, dest='config', help='configuration yaml file')
-    args = parser.parse_args()
-    # print(args)
 
+    # we can omit config now 
+    parser.add_argument('-c', type=str, dest='config', help='configuration yaml file', default=None)
+    args = parser.parse_args()
     main(args.config, args.command[0], *args.command[1:] if len(args.command) > 1 else [])
