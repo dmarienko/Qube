@@ -318,7 +318,7 @@ def get_experiment_trend_report(project, experiment):
     p_sets = portfolios_parameters_sets(data, False)
     chart = {}
     for sn in p_sets.columns:
-        k = ','.join(map(str, p_sets[sn].values))
+        k = sn + ' : ' + ','.join(map(str, p_sets[sn].values))
         set_data = data['report'][sn]
         # combined_portfolio = get_combined_portfolio(project, experiment, sn)
         chart[k] = {

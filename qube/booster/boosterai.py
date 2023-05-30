@@ -154,6 +154,11 @@ def _config(clz, notes, where, datasource=None, markets_description_file='data/m
     c['description'] = f"{docs} {('| v. ' + ver + ' ') if ver else '' }| {notes} | on {len(info['instrument'])} symbols"
     c['instrument'] = info['instrument']
     c['broker'] = info['broker'] 
+
+    # in case if we want have some sims grouped by parent
+    if 'parent' in kv:
+        c['parent'] = kv.get('parent')
+
     _put('mode', 'mode')
     _put('estimator_composer', 'estimator')
     _put('simulator_timeframe', 'timeframe', 'tf')
