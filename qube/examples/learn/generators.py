@@ -291,7 +291,7 @@ class WalkForwardTest(BaseEstimator):
             raise ValueError(f"Estimator must be non empty and be derived from BaseEstimator")
 
         if train_period <= 0 or test_period <= 0:
-            raise ValueError(f"Train and Test periods must be postive number: {train_period} / {test_period}")
+            raise ValueError(f"Train and Test periods must be postive numbers: {train_period} / {test_period}")
 
         self.estimator = estimator
         self.train_period = train_period
@@ -302,10 +302,10 @@ class WalkForwardTest(BaseEstimator):
     def fit(self, x: pd.DataFrame, y, **kwargs):
         self.sigs = pd.Series(dtype='float64')
         signals = []
-
+        
         # - we may want to attach indicator as additional coliumn to avoid recalcuting it on every chank
-        #   because some indicators (SMA, RSI, ...) may have empty data in the begging
-        #   nans for first 'period' bars for SMA for exmaple
+        #   because some indicators (SMA, RSI, ...) may have empty data in the begging 
+        #   nans for first 'period' bars for SMA for example
         if hasattr(self.estimator, 'aux_data'):
             aux_d = self.estimator.aux_data(x, **kwargs)
             if aux_d is not None:
@@ -318,9 +318,9 @@ class WalkForwardTest(BaseEstimator):
                 else:
                     raise ValueError(f"Aux data has unrecognized type '{type(aux_d)}' !")
 
-                # attach aux data
+                # attach aux data 
                 x = scols(x.copy(), aux_d)
-
+        
         for trn, tst in rolling_forward_test_split(x, self.train_period, self.test_period, units='W'):
             self.estimator.fit(x.loc[trn], y, **kwargs)
             signals.append(self.estimator.predict(x.loc[tst]))

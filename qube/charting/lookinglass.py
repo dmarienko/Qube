@@ -98,9 +98,9 @@ class AbstractLookingGlass:
 class LookingGlass:
 
     def __init__(self, master, studies: dict = None, title='', backend='plotly', **kwargs):
-        if backend is 'matplotlib' or backend is 'mpl':
+        if backend in ['matplotlib', 'mpl']:
             self.__instance = LookingGlassMatplotLib(master=master, studies=studies, title=title, **kwargs)
-        elif backend is 'plotly' or backend is 'ply':
+        elif backend in ['plotly', 'ply', 'plt']:
             self.__instance = LookingGlassPlotly(master=master, studies=studies, title=title, **kwargs)
         else:
             raise ValueError('Backend %s is not recognized' % backend)
