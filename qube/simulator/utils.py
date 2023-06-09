@@ -1,4 +1,5 @@
 from functools import reduce
+import re
 import hashlib
 import types
 from datetime import timedelta
@@ -660,3 +661,51 @@ def _progress_bar(description='[Backtest]'):
                 self.p.update(d)
 
     return __MyProgress(description)
+
+
+def variate(clz, *args, conditions=None, **kwargs):
+    """
+    Make variations of parameters for simulation tests
+    Example:
+
+    >>>    class MomentumStrategy_Ex1_test:
+    >>>       def __init__(self, p1, lookback_period=10, filter_type='sma', skip_entries_flag=False): 
+    >>>            self.p1, self.lookback_period, self.filter_type, self.skip_entries_flag = p1, lookback_period, filter_type, skip_entries_flag
+    >>>
+    >>>        def __repr__(self): 
+    >>>            return self.__class__.__name__ + f"({self.p1},{self.lookback_period},{self.filter_type},{self.skip_entries_flag})"
+    >>>        
+    >>>    variate(MomentumStrategy_Ex1_test, 10, lookback_period=[1,2,3], filter_type=['ema', 'sma'], skip_entries_flag=[True, False])
+
+    Output:
+    >>>    {
+    >>>        'MSE1t_(lp=1,ft=ema,sef=True)':  MomentumStrategy_Ex1_test(10,1,ema,True),
+    >>>        'MSE1t_(lp=1,ft=ema,sef=False)': MomentumStrategy_Ex1_test(10,1,ema,False),
+    >>>        'MSE1t_(lp=1,ft=sma,sef=True)':  MomentumStrategy_Ex1_test(10,1,sma,True),
+    >>>        'MSE1t_(lp=1,ft=sma,sef=False)': MomentumStrategy_Ex1_test(10,1,sma,False),
+    >>>        'MSE1t_(lp=2,ft=ema,sef=True)':  MomentumStrategy_Ex1_test(10,2,ema,True),
+    >>>        'MSE1t_(lp=2,ft=ema,sef=False)': MomentumStrategy_Ex1_test(10,2,ema,False),
+    >>>        'MSE1t_(lp=2,ft=sma,sef=True)':  MomentumStrategy_Ex1_test(10,2,sma,True),
+    >>>        'MSE1t_(lp=2,ft=sma,sef=False)': MomentumStrategy_Ex1_test(10,2,sma,False),
+    >>>        'MSE1t_(lp=3,ft=ema,sef=True)':  MomentumStrategy_Ex1_test(10,3,ema,True),
+    >>>        'MSE1t_(lp=3,ft=ema,sef=False)': MomentumStrategy_Ex1_test(10,3,ema,False),
+    >>>        'MSE1t_(lp=3,ft=sma,sef=True)':  MomentumStrategy_Ex1_test(10,3,sma,True),
+    >>>        'MSE1t_(lp=3,ft=sma,sef=False)': MomentumStrategy_Ex1_test(10,3,sma,False)
+    >>>    }
+    
+    and using in simuation:
+    >>>    r = simulation(
+    >>>             variate(MomentumStrategy_Ex1_test, 10, lookback_period=[1,2,3], filter_type=['ema', 'sma'], skip_entries_flag=[True, False]),
+    >>>             data, 
+    >>>             'binance_um_vip0_usdt', start='2021-11-01',  stop='2023-06-01')
+    """
+    def _cmprss(xs: str):
+        return ''.join([x[0] for x in re.split('((?<!-)(?=[A-Z]))|_|(\d)', xs) if x])
+    
+    sfx = _cmprss(clz.__name__)
+    to_excl = [s for s, v in kwargs.items() if not isinstance(v, (list, set, tuple))]
+    dic2str = lambda ds: [_cmprss(k) + '=' + str(v) for k,v in ds.items() if k not in to_excl]
+    
+    return {
+       f"{sfx}_({ ','.join(dic2str(z)) })": clz(*args, **z) for z in permutate_params(kwargs, conditions=conditions)
+    }
