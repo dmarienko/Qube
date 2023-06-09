@@ -2,13 +2,13 @@ import codecs
 import glob
 import os
 import pickle
-import sys
 import urllib.parse
 from collections import OrderedDict, namedtuple
 from functools import partial, wraps
 from os.path import basename, exists, dirname, join, expanduser
 
 import pandas as pd
+import numpy as np
 import requests
 
 from qube.configs import Properties
