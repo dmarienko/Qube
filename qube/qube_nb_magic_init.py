@@ -24,7 +24,8 @@ if runtime_env() in ['notebook', 'shell']:
         holt_winters_second_order_ewma, series_halflife, running_view, smooth,
         bollinger, bollinger_atr, detrend, moving_detrend, moving_ols,
         rolling_std_with_mean, macd, trend_detector, fractals, denoised_trend,
-        stochastic, laguerre_filter, psar, mcginley, waexplosion, fdi, stdev, rolling_percentiles
+        stochastic, laguerre_filter, psar, mcginley, waexplosion, fdi, stdev, rolling_percentiles, 
+        choppyness, rolling_vwap, super_trend
     )
     from qube.quantitative.ta.swings.swings_splitter import (
         find_movements, find_movements_hilo
@@ -34,14 +35,14 @@ if runtime_env() in ['notebook', 'shell']:
 
     # - - - - Portfolio analysis - - - -
     from qube.portfolio.reports import tearsheet, tearsheets
-    from qube.portfolio.performance import split_cumulative_pnl, portfolio_stats
+    from qube.portfolio.performance import split_cumulative_pnl, portfolio_stats, sharpe_ratio, qr, cagr
     from qube.portfolio.allocating import (
         runnig_portfolio_allocator, tang_portfolio, gmv_portfolio, effective_portfolio
     )
 
     # - - - - Simulator stuff - - - -
     from qube.simulator.utils import (
-        shift_signals, rolling_forward_test_split, permutate_params
+        shift_signals, rolling_forward_test_split, permutate_params, variate
     )
     from qube.portfolio.Position import Position, ForexPosition, CryptoPosition, CryptoFuturesPosition
     from qube.simulator.multisim import simulation, Market

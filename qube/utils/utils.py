@@ -221,19 +221,19 @@ def _get_remote_host_info(host: str):
     return host, sc_props['port']
 
 
-def urange(start, stop, step, units=None, none=False):
+def urange(start, stop, step=1, units=None, none=False):
     """
     Range list generator helper. Units can be specified.
 
     urange(1, 10, 1) -> [1,2,3,4.....10]
+    urange(1, 10, 0.5) -> [1.0,1.5,...]
     urange(1, 10, 1, 'Min') -> ['1Min', '2Min', ..., '10Min']
     urange(1, 3, 1, none=True) -> [None,1,2,3]
 
     """
+    r = list(np.arange(start, stop + step, step))
     if units:
-        r = ['%d%s' % (i, units) for i in range(start, stop + step, step)]
-    else:
-        r = list(range(start, stop + step, step))
+        r = [f'{i}{units}' for i in r]
     return ([None, ] + r) if none else r
 
 

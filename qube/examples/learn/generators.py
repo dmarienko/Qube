@@ -277,9 +277,7 @@ class Equilibrium(BaseEstimator):
 @signal_generator
 class WalkForwardTest(BaseEstimator):
     """
-    Run walk forward signals generation on consequent periods
-     | 18-Oct-22: removed unnecessary loop in predict()
-     | 25-Oct-22: added ability to attach pre-calculated or additional data
+    Walk Forward Test
     """
 
     def __init__(self, estimator: BaseEstimator, train_period=4, test_period=1, units='W'):

@@ -5,7 +5,7 @@ import types
 from datetime import timedelta
 from enum import Enum
 from itertools import product
-from typing import List, Union, Dict
+from typing import Any, List, Union, Dict
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,7 @@ from qube.simulator.Brokerage import (
 from qube.utils.DateUtils import DateUtils
 
 
-def split_signals(signals, split_intervals_dates):
+def split_signals(signals: pd.Series, split_intervals_dates) -> List[pd.Series]:
     """
     Split signals by intervals
     :param signals:
@@ -143,7 +143,7 @@ def merge_portfolio_log_chunks(portfolio_log_chunks, split_cumulative=True):
     return merged_chunks
 
 
-def shift_signals(sigs, forward: str = None, days=0, hours=0, minutes=0, seconds=0):
+def shift_signals(sigs: Union[pd.Series, pd.DataFrame], forward: str = None, days=0, hours=0, minutes=0, seconds=0) -> Union[pd.Series, pd.DataFrame]:
     """
     Shift signal time into future.
 
@@ -268,7 +268,7 @@ _DEFAULT_DAILY_SESSION_END = pd.Timedelta('15:59:59')
 def convert_ohlc_to_ticks(ohlc: Union[Dict[str, pd.DataFrame], pd.DataFrame],
                           spread: Union[float, Dict[str, float]] = 0.0,
                           freq=None, default_size=1e12, session_start=None, session_end=None,
-                          reverse_order_for_bullish_bars=False):
+                          reverse_order_for_bullish_bars=False) -> pd.DataFrame:
     """
     Present OHLC data (from pandas DataFrame or dict of DataFrame) as quotes
     """
@@ -460,7 +460,7 @@ def load_tick_price_block(data_src: DataSource, info: Union[None, dsinfo],
     return prices_df
 
 
-def generate_simulation_identificator(clz, brok, date):
+def generate_simulation_identificator(clz, brok, date) -> str:
     """
     Create simulation ID from class, broker and simulation date
     """
@@ -635,7 +635,7 @@ def __instantiate_simulated_broker(broker, spread: Union[dict, float],
     return broker
 
 
-def ls_brokers():
+def ls_brokers() -> List[str]:
     """
     List of simulated brokers supported by default
     """
@@ -663,7 +663,7 @@ def _progress_bar(description='[Backtest]'):
     return __MyProgress(description)
 
 
-def variate(clz, *args, conditions=None, **kwargs):
+def variate(clz, *args, conditions=None, **kwargs) -> Dict[str, Any]:
     """
     Make variations of parameters for simulation tests
     Example:
