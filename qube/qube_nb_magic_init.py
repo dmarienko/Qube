@@ -53,7 +53,7 @@ if runtime_env() in ['notebook', 'shell']:
     from qube.simulator.tracking.trackers import (
         FixedRiskTrader, DispatchTracker, PipelineTracker, TakeStopTracker,
         MultiTakeStopTracker, SignalBarTracker,
-        TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker 
+        TimeExpirationTracker, ATRTracker, TriggeredOrdersTracker, RADTrailingStopTracker
     )
     from qube.simulator.tracking.sizers import (IPositionSizer, FixedSizer, FixedRiskSizer)
 
