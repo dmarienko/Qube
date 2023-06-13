@@ -1143,6 +1143,8 @@ class RADTrailingStopTracker(TakeStopTracker):
 
         # - get actual level depending on indicator config
         level = self._get_actual_level(signal)
+        if level is None:
+            return None
 
         if signal > 0:
             if (
