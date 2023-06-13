@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from qube.portfolio.Position import Position
-from qube.series.Indicators import ATR
+from qube.series.Indicators import ATR, MovingMinMax
 from qube.series.Quote import Quote
 from qube.simulator.core import Tracker
 from qube.simulator.tracking.sizers import IPositionSizer
@@ -994,3 +994,144 @@ class SignalBarTracker(TriggeredOrdersTracker):
                                       )
             self.debug(f' -> [{str(signal_time)}] set order at {entry:.5f} with stop {stop:.5f} and take {take:.5f}')
         return 0
+
+
+class RADTrailingStopTracker(TakeStopTracker):
+    """
+    RAD chandelier position tracker (no pyramiding only trailing stop)
+    """
+    def __init__(self, size, timeframe, period, stop_risk_mx, atr_smoother='sma', 
+                 take_by_limit_orders=True,
+                 accurate_stops=False,
+                 process_repeated_signals=False,
+                 process_new_signals=False,
+                 debug=False):
+        super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
+        self.timeframe = timeframe
+        self.period = period
+        self.position_calculator: IPositionSizer = IPositionSizer.wrap_fixed(size)
+        self.stop_risk_mx = abs(stop_risk_mx)
+        self.atr_smoother = atr_smoother
+        self.process_repeated_signals = process_repeated_signals
+        # if it's allowed to process new signals if position is still open
+        self.process_new_signals = process_new_signals
+
+    def initialize(self):
+        self.atr = ATR(self.period, self.atr_smoother)
+        self.mm = MovingMinMax(self.period)
+        self.ohlc = self.get_ohlc_series(self.timeframe)
+        self.ohlc.attach(self.atr)
+        self.ohlc.attach(self.mm)
+        
+        # current stop level
+        self.level = None
+        self.side = 0 # +1: up trend, -1: down trend
+        
+    def statistics(self):
+        return super().statistics()
+
+    def get_stops(self):
+        return self._stops(1)
+    
+    def _stops(self, n):
+        av, m = self.atr[n], self.mm[n]
+        if av is None or m is None:
+            return None, None
+        ll, hh = m
+        if not np.isfinite(av) or not np.isfinite(ll) or not np.isfinite(hh):
+            return None, None
+        l_stop = hh - self.stop_risk_mx * av
+        s_stop = ll + self.stop_risk_mx * av
+        return s_stop, l_stop
+    
+    def update_stop_level(self) -> bool:
+        if not self.ohlc.is_new_bar:
+            return False
+        
+        # new bar just started
+        s2, l2 = self._stops(2)
+        s1, l1 = self._stops(1)
+        if s2 is None:
+            return False
+            
+        c1 = self.ohlc[1].close
+        c2 = self.ohlc[2].close
+        
+        if c2 > l2 and c1 < l1:
+            self.side = -1
+            self.level = s1
+            
+        if c2 < s2 and c1 > s1:
+            self.side = +1
+            self.level = l1
+        
+        if self.side > 0:
+            self.level = max(self.level, l1)
+            
+        if self.side < 0:
+            self.level = min(self.level, s1)
+            
+    def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
+        # refresh current stop level
+        self.update_stop_level()
+        
+        if self.side == 0 or self.level is None:
+            return None
+        
+        qty = self._position.quantity
+
+        if qty != 0:
+            if qty > 0 and self.level > self.stop:
+                self.stop_at(quote_time, self.level)
+                self.debug(f'[{quote_time}] {self._instrument} pull up stop to {self.level}')
+
+            if qty < 0 and self.level < self.stop:
+                self.stop_at(quote_time, self.level)
+                self.debug(f'[{quote_time}] {self._instrument} pull down stop to {self.level}')
+                
+        super().on_quote(quote_time, bid, ask, bid_size, ask_size, **kwargs)
+
+    def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
+        position = self._position.quantity
+
+        if position != 0:
+
+            # we have position and it's prohibited to process any new signals
+            if not self.process_new_signals:
+                self.debug(f'[{quote_time}] {self._instrument} skip entry {signal} - signals updates are not allowed while position is open')
+                return None
+            
+            # it can process new signals and we got close signal - so no need to process it more
+            if signal == 0:
+                return 0
+
+        # if we do not have indicator yet - skip entry 
+        if self.side == 0 or self.level is None:
+            self.debug(f'[{quote_time}] {self._instrument} skip entry indicators are not ready: {self.level} / {self.side}')
+            return None
+
+        # - check if it's allowed to process this signal
+        if not self._can_process_signal(signal, self.process_repeated_signals):
+            self.debug(f'[{quote_time}] {self._instrument} skip signal at same direction - not allowed')
+            return None
+
+        if signal > 0:
+            if self.side > 0 and ask > self.level:
+                self.stop_at(signal_time, self.level)
+                self.debug(f'[{quote_time}] {self._instrument} entry long at ${ask} stop to {self.level}')
+            else:
+                self.debug(f'[{quote_time}] {self._instrument} skip long : stop {self.level} is above entry {ask}')
+                signal = np.nan
+
+        elif signal < 0:
+            if self.side < 0 and bid < self.level:
+                self.stop_at(signal_time, self.level)
+                self.debug(f'[{quote_time}] {self._instrument} entry short at ${bid} stop to {self.level}')
+            else:
+                self.debug(f'[{quote_time}] {self._instrument} skip short : stop {self.level} is below entry {bid}')
+                signal = np.nan
+
+        # - return actual size
+        return self.position_calculator.get_position_size(
+            signal, self._position, (bid + ask) / 2, stop_price=self.stop
+        )

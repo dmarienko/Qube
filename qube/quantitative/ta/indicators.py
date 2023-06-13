@@ -9,7 +9,7 @@ from statsmodels.regression.linear_model import OLS
 from qube.quantitative.tools import (column_vector, shift, sink_nans_down,
                                      lift_nans_up, nans, rolling_sum, apply_to_frame, ohlc_resample, scols,
                                      infer_series_frequency)
-from qube.utils.utils import njit_optional
+from qube.utils.utils import mstruct, njit_optional
 
 
 def __has_columns(x, *args):
@@ -1569,3 +1569,45 @@ def waexplosion(data: pd.DataFrame, fastLength=20, slowLength=40, channelLength=
     return scols(
         dead_zone, e1, trend_up, trend_dw, names=['dead_zone', 'explosion', 'trend_up', 'trend_down'] 
     )
+
+
+def rad_indicator(x: pd.DataFrame, period: int, mult: float=2, smoother='sma') -> pd.DataFrame:
+    """
+    RAD chandelier indicator 
+    """
+    __check_frame_columns(x, 'open', 'high', 'low', 'close')
+
+    a = atr(x, period, smoother=smoother)
+
+    hh = x.high.rolling(window=period).max()
+    ll = x.low.rolling(window=period).min()
+
+    rad_long = hh - a * mult
+    rad_short = ll + a * mult
+
+    brk_d = x[(x.close.shift(1) > rad_long.shift(1)) & (x.close < rad_long)].index
+    brk_u = x[(x.close.shift(1) < rad_short.shift(1)) & (x.close > rad_short)].index
+
+    sw = pd.Series(np.nan, x.index)
+    sw.loc[brk_d] = +1
+    sw.loc[brk_u] = -1
+    sw = sw.ffill()
+    
+    radU = rad_short[sw[sw > 0].index]
+    radD = rad_long[sw[sw < 0].index]
+    # rad = srows(radU, radD)
+    
+    # stop level
+    mu, md = -np.inf, np.inf
+    rs = {}
+    for t, s in zip(sw.index, sw.values):
+        if s < 0:
+            mu = max(mu, rad_long.loc[t])
+            rs[t] = mu 
+            md = np.inf
+        if s > 0:
+            md = min(md, rad_short.loc[t])
+            rs[t] = md
+            mu = -np.inf
+
+    return scols(pd.Series(rs), rad_long, rad_short, radU, radD, names=['rad', 'long', 'short', 'U', 'D'])

@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
+from qube.simulator.multisim import simulation
 
 from qube.utils.utils import mstruct
 
@@ -9,7 +10,7 @@ pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 500)
 
 from qube.simulator.backtester import backtest
-from qube.simulator.tracking.trackers import (TakeStopTracker, DispatchTracker, PipelineTracker,
+from qube.simulator.tracking.trackers import (RADTrailingStopTracker, TakeStopTracker, DispatchTracker, PipelineTracker,
                                               TimeExpirationTracker, TriggeredOrdersTracker,
                                               TriggerOrder, MultiTakeStopTracker, SignalBarTracker)
 from qube.simulator.core import Tracker
@@ -463,6 +464,31 @@ class Trackers_test(unittest.TestCase):
             err_msg='Executions are not correct !'
         )
 
+    def test_trailing_stop(self):
+        data = _read_timeseries_data('EURUSD', compressed=False, as_dict=True)
+        s = _signals({
+            '2020-08-17 00:00': {'EURUSD': 0},
+            '2020-08-17 09:10': {'EURUSD': 1},
+            '2020-08-17 09:30': {'EURUSD': 2},  # <- second trade
+            '2020-08-17 23:59': {'EURUSD': 0},
+        })
+
+        tracker1 = RADTrailingStopTracker(1000, '5Min', 5, 2, process_new_signals=True, accurate_stops=True, debug=True)
+        tracker2 = RADTrailingStopTracker(1000, '5Min', 5, 2, process_new_signals=False, accurate_stops=True, debug=True)
+        r = simulation({
+            'Test RAD 1': [s, tracker1], 
+            'Test RAD 2': [s, tracker2], 
+        }, data, 'forex', start='2020-08-17 00:00')
+
+        print(r.results[0].executions)
+        np.testing.assert_array_almost_equal(
+            r.results[0].executions.exec_price.values, [1.184465, 1.184790, 1.184844],  
+            err_msg='Executions are not correct !')
+
+        print(r.results[1].executions)
+        np.testing.assert_array_almost_equal(
+            r.results[1].executions.exec_price.values, [1.184465, 1.184844],  
+            err_msg='Executions are not correct !')
 
 from pytest import main
 if __name__ == '__main__':
