@@ -1001,6 +1001,7 @@ class RADTrailingStopTracker(TakeStopTracker):
     RAD chandelier position tracker (no pyramiding only trailing stop)
     """
     def __init__(self, size, timeframe, period, stop_risk_mx, atr_smoother='sma', 
+                 filter_signals_by_side=True,
                  take_by_limit_orders=True,
                  accurate_stops=False,
                  process_repeated_signals=False,
@@ -1015,6 +1016,9 @@ class RADTrailingStopTracker(TakeStopTracker):
         self.process_repeated_signals = process_repeated_signals
         # if it's allowed to process new signals if position is still open
         self.process_new_signals = process_new_signals
+
+        # skip entry signals if they are not in line with indicator's "side"
+        self.filter_signals_by_side = filter_signals_by_side
 
     def initialize(self):
         self.atr = ATR(self.period, self.atr_smoother)
@@ -1070,24 +1074,46 @@ class RADTrailingStopTracker(TakeStopTracker):
             
         if self.side < 0:
             self.level = min(self.level, s1)
+
+    def _get_actual_level(self, direction: float) -> Union[None, float]:
+        # if filter by side we use active level
+        if self.filter_signals_by_side:
+            return self.level
+
+        # othwerwise - level behind according to signal's direction
+        s1, l1 = self._stops(1)
+        if direction > 0:
+            return l1
+        elif direction < 0:  
+            return s1
+
+        return None
+
+    def _is_level_not_ready(self):
+        if self.filter_signals_by_side:
+            return self.side == 0 or self.level is None
+        return False
             
     def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
         # refresh current stop level
         self.update_stop_level()
         
-        if self.side == 0 or self.level is None:
+        # if we do not have indicator yet - skip stop update 
+        if self._is_level_not_ready():
             return None
         
-        qty = self._position.quantity
+        position = self._position.quantity
+        if position != 0:
+            # get actual level depending on indicator config
+            level = self._get_actual_level(position)
 
-        if qty != 0:
-            if qty > 0 and self.level > self.stop:
-                self.stop_at(quote_time, self.level)
-                self.debug(f'[{quote_time}] {self._instrument} pull up stop to {self.level}')
+            if position > 0 and level > self.stop:
+                self.stop_at(quote_time, level)
+                self.debug(f'[{quote_time}] {self._instrument} pull up stop to {level}')
 
-            if qty < 0 and self.level < self.stop:
-                self.stop_at(quote_time, self.level)
-                self.debug(f'[{quote_time}] {self._instrument} pull down stop to {self.level}')
+            if position < 0 and level < self.stop:
+                self.stop_at(quote_time, level)
+                self.debug(f'[{quote_time}] {self._instrument} pull down stop to {level}')
                 
         super().on_quote(quote_time, bid, ask, bid_size, ask_size, **kwargs)
 
@@ -1105,8 +1131,8 @@ class RADTrailingStopTracker(TakeStopTracker):
             if signal == 0:
                 return 0
 
-        # if we do not have indicator yet - skip entry 
-        if self.side == 0 or self.level is None:
+        # - if we do not have indicator yet - skip entry 
+        if self._is_level_not_ready():
             self.debug(f'[{quote_time}] {self._instrument} skip entry indicators are not ready: {self.level} / {self.side}')
             return None
 
@@ -1115,20 +1141,31 @@ class RADTrailingStopTracker(TakeStopTracker):
             self.debug(f'[{quote_time}] {self._instrument} skip signal at same direction - not allowed')
             return None
 
+        # - get actual level depending on indicator config
+        level = self._get_actual_level(signal)
+
         if signal > 0:
-            if self.side > 0 and ask > self.level:
-                self.stop_at(signal_time, self.level)
-                self.debug(f'[{quote_time}] {self._instrument} entry long at ${ask} stop to {self.level}')
+            if (
+                    self.filter_signals_by_side and self.side > 0 and ask > level
+                ) or (
+                    not self.filter_signals_by_side and ask > level
+            ):
+                self.stop_at(signal_time, level)
+                self.debug(f'[{quote_time}] {self._instrument} entry long at ${ask} stop to {level}')
             else:
-                self.debug(f'[{quote_time}] {self._instrument} skip long : stop {self.level} is above entry {ask}')
+                self.debug(f'[{quote_time}] {self._instrument} skip long : stop {level} is above entry {ask}')
                 signal = np.nan
 
         elif signal < 0:
-            if self.side < 0 and bid < self.level:
-                self.stop_at(signal_time, self.level)
-                self.debug(f'[{quote_time}] {self._instrument} entry short at ${bid} stop to {self.level}')
+            if (
+                    self.filter_signals_by_side and self.side < 0 and bid < level
+                ) or (
+                    not self.filter_signals_by_side and bid < level
+            ):
+                self.stop_at(signal_time, level)
+                self.debug(f'[{quote_time}] {self._instrument} entry short at ${bid} stop to {level}')
             else:
-                self.debug(f'[{quote_time}] {self._instrument} skip short : stop {self.level} is below entry {bid}')
+                self.debug(f'[{quote_time}] {self._instrument} skip short : stop {level} is below entry {bid}')
                 signal = np.nan
 
         # - return actual size
