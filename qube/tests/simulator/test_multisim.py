@@ -9,11 +9,29 @@ from qube.examples.learn.transformers import RollingRange
 from qube.learn.core.base import MarketDataComposer, signal_generator
 from qube.learn.core.pickers import SingleInstrumentPicker
 from qube.learn.core.utils import debug_output
-from qube.simulator.multisim import simulation
+from qube.simulator.multisim import simulation, simulation_mt
 from qube.simulator.tracking.sizers import FixedRiskSizer
 from qube.simulator.tracking.trackers import TimeExpirationTracker, FixedRiskTrader, ATRTracker
 from qube.tests.utils_for_tests import _read_timeseries_data
+from pytest import fixture
 
+
+@fixture(autouse=True)
+def mock_pool_imap_unordered(monkeypatch):
+    """
+    Making single process from multiproc for being able to use mocked mongo
+    """
+    def _mock_start(obj): obj._target(*obj._args, **obj._kwargs)
+    def _mock_join(obj): pass
+    def _mock_imap_unordered(obj, func, args): return [func(a) for a in args]
+    monkeypatch.setattr(
+        "multiprocess.pool.Pool.imap_unordered", 
+        lambda self, func, args=(): _mock_imap_unordered(self, func, args))
+    monkeypatch.setattr(
+        "multiprocessing.pool.Pool.imap_unordered", 
+        lambda self, func, args=(): _mock_imap_unordered(self, func, args))
+    monkeypatch.setattr("multiprocess.context.Process.start", lambda self: _mock_start(self))
+    monkeypatch.setattr("multiprocess.context.Process.join", lambda self: _mock_join(self))
 
 # def _read_csv_ohlc(symbol):
     # return {symbol: pd.read_csv(f'../data/{symbol}.csv', parse_dates=True, header=0, index_col='time')}
@@ -46,6 +64,24 @@ class Test(TestCase):
             'exp1 [simple break]': m1,
             'exp2 [time tracker]': [m2, TimeExpirationTracker('5H')]
         }, self.ds, 'forex', 'Test1')
+        # debug_output(r.results[0].portfolio, 'Portfolio')
+
+        self.assertAlmostEqual(24.50, r.results[0].portfolio['ES_PnL'].sum())
+        self.assertAlmostEqual(46.75, r.results[1].portfolio['ES_PnL'].sum())
+
+        r.report(1000, only_report=True)
+
+    def test_simulation_threads(self):
+        m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+                                SingleInstrumentPicker(), debug=True).fit(self.ds)
+
+        m2 = MarketDataComposer(make_pipeline(RollingRange('3H', 4), RangeBreakoutDetector()), SingleInstrumentPicker(),
+                                debug=True).fit(self.ds)
+
+        r = simulation({
+            'exp1 [simple break]': m1,
+            'exp2 [time tracker]': [m2, TimeExpirationTracker('5H')]
+        }, self.ds, 'forex', 'Test1', ncpus=3)
         # debug_output(r.results[0].portfolio, 'Portfolio')
 
         self.assertAlmostEqual(24.50, r.results[0].portfolio['ES_PnL'].sum())

@@ -16,7 +16,7 @@ from qube.portfolio.commissions import TransactionCostsCalculator, ZeroTCC
 from qube.quantitative.tools import ohlc_resample
 from qube.simulator.backtester import backtest
 from qube.simulator.core import Tracker, SimulationResult, DB_SIMULATION_RESULTS
-from qube.simulator.multiproc import Task, RunningInfoManager
+from qube.simulator.multiproc import Task, RunningInfoManager, run_tasks
 from qube.utils.ui_utils import red, green, yellow, blue
 from qube.utils.utils import mstruct, runtime_env
 from qube.utils.QubeLogger import getLogger
@@ -373,25 +373,90 @@ def simulation(setup, data: Union[Dict[str, pd.DataFrame], pd.DataFrame, DataSou
                used_data: str = 'close',
                instruments: Union[List[str], None] = None,
                tcc: TransactionCostsCalculator = None,
-               silent=False  # if no any progress bar
+               silent=False,  # if no any progress bar
+               ncpus=1
                ) -> MultiResults:
     """
     Simulate different setups
     """
+    if ncpus > 1:
+        return simulation_mt(setup, data, broker, start=start, stop=stop, fit_stop=fit_stop,
+               spreads = spreads,
+               portfolio_composer = portfolio_composer,
+               used_data = used_data,
+               instruments = instruments,
+               tcc = tcc, max_cpu=ncpus)
+    else:
+        sims = _recognize(setup, project, portfolio_composer, used_data, instruments)
+        results = []
+        progress = __ForeallProgress(len(sims), silent=silent)
+
+        for i, s in enumerate(sims):
+            # print(s)
+            if True:
+                progress.set_descr(s.name)
+                b = _proc_run(s, data, start, stop, fit_stop, broker, spreads, progress, tcc)
+                results.append(b)
+
+        progress.set_descr(f'Backtest {project}')
+        progress.close()
+        return MultiResults(results=results, project=project, broker=broker, start=start, stop=stop, fit_stop=fit_stop)
+
+
+def _none(*args, **kwargs):
+    return 'NONE'
+
+
+class _BtTask(Task):
+    def __init__(self, sim_setup: SimSetup, 
+                    data: Union[Dict[str, pd.DataFrame], pd.DataFrame, DataSource],
+                    broker, start=None, stop=None, fit_stop=None,
+                    spreads: Union[Dict, float] = 0,
+                    portfolio_composer: str = 'single',
+                    used_data: str = 'close',
+                    instruments: Union[List[str], None] = None,
+                    tcc: TransactionCostsCalculator = None):
+        super().__init__(_none, None, None) 
+        self.sim_setup = sim_setup
+        self.data = data
+        self.broker = broker
+        self.start=start
+        self.stop=stop
+        self.fit_stop=fit_stop
+        self.spreads=spreads
+        self.portfolio_composer=portfolio_composer
+        self.used_data=used_data
+        self.instruments=instruments
+        self.tcc=tcc
+        self.save_to_storage = False
+    
+    def run(self, obj, run_name, run_id, t_id, task_name, ri: RunningInfoManager):
+        return backtest(
+            self.sim_setup.get_signals(self.data, self.start, self.stop, self.fit_stop),
+            self.data, self.broker, spread=self.spreads, name=self.sim_setup.name, execution_logger=True,
+            trackers=self.sim_setup.trackers, 
+            progress=_InfoProgress(run_name, run_id, t_id, task_name, ri),
+            tcc=self.tcc
+        )
+
+
+def simulation_mt(
+        setup, data: Union[Dict[str, pd.DataFrame], pd.DataFrame, DataSource], 
+        broker, project='', start=None, stop=None, fit_stop=None,
+        spreads: Union[Dict, float] = 0,
+        portfolio_composer: str = 'single',
+        used_data: str = 'close', 
+        instruments: Union[List[str], None] = None,
+        tcc: TransactionCostsCalculator = None, 
+        max_cpu=-1) -> MultiResults:
+    """
+    Simulate different setups in multiple threads
+    """
     sims = _recognize(setup, project, portfolio_composer, used_data, instruments)
-    results = []
-    progress = __ForeallProgress(len(sims), silent=silent)
+    tasks = {s.name: _BtTask(s, data, broker, start, stop, fit_stop, spreads, portfolio_composer, used_data, instruments, tcc) for s in sims}
+    _, results = run_tasks(project, tasks, max_cpus=max_cpu, max_tasks_per_proc=10, cleanup=True, collect_results=True)
 
-    for i, s in enumerate(sims):
-        # print(s)
-        if True:
-            progress.set_descr(s.name)
-            b = _proc_run(s, data, start, stop, fit_stop, broker, spreads, progress, tcc)
-            results.append(b)
-
-    progress.set_descr(f'Backtest {project}')
-    progress.close()
-    return MultiResults(results=results, project=project, broker=broker, start=start, stop=stop, fit_stop=fit_stop)
+    return MultiResults(results=[r.result for r in results], project=project, broker=broker, start=start, stop=stop, fit_stop=fit_stop)
 
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
