@@ -7,11 +7,19 @@ import tempfile
 from itertools import cycle
 from os.path import exists, expanduser, abspath, dirname, join
 from subprocess import Popen
+from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
+from IPython.display import HTML
+from dataclasses import dataclass
+import glob
+from os.path import expanduser, basename
+from collections import defaultdict
+
 
 from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
 from qube.booster.core import Booster
 from qube.simulator.utils import ls_brokers
-from qube.utils.ui_utils import red, green
+from qube.utils.ui_utils import red, green, yellow, blue, cyan, white, magenta
+
 
 DEFAULT_TEMP_CONFIGS = '/var/qube/booster/configs/'
 
@@ -336,6 +344,114 @@ def __ls_parameters(clz):
     print(f"\n\n{clz.__name__}({args})")
 
 
+@dataclass
+class Entry:
+    entry: str
+    file: str
+    project: str
+    desc: str
+    symbols: int
+    config: dict
+    portfolio: dict
+    
+
+class FuzResult:
+    def __init__(self, projects, configs, root, by_project=False):
+        self.root = root
+        self.projects = projects
+        self.configs = configs
+        self.by_project = by_project
+        self._indexed = [v for k, vs in (projects if by_project else configs).items() for v in vs]
+    
+    def show(self, idx=None):
+        if idx is not None and idx >=0 and idx < len(self._indexed):
+            e = self._indexed[idx]
+            print(red(e.file) + '\n')
+            Booster(e.file, reload_config=False).show(e.entry)
+            return HTML(f"<hr/><a href='{e.file[len(self.root):]}'>{e.file}</><hr/>")
+        return self
+        
+    def run(self, idx=None):
+        if idx is not None and idx >=0 and idx < len(self._indexed):
+            e = self._indexed[idx]
+            print(green(f"booster runx {e.entry} -c {e.file}"))
+            return None
+        return self
+    
+    def clean(self, idx=None):
+        if idx is not None and idx >=0 and idx < len(self._indexed):
+            e = self._indexed[idx]
+            print(green(f"booster del {e.entry} -c {e.file}"))
+            return None
+        return self
+            
+    def load(self, idx, setname='Set0'):
+        if idx >=0 and idx < len(self._indexed):
+            e = self._indexed[idx]
+            pfl = get_combined_portfolio(e.project, e.entry, setname)
+            exc = get_combined_executions(e.project, e.entry, setname)
+            return pfl, exc
+        return None, None
+    
+    def __repr__(self):
+        index = 0
+        if self.by_project:
+            for p, es in self.projects.items():
+                print(f'>>> {white(p)}')
+                print(' ~' * 50)
+                for e in es: 
+                    print(f" |-[{red(str(index))}]\t{green(e.entry.ljust(50))}\t[{yellow(e.file[len(self.root):])}]\t{white(e.config.get('start_date', 'start'))}:{white(e.config.get('end_date', 'end'))}")
+                    print(f" | \t\t {red(e.portfolio['task'])}")
+                    print(f" | \t\t {magenta(e.desc)} | number symbols {e.symbols}\n")
+                    index += 1
+
+        else:
+            for f, es in self.configs.items():
+                print(f'>>> {white(basename(f))} - {blue(f[len(self.root):])}')
+                print(' ~' * 50)
+                for e in es: 
+                    print(f" |-[{red(str(index))}]\t{green(e.entry.ljust(50))}\t[{yellow(e.project)}]\t{white(e.config.get('start_date', 'start'))}:{white(e.config.get('end_date', 'end'))}")
+                    print(f" | \t\t {red(e.portfolio['task'])}")
+                    print(f" | \t\t {magenta(e.desc)} | number symbols {e.symbols}\n")
+                    index += 1
+        return red('\t- actions: .run(<num>), .clean(<num>), .show(<num>), .load(<num>)')
+    
+
+def fuzzyboo(search='.*', root='~/projects/', by_project=False):
+    """
+    Fuzzy search in configurations
+    """
+    root = expanduser('~/projects/') 
+    search = search.replace(',','.*')
+    regex = f'.*({search}).*'
+    projects = defaultdict(list) 
+    configs = defaultdict(list) 
+    
+    files = glob.glob(f'{root}/**/*.yml',  recursive=True)
+    files.extend(glob.glob(f'{root}/**/*.yaml', recursive=True))
+    for yc in files:
+        with open(yc, 'r') as f:
+            try:
+                cont = yaml.safe_load(f)
+                res = []
+                for e, v in cont.items():
+                    if 'config' in v and 'portfolio' in v:
+                        cfg = v['config']
+                        prj = cfg['project'] 
+                        desc = cfg['description'].strip().replace("\n", "")
+                        clss = v['portfolio'].get("task", '')
+                        instr = len(cfg['instrument'])
+                        if re.match(regex, e + clss + prj + desc + prj, re.IGNORECASE):
+                            rentry = Entry(e, yc, prj, desc, instr, cfg, v['portfolio'])
+                            res.append(rentry)
+                            configs[yc].append(rentry)
+                            projects[prj].append(rentry)
+            except:
+                pass
+                     
+    return FuzResult(projects, configs, root, by_project)
+
+
 Boo.do = Do
 Boo.portfolio = get_combined_portfolio
 Boo.executions = get_combined_executions
@@ -345,4 +461,4 @@ Boo.config = __show_config
 Boo.show = __show_backtest
 Boo.symbols = __selector_helper
 Boo.parameters = __ls_parameters
-
+Boo.fzf = fuzzyboo
