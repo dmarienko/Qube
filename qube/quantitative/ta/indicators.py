@@ -1611,3 +1611,112 @@ def rad_indicator(x: pd.DataFrame, period: int, mult: float=2, smoother='sma') -
             mu = -np.inf
 
     return scols(pd.Series(rs), rad_long, rad_short, radU, radD, names=['rad', 'long', 'short', 'U', 'D'])
+
+
+@njit_optional
+def __calc_qqe_mod_core_fast(
+    rs_index_values, newlongband_values, newshortband_values
+) -> list:
+    ri1, lb1, sb1, tr1, lb2, sb2 = np.nan, 0, 0, np.nan, np.nan, np.nan
+    c1 = 0
+    fast_atr_rsi_tl = []
+
+    for ri, nl, ns in zip(rs_index_values, newlongband_values, newshortband_values):
+        if not np.isnan(ri1):
+            c1 = ((ri1 <= lb2) & (ri > lb1)) | ((ri1 >= lb2) & (ri < lb1))
+            tr = ((ri1 <= sb2) & (ri > sb1)) | ((ri1 >= sb2) & (ri < sb1))
+            tr1 = 1 if tr else -1 if c1 else tr1
+
+            lb2, sb2 = lb1, sb1
+            lb1 = max(lb1, nl) if (ri1 > lb1) and ri > lb1 else nl 
+            sb1 = min(sb1, ns) if (ri1 < sb1) and ri < sb1 else ns
+
+            fast_atr_rsi_tl.append(lb1 if tr1 == 1 else sb1)
+        else:
+            fast_atr_rsi_tl.append(np.nan)
+
+        ri1 = ri
+
+    return fast_atr_rsi_tl
+
+
+def _calc_qqe_mod_core(src: pd.Series, rsi_period, sf, qqe) -> Tuple[pd.Series, pd.Series]:
+    to_ser = lambda xs, name=None: pd.Series(xs, name=name)
+    wilders_period = rsi_period * 2 - 1
+
+    rsi_i = rsi(src, wilders_period, smoother=ema)
+    rsi_ma = smooth(rsi_i, 'ema', sf)
+
+    atr_rsi = abs(rsi_ma.diff())
+    ma_atr_rsi = smooth(atr_rsi, 'ema', wilders_period)
+    dar = smooth(ma_atr_rsi, 'ema', wilders_period) * qqe
+
+    delta_fast_atr_rsi = dar
+    rs_index = rsi_ma
+
+    newshortband = rs_index + delta_fast_atr_rsi
+    newlongband = rs_index - delta_fast_atr_rsi
+
+    fast_atr_rsi_tl = __calc_qqe_mod_core_fast(rs_index.values, newlongband.values, newshortband.values)
+    fast_atr_rsi_tl = pd.Series(fast_atr_rsi_tl, index=rs_index.index, name='fast_atr_rsi_tl')
+
+    # - old approach - 10 times slower
+    # ri1, lb1, sb1, tr1, lb2, sb2 = np.nan, 0, 0, np.nan, np.nan, np.nan
+    # c1 = 0
+    # fast_atr_rsi_tl = {}
+
+    # for t, ri, nl, ns in zip(rs_index.index, 
+    #                          rs_index.values, newlongband.values, newshortband.values):
+    #     if not np.isnan(ri1):
+    #         c1 = ((ri1 <= lb2) & (ri > lb1)) | ((ri1 >= lb2) & (ri < lb1))
+    #         tr = ((ri1 <= sb2) & (ri > sb1)) | ((ri1 >= sb2) & (ri < sb1))
+    #         tr1 = 1 if tr else -1 if c1 else tr1
+
+    #         lb2, sb2 = lb1, sb1
+    #         lb1 = max(lb1, nl) if (ri1 > lb1) and ri > lb1 else nl 
+    #         sb1 = min(sb1, ns) if (ri1 < sb1) and ri < sb1 else ns
+
+    #         fast_atr_rsi_tl[t] = lb1 if tr1 == 1 else sb1
+
+    #     # ri1, nl1, ns1 = ri, nl, ns
+    #     ri1 = ri
+    # fast_atr_rsi_tl = to_ser(fast_atr_rsi_tl, name='fast_atr_rsi_tl')
+
+    return rsi_ma, fast_atr_rsi_tl
+
+
+def qqe_mod(data: pd.DataFrame, rsi_period = 6, sf = 5, qqe = 3, 
+            source = 'close', length = 50, mult = 0.35, source2 = 'close',
+            rsi_period2 = 6, sf2 = 5, qqe2 = 1.61, threshhold2 = 3
+            ):
+    src = data[source]
+    rsi_ma, fast_atr_rsi_tl = _calc_qqe_mod_core(src, rsi_period, sf, qqe)
+
+    basis = smooth(fast_atr_rsi_tl - 50, 'sma', length)
+    dev = mult * stdev(fast_atr_rsi_tl - 50, length)
+    upper = basis + dev
+    lower = basis - dev
+
+    src2 = data[source2]
+    rsi_ma2, fast_atr_rsi_tl2 = _calc_qqe_mod_core(src2, rsi_period2, sf2, qqe2)
+
+    qqe_line = fast_atr_rsi_tl2 - 50
+    histo1 = rsi_ma - 50
+    histo2 = rsi_ma2 - 50
+
+    m = scols(histo1, histo2, upper, lower, names=['H1', 'H2', 'U', 'L'])
+    _gb_cond = (m.H2 > threshhold2) & (m.H1 > m.U)
+    _rb_cond = (m.H2 < -threshhold2) & (m.H1 < m.L)
+    _sb_cond = ((histo2 > threshhold2) | (histo2 < -threshhold2)) & ~_gb_cond & ~_rb_cond
+    green_bars = m[_gb_cond].H2
+    red_bars = m[_rb_cond].H2
+    silver_bars = m[_sb_cond].H2
+
+    res = scols(qqe_line, green_bars, red_bars, silver_bars, names=['qqe', 'green', 'red', 'silver'])
+    res = res.assign(
+        # here we code hist bars:
+        #  -1 -> silver < 0, +1 -> silver > 0, +2 -> green, -2 -> red 
+        code = -1 * (res.silver < 0) + 1 * (res.silver > 0) + 2 * (res.green > 0) - 2 * (res.red < 0)
+    )
+    
+    return res

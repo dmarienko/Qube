@@ -25,7 +25,7 @@ if runtime_env() in ['notebook', 'shell']:
         bollinger, bollinger_atr, detrend, moving_detrend, moving_ols,
         rolling_std_with_mean, macd, trend_detector, fractals, denoised_trend,
         stochastic, laguerre_filter, psar, mcginley, waexplosion, fdi, stdev, rolling_percentiles, 
-        choppyness, rolling_vwap, super_trend
+        choppyness, rolling_vwap, super_trend, qqe_mod
     )
     from qube.quantitative.ta.swings.swings_splitter import (
         find_movements, find_movements_hilo
