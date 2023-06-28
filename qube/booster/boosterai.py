@@ -13,7 +13,7 @@ from dataclasses import dataclass
 import glob
 from os.path import expanduser, basename
 from collections import defaultdict
-
+import pandas as pd
 
 from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
 from qube.booster.core import Booster
@@ -73,7 +73,7 @@ def _select_market(query: str, file: str):
     return dict(broker=broker, instrument=instrs)
     
 
-def _strategy_params(clz, **kwargs):
+def _strategy_params(clz, include_not_initialized=False, **kwargs):
     sgn = inspect.signature(clz.__init__)
     params = {}
     for k, v in sgn.parameters.items():
@@ -85,7 +85,11 @@ def _strategy_params(clz, **kwargs):
                 if k in kwargs:
                     params[k] = kwargs.get(k)
                 else:
-                    print(f'WARN: Not initialized parameter {k} !')
+                    if include_not_initialized:
+                        params[k] = None
+                    else:
+                        print(f'WARN: Not initialized parameter {k} !')
+
     task = f"{clz.__module__}.{clz.__name__}"
     cpus = kwargs.get('max_cpus', 12)
     max_tasks = max(kwargs.get('tasks', cpus - 1), 1)
@@ -335,13 +339,16 @@ def __selector_helper(query, file='data/markets.yml'):
     return None
 
 
-def __ls_parameters(clz):
-    pls = _strategy_params(clz)
-    args = ''
-    if pls and 'portfolio' in pls:
-        args = '\t\n' + ',\n'.join([f"\t{k} = {repr(v)}" for k,v in pls['portfolio'].get('parameters', {}).items()])
-        args += '\n'
-    print(f"\n\n{clz.__name__}({args})")
+def __ls_parameters(clz, as_table=False):
+    pls = _strategy_params(clz, include_not_initialized=True)
+    if as_table:
+        return pd.DataFrame.from_dict(pls['portfolio']['parameters'], orient='index', columns=['DefaultValue'])
+    else:
+        args = ''
+        if pls and 'portfolio' in pls:
+            args = '\t\n' + ',\n'.join([f"\t{k} = {repr(v)}" for k,v in pls['portfolio'].get('parameters', {}).items()])
+            args += '\n'
+        print(f"\n\n{clz.__name__}({args})")
 
 
 @dataclass
