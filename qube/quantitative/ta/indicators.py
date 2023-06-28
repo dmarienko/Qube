@@ -400,7 +400,7 @@ def hma(x, period: int):
     :param period: period 
     :return: weighted values
     """
-    return sma(2 * wma(x, period // 2) - wma(x, period), int(np.sqrt(period)))
+    return wma(2 * wma(x, period // 2) - wma(x, period), int(np.sqrt(period)))
 
 
 def bidirectional_ema(x, span, smoother='ema'):
