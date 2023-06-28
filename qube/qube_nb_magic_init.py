@@ -19,7 +19,7 @@ if runtime_env() in ['notebook', 'shell']:
 
     # - - - - TA stuff and indicators - - - -
     from qube.quantitative.ta.indicators import (
-        ema, dema, tema, kama, zlema, sma, jma, wma, ema_time, pivot_point, lrsi, rsi,
+        ema, dema, tema, kama, zlema, sma, jma, wma, hma, ema_time, pivot_point, lrsi, rsi,
         adx, atr, rolling_atr, rolling_rank, rolling_series_slope,
         holt_winters_second_order_ewma, series_halflife, running_view, smooth,
         bollinger, bollinger_atr, detrend, moving_detrend, moving_ols,

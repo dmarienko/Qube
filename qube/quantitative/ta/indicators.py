@@ -46,7 +46,7 @@ def smooth(x, stype: Union[str, types.FunctionType], *args, **kwargs) -> pd.Seri
     smoothers = {
         'sma': sma, 'ema': ema, 'tema': tema, 'dema': dema,
         'zlema': zlema, 'kama': kama, 'jma': jma, 'wma': wma, 
-        'mcginley': mcginley
+        'mcginley': mcginley, 'hma': hma
     }
 
     f_sm = __empty_smoother
@@ -381,7 +381,7 @@ def wma(x, period: int, weights=None):
     if period > len(x):
         raise ValueError(f"Period for wma must be less than number of rows. {period}, {len(x)}")
 
-    w = w / np.sum(w)
+    w = (w / np.sum(w))[::-1]  # order fixed !
     y = x.astype(np.float64).copy()
     for i in range(0, x.shape[1]):
         nan_start = np.where(~np.isnan(x[:, i]))[0][0]
@@ -390,6 +390,17 @@ def wma(x, period: int, weights=None):
         y[:, i] = np.concatenate((nans(nan_start), wm))
 
     return y
+
+
+def hma(x, period: int):
+    """
+    Hull moving average
+
+    :param x: values to be averaged
+    :param period: period 
+    :return: weighted values
+    """
+    return sma(2 * wma(x, period // 2) - wma(x, period), int(np.sqrt(period)))
 
 
 def bidirectional_ema(x, span, smoother='ema'):
