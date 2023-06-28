@@ -3,7 +3,7 @@ from . import charting
 from . import datasource
 from . import utils
 
-__version__ = '0.3.14'
+__version__ = '0.3.15'
 
 from qube.utils.utils import runtime_env
 from cycler import cycler

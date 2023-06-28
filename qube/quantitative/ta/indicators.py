@@ -1,5 +1,5 @@
 import types
-from typing import Union
+from typing import Union, Tuple
 
 import numpy as np
 import pandas as pd
