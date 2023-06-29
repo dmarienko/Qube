@@ -464,7 +464,13 @@ class LookingGlassPlotly(AbstractLookingGlass):
         elif plot_style.startswith('dots') or plot_style.startswith('point'):
             self.fig.add_trace(
                 go.Scatter(x=y.index, y=y, mode='markers', name=label, marker_color=color,
-                           marker={'symbol': 'circle', 'size': 3}),
+                           marker={'symbol': 'circle', 'size': 4}),
+                row=row, col=col
+            )
+        elif plot_style.startswith('arrow'):
+            self.fig.add_trace(
+                go.Scatter(x=y.index, y=y, mode='markers', name=label, marker_color=color,
+                           marker={'symbol': plot_style, 'size': 12}),
                 row=row, col=col
             )
 
@@ -535,7 +541,7 @@ class LookingGlassPlotly(AbstractLookingGlass):
         plot_style = 'line'
         for j, m in enumerate(ms):
             if isinstance(m, str):
-                if any([m.startswith(x) for x in ['line', 'bar', 'step', 'stem', 'area', 'dots', 'point']]):
+                if any([m.startswith(x) for x in ['line', 'bar', 'step', 'stem', 'area', 'dots', 'point', 'arrow-up', 'arrow-down']]):
                     plot_style = m
                 else:
                     self._n_style = m
@@ -562,7 +568,7 @@ class LookingGlassPlotly(AbstractLookingGlass):
                     if vl.startswith('lim'):
                         wait_for_limits = True
                         continue
-                    elif any([vl.startswith(x) for x in ['line', 'bar', 'step', 'stem', 'area', 'dots', 'point']]):
+                    elif any([vl.startswith(x) for x in ['line', 'bar', 'step', 'stem', 'area', 'dots', 'point', 'arrow-up', 'arrow-down']]):
                         plot_style = vl
                     else:
                         self._n_style = v
