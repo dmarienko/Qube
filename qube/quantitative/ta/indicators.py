@@ -7,7 +7,7 @@ import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS
 
 from qube.quantitative.tools import (column_vector, shift, sink_nans_down,
-                                     lift_nans_up, nans, rolling_sum, apply_to_frame, ohlc_resample, scols,
+                                     lift_nans_up, nans, rolling_sum, apply_to_frame, ohlc_resample, scols, srows,
                                      infer_series_frequency)
 from qube.utils.utils import mstruct, njit_optional
 
@@ -1700,6 +1700,11 @@ def qqe_mod(data: pd.DataFrame, rsi_period = 6, sf = 5, qqe = 3,
             source = 'close', length = 50, mult = 0.35, source2 = 'close',
             rsi_period2 = 6, sf2 = 5, qqe2 = 1.61, threshhold2 = 3
             ):
+    """
+    QQE_MOD indicator
+    """
+    __check_frame_columns(data, 'open', 'high', 'low', 'close')
+
     src = data[source]
     rsi_ma, fast_atr_rsi_tl = _calc_qqe_mod_core(src, rsi_period, sf, qqe)
 
@@ -1731,3 +1736,42 @@ def qqe_mod(data: pd.DataFrame, rsi_period = 6, sf = 5, qqe = 3,
     )
     
     return res
+
+
+def ssl_exits(data: pd.DataFrame, baseline_type='hma', baseline_period=60, exit_type='hma', exit_period=15, atr_type='ema', atr_period=14, multy=0.2):
+    """
+    Exits generator based on momentum reversal (from SSL Hybrid in TV)
+    """
+    __check_frame_columns(data, 'high', 'low', 'close')
+    close = data.close
+    lows = data.low
+    highs = data.high
+
+    base_line = smooth(close, baseline_type, baseline_period) 
+    exit_hi = smooth(highs, exit_type, exit_period)
+    exit_lo = smooth(lows, exit_type, exit_period)
+
+    tr = atr(data, atr_period, atr_type)
+    upperk = base_line + multy * tr
+    lowerk = base_line - multy * tr
+
+    hlv3 = pd.Series(np.nan, close.index)
+    hlv3.loc[close > exit_hi] = +1
+    hlv3.loc[close < exit_lo] = -1
+    hlv3 = hlv3.ffill()
+
+    ssl_exit = srows(exit_hi[hlv3 < 0], exit_lo[hlv3 > 0])
+    m = scols(ssl_exit, close, lows, highs, base_line, upperk, lowerk, names=['exit', 'close', 'low', 'high', 'base_line', 'upperk', 'lowerk'])
+    
+    exit_short = m[(m.close.shift(1) <= m.exit.shift(1)) & (m.close >  m.exit)].low
+    exit_long = m[(m.close.shift(1) >= m.exit.shift(1)) & (m.close <  m.exit)].high
+
+    grow_line = pd.Series(np.nan, index=m.index)
+    decl_line = pd.Series(np.nan, index=m.index)
+
+    g = m[m.close > m.upperk].base_line
+    d = m[m.close < m.lowerk].base_line
+    grow_line[g.index] = g
+    decl_line[d.index] = d
+    
+    return scols(exit_long, exit_short, grow_line, decl_line, m.base_line, names=['exit_long', 'exit_short', 'grow', 'decline', 'base'])
