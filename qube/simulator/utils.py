@@ -635,6 +635,14 @@ def __instantiate_simulated_broker(broker, spread: Union[dict, float],
     return broker
 
 
+def get_trading_cost_calculator(name: str) -> TransactionCostsCalculator:
+    predefined_brokers = __create_brokerage_instances(0, None)
+    brk_ctor = predefined_brokers.get(name)
+    if brk_ctor:
+        return brk_ctor().tcc
+    raise ValueError(f"Can't find {name} TCC !")
+
+
 def ls_brokers() -> List[str]:
     """
     List of simulated brokers supported by default
