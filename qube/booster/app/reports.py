@@ -11,6 +11,7 @@ from qube.portfolio.performance import (
 from qube.portfolio.reports import tearsheet
 from qube.quantitative.tools import scols, srows
 from qube.simulator.multiproc import RunningInfoManager
+from qube.simulator.multisim import MultiResults
 from qube.simulator.utils import __instantiate_simulated_broker as inst_sim_brok
 from qube.utils.utils import mstruct
 
@@ -250,7 +251,7 @@ def get_portfolio_run_info(project, entry):
     return b_ld(f'portfolios/{project}/{entry}')
 
 
-def get_combined_portfolio(project, entry, set_name):
+def get_combined_portfolio(project, entry, set_name) -> pd.DataFrame:
     """
     Returns combined potfolio for experiment at project
     """
@@ -273,7 +274,7 @@ def get_combined_portfolio(project, entry, set_name):
     return data
 
 
-def get_combined_executions(project, entry, set_name):
+def get_combined_executions(project, entry, set_name) -> pd.DataFrame:
     """
     Returns combined executions for experiment at project
     """
@@ -294,6 +295,29 @@ def get_combined_executions(project, entry, set_name):
 
         data = srows(*comb_portfolio)
     return data
+
+
+def get_combined_results(project, entry, set_name) -> MultiResults:
+    """
+    Returns combined results as MultiResult for experiment at project
+    """
+    data = None
+    path = f'portfolios/{project}/{entry}'
+    p_data = b_ld(path)
+    # return p_data
+
+    # - combine from runs
+    if p_data is not None:
+        results = []
+        for sp in p_data['simulations'][set_name].values():
+            data = b_ld(f'runs/{project}/{sp}/{entry}_PORTFOLIO')
+
+            # - some simulations may be empty -so skiping it
+            if data is not None and hasattr(data, 'result'):
+                if data.result is not None and hasattr(data.result, 'portfolio'):
+                    results.append(data.result)
+
+    return MultiResults(results, project, None, None, None, None)
 
 
 def get_runs_portfolio(project, entry, sim_path):

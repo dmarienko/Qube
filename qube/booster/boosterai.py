@@ -7,7 +7,7 @@ import tempfile
 from itertools import cycle
 from os.path import exists, expanduser, abspath, dirname, join
 from subprocess import Popen
-from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
+from qube.booster.app.reports import get_combined_portfolio, get_combined_executions, get_combined_results
 from IPython.display import HTML
 from dataclasses import dataclass
 import glob
@@ -15,7 +15,6 @@ from os.path import expanduser, basename
 from collections import defaultdict
 import pandas as pd
 
-from qube.booster.app.reports import get_combined_portfolio, get_combined_executions
 from qube.booster.core import Booster
 from qube.simulator.utils import ls_brokers
 from qube.utils.ui_utils import red, green, yellow, blue, cyan, white, magenta
@@ -461,6 +460,7 @@ def fuzzyboo(search='.*', root='~/projects/', by_project=False):
 
 Boo.do = Do
 Boo.portfolio = get_combined_portfolio
+Boo.results = get_combined_results 
 Boo.executions = get_combined_executions
 Boo.delete = __delete_backtest
 Boo.ls = __list_backtest

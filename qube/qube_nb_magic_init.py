@@ -35,6 +35,7 @@ if runtime_env() in ['notebook', 'shell']:
 
     # - - - - Portfolio analysis - - - -
     from qube.portfolio.reports import tearsheet, tearsheets
+    from qube.portfolio.signals_analysis import signals_statistics
     from qube.portfolio.performance import split_cumulative_pnl, portfolio_stats, sharpe_ratio, qr, cagr
     from qube.portfolio.allocating import (
         runnig_portfolio_allocator, tang_portfolio, gmv_portfolio, effective_portfolio
