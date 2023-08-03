@@ -262,7 +262,7 @@ def experiment_chart_report(project, experiment):
         experiment_id=experiment,
         project_id=project,
         description=descr,
-        table_report=f'/booster/experiments/report/{project}/{experiment}?full=false'
+        table_report=f'/booster/experiments/report/{project}/{experiment}?full=true'
     )
 
 
@@ -271,6 +271,7 @@ def experiment_report(project, experiment):
     try:
         # if true we want to see full parameters set
         full_parameters_list = request.args.get('full', 'false').lower() in ['true', '1', 'yes']
+        vert_parameters_list = request.args.get('vert', 'false').lower() in ['true', '1', 'yes']
 
         data = b_ld(f'portfolios/{project}/{experiment}')
         param_report = ''
@@ -339,7 +340,10 @@ def experiment_report(project, experiment):
                         return ['color: red !important; font-weight: bolder !important;' if m else '' for m in
                                 is_changed]
 
-                    param_report = p_report.style.apply(highlight_changed, axis=1).to_html()
+                    if len(sims) > 10:
+                        vert_parameters_list = True
+
+                    param_report = (p_report.T if vert_parameters_list else p_report).style.apply(highlight_changed, axis=1).to_html()
 
         else:
             report = f'<h1>No data for {project}/{experiment} !</h1>'
@@ -349,6 +353,8 @@ def experiment_report(project, experiment):
             import traceback
             trace = traceback.format_exc().replace('\n', '<br/>')
         report = f"<h2><font color='red'>Exception: {str(e)} / </font> </h2><br/> {trace}"
+        param_report = ''
+        data = {}
 
     return render_template(
         'experiment_report.html',
@@ -356,6 +362,8 @@ def experiment_report(project, experiment):
         param_report=param_report,
         experiment_id=experiment,
         project_id=project,
+        description=data.get('description', '- - -'),
+        chart_report=f'/booster/experiments/report_chart/{project}/{experiment}'
     )
 
 

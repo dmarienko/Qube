@@ -6,7 +6,7 @@ import pandas as pd
 import statsmodels.api as sm
 from statsmodels.regression.linear_model import OLS
 
-from qube.quantitative.tools import (column_vector, shift, sink_nans_down,
+from qube.quantitative.tools import (column_vector, continuous_periods, shift, sink_nans_down,
                                      lift_nans_up, nans, rolling_sum, apply_to_frame, ohlc_resample, scols, srows,
                                      infer_series_frequency)
 from qube.utils.utils import mstruct, njit_optional
@@ -1775,3 +1775,99 @@ def ssl_exits(data: pd.DataFrame, baseline_type='hma', baseline_period=60, exit_
     decl_line[d.index] = d
     
     return scols(exit_long, exit_short, grow_line, decl_line, m.base_line, names=['exit_long', 'exit_short', 'grow', 'decline', 'base'])
+
+
+def streaks(xs: pd.Series):
+    """
+    Count consequently rising values in input series, actually it measures the duration of the trend. 
+    It is the number of points in a row with value has been higher (up) or lower (down) than the previous one.
+
+    streaks(pd.Series([1,2,1,2,3,4,5,1]))
+
+        0    0.0
+        1    1.0
+        2   -1.0
+        3    1.0
+        4    2.0
+        5    3.0
+        6    4.0
+        7   -1.0
+
+    """
+    def consecutive_count(b):
+        cs = b.astype(int).cumsum()
+        return cs.sub(cs.mask(b).ffill().fillna(0))
+    prev = xs.shift(1)
+    return consecutive_count(xs > prev) - consecutive_count(xs < prev)
+
+
+def percentrank(xs: pd.Series, period: int) -> pd.Series:
+    """
+    Percent rank is the percents of how many previous values was less than or equal to the current value of given series.
+    """
+    r = {}
+    for t, x in zip(running_view(xs.index.values, period), running_view(xs.values, period)):
+        r[t[-1]] = 100 * sum(x[-1] > x[:-1]) / period
+    return pd.Series(r).reindex(xs.index)
+
+
+def connors_rsi(close, rsi_period=3, streaks_period=2, percent_rank_period=100):
+    """
+    Connors RSI indicator (https://www.quantifiedstrategies.com/connors-rsi/)
+
+    """
+    return (rsi(close, rsi_period) + rsi(streaks(close), streaks_period) + percentrank(close, percent_rank_period)) / 3
+
+
+def swings(ohlc: pd.DataFrame, trend_indicator: callable=psar, **indicator_args):
+    """
+    Swing detector based on trend indicator
+    """
+    __check_frame_columns(ohlc, 'high', 'low', 'close')
+
+    def _find_reversal_pts(highs, lows, indicator, is_lows):
+        pts = {}
+        cdp = continuous_periods(indicator, ~np.isnan(indicator))
+        for b in cdp.blocks:
+            ex_t = highs[b].idxmax() if is_lows else lows[b].idxmin()
+            pts[ex_t] = highs.loc[ex_t] if is_lows else lows.loc[ex_t]
+        return pts
+
+    trend_detector = trend_indicator(ohlc, **indicator_args)
+    down, up = None, None
+    if trend_detector is not None and isinstance(trend_detector, pd.DataFrame):
+        _d = 'down' if 'down' in trend_detector.columns else 'utl'
+        _u = 'up' if 'up' in trend_detector.columns else 'dtl'
+        down = trend_detector[_d]
+        up = trend_detector[_u]
+
+    hp = pd.Series(_find_reversal_pts(ohlc.high, ohlc.low, down, True), name='H')
+    lp = pd.Series(_find_reversal_pts(ohlc.high, ohlc.low, up, False), name='L')
+
+    u_tr, d_tr = {}, {}
+    prev_t, prev_pt = None, None
+    swings = {}
+    for t, (h, l) in scols(hp, lp).iterrows():
+        if np.isnan(h):
+            if prev_pt:
+                length = abs(prev_pt - l)
+                u_tr[prev_t] = {'start_price': prev_pt, 'end_price': l, 'delta':length, 'end': t}
+                swings[prev_t] = {'p0': prev_pt, 'p1': l, 'direction': -1, 'duration': t-prev_t, 'length': length}
+            prev_pt = l
+            prev_t = t
+            
+        elif np.isnan(l):
+            if prev_pt:
+                length = abs(prev_pt - h)
+                d_tr[prev_t] = {'start_price': prev_pt, 'end_price': h, 'delta':length, 'end': t}
+                swings[prev_t] = {'p0': prev_pt, 'p1': h, 'direction': +1, 'duration': t-prev_t, 'length': length}
+            prev_pt = h
+            prev_t = t
+
+    trends_splits = scols(
+        pd.DataFrame.from_dict(u_tr, orient='index'), 
+        pd.DataFrame.from_dict(d_tr, orient='index'), keys=['UpTrends', 'DownTrends'])
+    
+    swings = pd.DataFrame.from_dict(swings, orient='index') 
+    
+    return mstruct(swings=swings, trends=trends_splits, tops=hp, bottoms=lp)

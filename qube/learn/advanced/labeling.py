@@ -74,8 +74,12 @@ def triple_barrier_entries(price_data: Union[pd.Series, pd.DataFrame], entries, 
     labels = {}
     timeline = price.index
     for e in entries:
-        ent_idx = timeline.get_loc(e, method='bfill')
-        xd = price.iloc[ent_idx: timeline.get_loc(e + dt, method='bfill') + 1]
+        ent_idx = timeline.get_indexer([e], method='bfill')[0]
+        ent_f_idx = timeline.get_indexer([e + dt], method='bfill')[0]
+        # - skip entries that are not in price data
+        if ent_idx < 0 or ent_f_idx < 0:
+            continue
+        xd = price.iloc[ent_idx : ent_f_idx + 1]
         rxd = xd / xd[0]
         U, L = ub[ent_idx], lb[ent_idx]
         where_hit = np.argmax((rxd > U) | (rxd < L)) or -1

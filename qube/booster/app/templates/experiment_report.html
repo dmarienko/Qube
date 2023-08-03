@@ -57,6 +57,11 @@
 </div>
     
 <title>Experiment {{ experiment_id }} report for project {{ project_id }}</title>
+    <div> 
+        <h4><font color='orange'> {{ project_id }}</font> : <font color='green'>{{ description | safe}}</font> </h4> 
+        <a href="{{ chart_report | safe }}">view as chart</a>
+    </div>
+
     <div class='scroller-wrapper'>
          {{ main_report | safe }} 
     </div>

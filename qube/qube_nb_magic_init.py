@@ -25,8 +25,10 @@ if runtime_env() in ['notebook', 'shell']:
         bollinger, bollinger_atr, detrend, moving_detrend, moving_ols,
         rolling_std_with_mean, macd, trend_detector, fractals, denoised_trend,
         stochastic, laguerre_filter, psar, mcginley, waexplosion, fdi, stdev, rolling_percentiles, 
-        choppyness, rolling_vwap, super_trend, qqe_mod, ssl_exits
+        choppyness, rolling_vwap, super_trend, qqe_mod, ssl_exits,
+        connors_rsi, percentrank, streaks, swings
     )
+    import qube.quantitative.ta.indicators as ta
     from qube.quantitative.ta.swings.swings_splitter import (
         find_movements, find_movements_hilo
     )
@@ -43,7 +45,7 @@ if runtime_env() in ['notebook', 'shell']:
 
     # - - - - Simulator stuff - - - -
     from qube.simulator.utils import (
-        shift_signals, rolling_forward_test_split, permutate_params, variate
+        shift_signals, rolling_forward_test_split, permutate_params, variate, convert_ohlc_to_ticks
     )
     from qube.portfolio.Position import Position, ForexPosition, CryptoPosition, CryptoFuturesPosition
     from qube.simulator.multisim import simulation, Market
