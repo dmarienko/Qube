@@ -84,7 +84,8 @@ def signals_statistics(backtest: Union[SimulationResult, pd.DataFrame], symbol: 
             
             p_close = prices.close[te:tx]
             if p_close.empty:
-                tx = prices.index[prices.index.get_loc(tx, method='bfill')]
+                # tx = prices.index[prices.index.get_loc(tx, method='bfill')]
+                tx = prices.index[prices.index.get_indexer([tx], method='bfill')[0]]
                 p_close = prices.close[te:tx]
                 
             p_highs = prices.high[te:tx]

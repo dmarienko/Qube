@@ -3,7 +3,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from os import makedirs
 from os.path import join, expanduser
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -152,7 +152,7 @@ class MarketMultiSymbolData:
                           self.tickdata.items()])
 
 
-def load_instrument_data(instrument, start, end, timeframe, dbtype, path):
+def load_instrument_data(instrument, start, end, timeframe, dbtype, path) -> Optional[MarketData]:
     """
     Try to load insrument's data
     """
@@ -184,13 +184,25 @@ def load_instrument_data(instrument, start, end, timeframe, dbtype, path):
                         break
                     else:
                         search_next = False
+    elif dbtype=='csv':
+        from os.path import join, exists
+        def _find_exts(f: str, exts=['csv', 'gz']):
+            n = f
+            for e in exts:
+                n += '.' + e
+                if exists(n):
+                    return n
+            return None
+        file = _find_exts(join(path if path else '', f"{exch}/{symbol}_ohlcv_{timeframe.upper()}"))
+        if file:
+            data = pd.read_csv(file, parse_dates=True, index_col='time')
     else:
         raise ValueError(f"Unupported database '{dbtype}'")
 
     if data is None:
-        raise ValueError(f"Can't find stored data in '{dbtype}' for {instrument} | {timeframe} !")
-    return MarketData(instrument, symbol, exch, data)
+        raise ValueError(f"Can't find stored data in '{dbtype}' for {instrument} @ {exch} | {timeframe} !")
 
+    return MarketData(instrument, symbol, exch, data)
 
 
 def load_data(*instrument, start='2000-01-01', end='2200-01-01', timeframe='1Min', dbtype='mongo',
