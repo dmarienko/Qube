@@ -15,6 +15,7 @@ from scipy import spatial
 from numba import njit
 
 
+@njit
 def dtw_distance(s1, s2):
     """                                              
     Dynamic time warping finds the optimal non-linear alignment between two time series s1 and s2.
