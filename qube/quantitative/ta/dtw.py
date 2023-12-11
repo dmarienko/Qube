@@ -12,6 +12,7 @@ import random
 import numpy as np
 import pandas as pd
 from scipy import spatial
+from numba import njit
 
 
 def dtw_distance(s1, s2):
@@ -40,6 +41,7 @@ def dtw_distance(s1, s2):
     return np.sqrt(dtw[len(s1) - 1, len(s2) - 1])
 
 
+@njit
 def dtw_window_distance(s1, s2, w):
     """
     Speed up version of dynamic time warping. This works under the assumption that it is unlikely for q_i and c_j 
