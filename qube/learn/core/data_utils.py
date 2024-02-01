@@ -23,7 +23,7 @@ class DataType:
         return pd.Timedelta(self.freq)
 
 
-_S1 = pd.Timedelta('1S')
+_S1 = pd.Timedelta('1s')
 _D1 = pd.Timedelta('1D')
 
 
