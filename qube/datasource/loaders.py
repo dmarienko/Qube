@@ -65,11 +65,11 @@ class MarketData:
     exchange: str
     data: pd.DataFrame
 
-    def ohlc(self, timeframe, tz=None):
-        return ohlc_resample(self.data, timeframe, resample_tz=tz)
+    def ohlc(self, timeframe, tz=None, aux_columns_aggregator='sum'):
+        return ohlc_resample(self.data, timeframe, resample_tz=tz, non_ohlc_columns_aggregator=aux_columns_aggregator)
 
-    def ohlcs(self, timeframe, tz=None):
-        return {self.symbol: ohlc_resample(self.data, timeframe, resample_tz=tz)}
+    def ohlcs(self, timeframe, tz=None, aux_columns_aggregator='sum'):
+        return {self.symbol: ohlc_resample(self.data, timeframe, resample_tz=tz, non_ohlc_columns_aggregator=aux_columns_aggregator)}
 
     def datas(self, what, **kwargs):
         return self.ticks() if what == 'ticks' else self.ohlcs(what, **kwargs)
@@ -84,7 +84,7 @@ class MarketData:
         return self.data
 
     def export(self, timeframe=None, tz=None, dest_dir=None, columns=None, prefix='', simulator_tf_format=True,
-               include_exchange_name=True):
+               include_exchange_name=True, aux_columns_aggregator='sum'):
         """
         Export data to csv file
         """
@@ -92,7 +92,7 @@ class MarketData:
             c_tf = series_period_as_str(self.data) if timeframe is None else timeframe
             d = self.data
             if timeframe is not None:
-                d = ohlc_resample(d, timeframe, resample_tz=tz)
+                d = ohlc_resample(d, timeframe, resample_tz=tz, non_ohlc_columns_aggregator=aux_columns_aggregator)
             try:
                 path = expanduser(join(dest_dir if dest_dir is not None else '',
                                        self.exchange.upper() if include_exchange_name else ''))
