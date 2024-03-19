@@ -199,13 +199,19 @@ def load_instrument_data(instrument, start, end, timeframe, dbtype, path) -> Opt
     else:
         raise ValueError(f"Unupported database '{dbtype}'")
 
+    if data is not None and start is not None:
+        data = data[start:] 
+
+    if data is not None and end is not None:
+        data = data[:end] 
+
     if data is None:
-        raise ValueError(f"Can't find stored data in '{dbtype}' for {instrument} @ {exch} | {timeframe} !")
+        raise ValueError(f"Can't find stored data in '{dbtype}' for {instrument} @ {exch} | {timeframe} in {start} - {end} !")
 
     return MarketData(instrument, symbol, exch, data)
 
 
-def load_data(*instrument, start='2000-01-01', end='2200-01-01', timeframe='1Min', dbtype='mongo',
+def load_data(*instrument, start='1900-01-01', end='2200-01-01', timeframe='1Min', dbtype='mongo',
               path=None) -> MarketMultiSymbolData:
     """
     Loads data from database for instruments from list
