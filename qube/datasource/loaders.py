@@ -211,7 +211,13 @@ def load_data(*instrument, start='2000-01-01', end='2200-01-01', timeframe='1Min
     Loads data from database for instruments from list
     """
     in_list = instrument if isinstance(instrument, (tuple, list)) else list(instrument)
-    return MarketMultiSymbolData(*[load_instrument_data(l, start, end, timeframe, dbtype, path) for l in in_list])
+    data = []
+    for l in in_list:
+        try:
+            data.append(load_instrument_data(l, start, end, timeframe, dbtype, path))
+        except Exception as e:
+            print(f" > Issue during loading: {str(e)}")
+    return MarketMultiSymbolData(*data)
 
 
 def write_data(instrument: str, data: pd.DataFrame, prefix: str = 'm1'):
