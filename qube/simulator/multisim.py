@@ -560,7 +560,7 @@ class _SimulationTrackerTask(Task):
         if isinstance(self.loader, DataSource):  
             data = self.loader.load_data(self.instruments, start=self.start, end=self.stop)
             if self.timeframe is not None:
-                data = ohlc_resample(data, self.timeframe)
+                data = ohlc_resample(data, self.timeframe, non_ohlc_columns_aggregator='sum')
         else:
             # - TODO: old one - loader // to be removed !!!
             s_data = self.loader(self.instruments, start=self.start, end=self.stop)

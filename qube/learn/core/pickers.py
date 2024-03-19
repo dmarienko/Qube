@@ -46,11 +46,11 @@ class Resampler:
                 if isinstance(cols, pd.MultiIndex):
                     symbols = _get_top_names(cols)
                     return self._select(
-                        pd.concat([ohlc_resample(data[c], timeframe, resample_tz=tz) for c in symbols], axis=1,
+                        pd.concat([ohlc_resample(data[c], timeframe, resample_tz=tz, non_ohlc_columns_aggregator='sum') for c in symbols], axis=1,
                                   keys=symbols))
 
             # all the rest cases
-            r = ohlc_resample(data, timeframe, resample_tz=tz)
+            r = ohlc_resample(data, timeframe, resample_tz=tz, non_ohlc_columns_aggregator='sum')
 
         return self._select(r)
 
