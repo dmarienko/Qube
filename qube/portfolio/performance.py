@@ -27,6 +27,7 @@ HOURLY_FX = DAILY * 24
 MINUTELY_FX = HOURLY_FX * 60
 
 __logger = QubeLogger.getLogger('qube.analysis.portfolio')
+__pd_ver = int(pd.__version__.split('.')[0])
 
 
 def portfolio_returns(pfl_log: pd.DataFrame, method='pct', init_cash=0) -> pd.Series:
@@ -264,7 +265,7 @@ def aggregate_returns(returns, convert_to):
     if str_check in ['a', 'annual', 'y', 'yearly']:
         resample_mod = 'A'
     elif str_check in ['m', 'monthly', 'mon']:
-        resample_mod = 'M'
+        resample_mod = 'M' if __pd_ver <= 1 else 'ME'
     elif str_check in ['w', 'weekly']:
         resample_mod = 'W'
     elif str_check in ['d', 'daily']:
@@ -613,7 +614,7 @@ def portfolio_stats(pfl_log: pd.DataFrame, init_cash, start=None, end=None,
     sheet['short_value'] = (mkt_value[mkt_value < 0].sum(axis=1).fillna(0))
 
     # total commissions
-    sheet['broker_commissions'] = pft_total['Total_Commissions'][-1]
+    sheet['broker_commissions'] = pft_total['Total_Commissions'].iloc[-1]
 
     return sheet
 

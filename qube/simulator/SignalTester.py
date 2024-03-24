@@ -23,6 +23,8 @@ from qube.utils.DateUtils import DateUtils
 VERBOSE_MODE = 'verbose'
 JUPYTER_PROGRESS_LISTENER = 'jupyter_progress_listener'
 
+__pd_ver = int(pd.__version__.split('.')[0])
+
 
 class _InstrumentTrack(TradingService):
     """
@@ -361,7 +363,7 @@ class SignalTester:
         prices_buffer_index = []
 
         # iterating through list is much faster. conv. to list!
-        signals_timeline = pd.to_datetime(signals.index, infer_datetime_format=True)
+        signals_timeline = pd.to_datetime(signals.index, infer_datetime_format=True) if __pd_ver <= 1 else pd.to_datetime(signals.index)
 
         signals_matrix = signals.values
         signals_length = len(signals)

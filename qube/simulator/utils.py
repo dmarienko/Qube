@@ -335,9 +335,9 @@ def convert_ohlc_to_ticks(ohlc: Union[Dict[str, pd.DataFrame], pd.DataFrame],
                 z3 = ohlc.high.shift(1, freq=in_middle2)
 
             p2 = pd.DataFrame(
-                {'bid': z2 - spread, 'ask': z2 + spread, 'bidvol': None, 'askvol': None, 'is_real': False})
+                {'bid': z2 - spread, 'ask': z2 + spread, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': False})
             p3 = pd.DataFrame(
-                {'bid': z3 - spread, 'ask': z3 + spread, 'bidvol': None, 'askvol': None, 'is_real': False})
+                {'bid': z3 - spread, 'ask': z3 + spread, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': False})
 
         z = ohlc.close.shift(1, freq=before_close)
         p4 = pd.DataFrame({'bid': z - spread, 'ask': z + spread, 'bidvol': default_size, 'askvol': default_size,
