@@ -117,18 +117,18 @@ def dd_freq_stats(draw_down_series):
     # Sometimes we get empty data here
     if not isinstance(draw_down_series, pd.Series) or len(draw_down_series) < 1:
         return None
-
+        
     f2 = pd.DataFrame(draw_down_series.values, columns=['dd'], index=range(0, len(draw_down_series)))
-    f2['t'] = f2['dd'] > 0
-    fst = f2.index[f2['t'] & ~ f2['t'].shift(1).fillna(False)]
-    lst = f2.index[f2['t'] & ~ f2['t'].shift(-1).fillna(False)]
+    f2['t'] = (f2['dd'] > 0)
+    fst = f2.index[f2['t'] & ~ f2['t'].shift(+1, fill_value=False)]
+    lst = f2.index[f2['t'] & ~ f2['t'].shift(-1, fill_value=False)]
 
     dd_periods = pd.DataFrame(
         data=np.array([(j - i + 1, max(draw_down_series.iloc[i:j + 1])) for i, j in zip(fst, lst)],
-                      dtype=[('duration', np.uint8), ('m', np.float64)]), columns=['duration', 'm']
+                      dtype=[('duration', np.uint16), ('m', np.float64)]), columns=['duration', 'm']
     )
 
-    dx = dd_periods.groupby(by='duration').agg([len, np.average, np.max, np.min]). \
+    dx = dd_periods.groupby(by='duration').agg([len, np.average, 'max', 'min']). \
         rename(columns={'len': 'Occurencies', 'average': 'AvgMagnitude', 'amax': 'Max', 'amin': 'Min'})
 
     return dx.xs('m', axis=1, drop_level=True)

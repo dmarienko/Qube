@@ -21,7 +21,7 @@ bs4
 dill
 sortedcontainers
 cython
-plotly==5.8.0
+plotly==5.20.0
 seaborn
 rich
 pyyaml

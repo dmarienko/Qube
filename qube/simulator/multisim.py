@@ -311,14 +311,14 @@ class MultiResults:
                 rpt[_r.name] = {
                     'sharpe': prf.sharpe, 'sortino': prf.sortino, 'cagr': 100 * prf.cagr,
                     'dd': prf.mdd_usd, 'dd_pct': prf.drawdown_pct,
-                    'gain': eqty[-1] - eqty[0], 'number_executions': n_execs,
+                    'gain': eqty.iloc[-1] - eqty.iloc[0], 'number_executions': n_execs,
                     'comm': prf.broker_commissions,
                 }
 
                 print(
                     f'Sharpe: {_fmt(prf.sharpe)} | Sortino: {_fmt(prf.sortino)} | CAGR: {_fmt(100 * prf.cagr)} | '
                     f'DD: ${_fmt(prf.mdd_usd)} ({_fmt(prf.drawdown_pct)}%) | '
-                    f'Gain: ${_fmt(eqty[-1] - eqty[0])} | Execs: {n_execs} | Comm: {_fmt(prf.broker_commissions)}[{"inc" if account_transactions else "noincl"}]',
+                    f'Gain: ${_fmt(eqty.iloc[-1] - eqty.iloc[0])} | Execs: {n_execs} | Comm: {_fmt(prf.broker_commissions)}[{"inc" if account_transactions else "noincl"}]',
                     end=''
                 )
 

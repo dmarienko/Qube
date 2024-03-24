@@ -81,7 +81,7 @@ def cagr(returns, periods=DAILY):
 
     cumrets = (returns + 1).cumprod(axis=0)
     years = len(cumrets) / float(periods)
-    return (cumrets[-1] ** (1.0 / years)) - 1.0
+    return (cumrets.iloc[-1] ** (1.0 / years)) - 1.0
 
 
 def calmar_ratio(returns, periods=DAILY):
@@ -480,7 +480,8 @@ def qr(equity):
         return np.nan
 
     rgr = OLS(equity, np.vander(np.linspace(-1, 1, len(equity)), 2)).fit()
-    return rgr.rsquared * rgr.params[0] / np.std(rgr.resid)
+    b = rgr.params.iloc[0] if isinstance(rgr.params, pd.Series) else rgr.params[0]
+    return rgr.rsquared * b / np.std(rgr.resid)
 
 
 def collect_entries_data(pf_log: pd.DataFrame) -> dict:

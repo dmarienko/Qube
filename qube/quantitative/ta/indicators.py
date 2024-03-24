@@ -1343,7 +1343,8 @@ def super_trend(data, length: int = 22, mult: float = 3, src: str = 'hl2',
     direction = pd.Series(np.nan, src_data.index)
     direction.iloc[(low_price < longstop.shift(1))] = -1
     direction.iloc[(high_price > shortstop.shift(1))] = 1
-    direction.fillna(method='ffill', inplace=True)
+    # direction.fillna(method='ffill', inplace=True) # deprecated
+    direction.ffill(inplace=True)
 
     longstop_res = pd.Series(np.nan, src_data.index)
     shortstop_res = pd.Series(np.nan, src_data.index)

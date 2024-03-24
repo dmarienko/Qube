@@ -431,9 +431,9 @@ def load_tick_price_block(data_src: DataSource, info: Union[None, dsinfo],
     prices_df = pd.concat([price_dict[instr].filter(items=['bid', 'ask', 'bidvol', 'askvol', 'is_real'])
                            for instr in instruments], axis=1, keys=keys)
     if exec_by_new_update:
-        prices_df = prices_df.fillna(method='bfill').fillna(method='ffill')
+        prices_df = prices_df.bfill().ffill()
     else:
-        prices_df = prices_df.fillna(method='ffill').fillna(method='bfill')
+        prices_df = prices_df.ffill().bfill()
 
     # 2022-Dec-29: if we have more than 1 instrument in this block and they are not intesected in time
     #              so it might happened that first instrument has all NaNs in 'is_real' field
