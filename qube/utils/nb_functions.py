@@ -1,6 +1,10 @@
 import numpy as np
+from itertools import zip_longest
+from collections import defaultdict
+import glob, ast, os
 
 from qube.datasource.controllers.MongoController import MongoController
+from qube.utils.ui_utils import red, yellow, blue, green, magenta, cyan
 
 
 def z_load(data_id: str, host: str = None, query: str = None, dbname: str = None, username="", password=""):
@@ -84,3 +88,73 @@ def np_fmt_reset():
     # reset default np printing options
     np.set_printoptions(edgeitems=3, infstr='inf', linewidth=75, nanstr='nan', precision=8,
                         suppress=False, threshold=1000, formatter=None)
+
+
+def scan_directory(root_path: str):
+    def _iter_funcs(class_node):
+        decls = {}
+        for n in ast.walk(class_node): 
+            if isinstance(n, ast.FunctionDef) and n.name == '__init__':
+                args = []
+                for x in n.args.args:
+                    args.append(x.arg)
+                for x, dx in zip_longest(reversed(args), reversed(n.args.defaults)):
+                    if x != 'self':
+                        # print(f"{x} = {dx.value if dx else None}")
+                        decls[x] = dx.value if dx and isinstance(dx, ast.Constant) else None
+        # return dict(reversed(decls))
+        return dict(reversed(list(decls.items())))
+
+    def _flatten(decl_list):
+        for d in decl_list:
+            try:
+                yield d.id
+            except AttributeError:
+                try:
+                    yield d.func.id
+                except AttributeError:
+                    yield None
+
+    def _is_decorated(decorator_list, decorator_name):
+        for x in _flatten(decorator_list):
+            if x == decorator_name:
+                return True
+        return False
+
+
+    strats = defaultdict(list)
+    for file in glob.glob(os.path.join(root_path, '**/*.py'), recursive=True):
+        name = os.path.splitext(os.path.basename(file))[0]
+        # Ignore __ files
+        if name.startswith("__"):
+            continue
+
+        with open(file, 'r') as f:
+            src = f.read()
+
+        try:
+            class_node = ast.parse(src)
+        except:
+            continue
+
+        nodes = [node for node in ast.walk(class_node) if isinstance(node, ast.ClassDef)]
+        for n in nodes:
+            if _is_decorated(n.decorator_list, 'signal_generator'):
+                strats[file].append((n.name, ast.get_docstring(n), _iter_funcs(n)))
+    return strats
+
+
+def ls_strats(direcory=os.path.relpath(os.path.expanduser('~/projects'))):
+    """
+    List all available Qube1 based strategies in directory
+    """
+    strats = scan_directory(direcory)
+    for f, sd in strats.items():
+        strs = ""
+        for sn, descr, pars in sd:
+            descr = (': ' + green(descr.replace('\n', ' ').strip('" '))) if descr else ''
+            strs += f"   |-- {cyan(sn)} {descr} \n   |   {blue(str(pars))}\n   |\n"
+
+        rst = f""" - {magenta(f)} -
+    {strs}"""
+        print(rst)
