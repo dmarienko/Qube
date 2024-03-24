@@ -1,4 +1,4 @@
-from typing import Union, Dict
+from typing import List, Union, Dict
 
 import numpy as np
 import pandas as pd
@@ -260,6 +260,9 @@ class SimulationResult:
             rets -= self.portfolio.filter(regex='.*_Commissions').sum(axis=1)
 
         return rets.resample(resample).sum() if resample is not None else rets
+
+    def trackers_stats(self) -> pd.DataFrame:
+        return pd.DataFrame.from_dict(self.trackers_stat, orient='index')
 
     def __repr__(self):
         desc = self.description.replace(' | ', '\n\t')

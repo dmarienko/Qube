@@ -3,9 +3,11 @@
 """
 
 from datetime import timedelta
+from typing import List
 
 import numpy as np
 import pandas as pd
+import re
 from scipy import stats
 from scipy.stats import norm
 from statsmodels.regression.linear_model import OLS
@@ -700,3 +702,45 @@ def combine_portfolios(x: pd.DataFrame, y: pd.DataFrame):
             ))
 
     return scols(*z) if z else pd.DataFrame()
+
+
+def portfolio_symbols(df: pd.DataFrame) -> List[str]:
+    """
+    Get list of symbols from portfolio log
+    """
+    return list(df.columns[::5].str.split('_').str.get(0).values)
+
+
+def pnl(x: pd.DataFrame, c=1, cum=False, total=False, resample=None): 
+    """
+    Extract PnL from portfolio log
+    """
+    pl = x.filter(regex='.*_PnL').rename(lambda x: x.split('_')[0], axis=1)
+    comms = x.filter(regex='.*_Commissions').rename(lambda x: x.split('_')[0], axis=1)
+    r = pl - c * comms
+    if resample:
+        r = r.resample(resample).sum()
+    r = r.cumsum() if cum else r
+    return r.sum(axis=1) if total else r
+
+
+def drop_symbols(df: pd.DataFrame, *args, quoted='USDT'):
+    """
+    Drop symbols (USDT, BUSD quoted) from portfolio log
+    """
+    s = '|'.join([f"{a}{quoted}" if not a.endswith(quoted) and not a.endswith('BUSD') else a for a in args] + [f"{a}BUSD" for a in args if not a.endswith('BUSD') and not a.endswith(quoted)])
+    return df.filter(filter(lambda si: not re.match(f'^{s}_.*', si), df.columns))
+
+
+def pick_symbols(df: pd.DataFrame, *args, quoted='USDT'):
+    """
+    Select symbols (USDT, BUSD quoted) from portfolio log
+    """
+    # - pick up from execution report
+    if 'instrument' in df.columns and 'quantity' in df.columns:
+        rx = '|'.join([f'{a}.*' for a in args])
+        return df[df['instrument'].str.match(rx)]
+
+    # - pick up from PnL log report
+    s = '|'.join([f"{a}{quoted}" if not a.endswith(quoted) else a for a in args] + [f"{a}BUSD" for a in args if not a.endswith('BUSD') and not a.endswith(quoted)])
+    return df.filter(filter(lambda si: re.match(f'^{s}_.*', si), df.columns))
