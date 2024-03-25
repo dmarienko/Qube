@@ -335,17 +335,16 @@ def convert_ohlc_to_ticks(ohlc: Union[Dict[str, pd.DataFrame], pd.DataFrame],
                 z3 = ohlc.high.shift(1, freq=in_middle2)
 
             p2 = pd.DataFrame(
-                {'bid': z2 - spread, 'ask': z2 + spread, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': False})
+                {'bid': z2 - spread, 'ask': z2 + spread, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': 0})
             p3 = pd.DataFrame(
-                {'bid': z3 - spread, 'ask': z3 + spread, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': False})
+                {'bid': z3 - spread, 'ask': z3 + spread, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': 0})
 
         z = ohlc.close.shift(1, freq=before_close)
-        p4 = pd.DataFrame({'bid': z - spread, 'ask': z + spread, 'bidvol': default_size, 'askvol': default_size,
-                           'is_real': True})
+        p4 = pd.DataFrame({'bid': z - spread, 'ask': z + spread, 'bidvol': default_size, 'askvol': default_size, 'is_real': 1})
     else:
         # if bid/ask series are presented
         zb, za = ohlc.open_bid.shift(1, freq=init_shift), ohlc.open_ask.shift(1, freq=init_shift)
-        p1 = pd.DataFrame({'bid': zb, 'ask': za, 'bidvol': default_size, 'askvol': default_size, 'is_real': True})
+        p1 = pd.DataFrame({'bid': zb, 'ask': za, 'bidvol': default_size, 'askvol': default_size, 'is_real': 1})
 
         # if high/low are presented
         p2, p3 = None, None
@@ -361,11 +360,11 @@ def convert_ohlc_to_ticks(ohlc: Union[Dict[str, pd.DataFrame], pd.DataFrame],
                 # - old logic: O,L,H,C for all bars
                 zb2, za2 = ohlc.low_bid.shift(1, freq=in_middle1), ohlc.low_ask.shift(1, freq=in_middle1)
                 zb3, za3 = ohlc.high_bid.shift(1, freq=in_middle2), ohlc.high_ask.shift(1, freq=in_middle2)
-            p2 = pd.DataFrame({'bid': zb2, 'ask': za2, 'bidvol': None, 'askvol': None, 'is_real': False})
-            p3 = pd.DataFrame({'bid': zb3, 'ask': za3, 'bidvol': None, 'askvol': None, 'is_real': False})
+            p2 = pd.DataFrame({'bid': zb2, 'ask': za2, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': 0})
+            p3 = pd.DataFrame({'bid': zb3, 'ask': za3, 'bidvol': np.nan, 'askvol': np.nan, 'is_real': 0})
 
         zb = ohlc.close_bid.shift(1, freq=before_close), ohlc.close_ask.shift(1, freq=before_close)
-        p4 = pd.DataFrame({'bid': zb, 'ask': za, 'bidvol': default_size, 'askvol': default_size, 'is_real': True})
+        p4 = pd.DataFrame({'bid': zb, 'ask': za, 'bidvol': default_size, 'askvol': default_size, 'is_real': 1})
 
     # final dataframe
     return pd.concat((p1, p2, p3, p4), axis=0).sort_index()
