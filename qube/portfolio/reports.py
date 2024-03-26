@@ -89,7 +89,7 @@ def tearsheet(portfolio: Union[pd.DataFrame, SimulationResult], init_cash, risk_
     if meta is not None:
         sheet['meta'] = meta
 
-    sheet['gain'] = sheet['equity'][-1] - sheet['equity'][0]
+    sheet['gain'] = sheet['equity'].iloc[-1] - sheet['equity'].iloc[0]
     sheet['max_dd_days'] = sheet['mdd_recover'] - sheet['mdd_start']
     sheet['figsize'] = figsize
     sheet['fontsize'] = kwargs.get('fontsize', 9)

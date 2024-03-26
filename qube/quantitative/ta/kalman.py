@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from numba import float64
 from numba.experimental import jitclass
 
@@ -25,6 +26,8 @@ def kalman_regression_estimator(x, y, vb, vm, intercept=True):
     :param intercept: estimates intercept term if true 
     :return: betas, error, error variation
     """
+    x = x.values if isinstance(x, pd.Series) else x
+    y = y.values if isinstance(y, pd.Series) else y
 
     if intercept:
         x_ext_const = add_constant(x, 1.0, prepend=False)
