@@ -280,10 +280,16 @@ class WalkForwardTest(BaseEstimator):
     Walk Forward Test
     """
 
-    def __init__(self, estimator: BaseEstimator, train_period=4, test_period=1, units='W'):
+    def __init__(self, estimator: BaseEstimator, train_period=4, test_period=1, 
+                 units='W', next_period_close_posititons=True):
         """
         Create new WFT using provided estimator and train/test windows
         By default it uses 4 weeks for training and 1 week for prediction
+
+        :param training_period: number observations for training period 
+        :param test_period: number observations for testing (aka trading) period  
+        :param units: period units if training_period and test_period is the period date: {'H', 'D', 'W', 'M', 'Q', 'Y'}
+        :param next_period_close_posititons: close all positions at the start of new test period (true)
         """
         if estimator is None or not isinstance(estimator, BaseEstimator):
             raise ValueError(f"Estimator must be non empty and be derived from BaseEstimator")
@@ -295,6 +301,7 @@ class WalkForwardTest(BaseEstimator):
         self.train_period = train_period
         self.test_period = test_period
         self.units = units
+        self.close_positions_next_trade_period = next_period_close_posititons
         self.sigs = None
 
     def fit(self, x: pd.DataFrame, y, **kwargs):
@@ -319,10 +326,18 @@ class WalkForwardTest(BaseEstimator):
                 # attach aux data 
                 x = scols(x.copy(), aux_d)
         
-        for trn, tst in rolling_forward_test_split(x, self.train_period, self.test_period, units='W'):
+        for trn, tst in rolling_forward_test_split(x, self.train_period, self.test_period, units=self.units):
             self.estimator.fit(x.loc[trn], y, **kwargs)
             signals.append(self.estimator.predict(x.loc[tst]))
         self.sigs = srows(*signals)
+
+        # - check if need to close positions were open previously 
+        #   when new test (trade) period is started
+        if self.close_positions_next_trade_period:
+            # on new period positions from prev period becomes NaN after concatenating 
+            # so we could just replace them to 0 it's equal to flatting
+            self.sigs = self.sigs.fillna(0.0)
+
         return self
 
     def predict(self, x):

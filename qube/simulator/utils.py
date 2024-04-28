@@ -71,8 +71,8 @@ def rolling_forward_test_split(x, training_period: int, test_period: int, units:
     >>>     print('Train:', Y.loc[train_idx], '\\n Test:', Y.loc[test_idx])
 
     :param x: data 
-    :param training_period: number observations for learning period 
-    :param test_period: number observations for learning period  
+    :param training_period: number observations for training period 
+    :param test_period: number observations for testing period  
     :param units: period units if training_period and test_period is the period date: {'H', 'D', 'W', 'M', 'Q', 'Y'}
     :return:  
     """
