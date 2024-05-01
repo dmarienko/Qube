@@ -182,7 +182,7 @@ def _config(clz, notes, where, datasource=None, markets_description_file='data/m
 
 
 __VOWS = "aeiou"
-__CONS = "".join(set(string.ascii_lowercase) - set(__VOWS))
+__CONS = "".join(sorted(set(string.ascii_lowercase) - set(__VOWS)))
 
 def _generate_name_like_id(content, n1, ns=0):
     __NV, __NC = len(__VOWS), len(__CONS)
