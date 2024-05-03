@@ -499,14 +499,15 @@ def infer_series_frequency(series):
     return timedelta(seconds=max(freqs, key=freqs.get))
 
 
-def continuous_periods(xs, cond):
+def continuous_periods(xs: pd.Series, cond) -> mstruct:
     """
     Detect continues periods on series xs based on condition cond
     """
     df = scols(xs, cond, keys=['_XS_', 'sig'])
     df['block'] = (df.sig.shift(1) != df.sig).astype(int).cumsum()
+    idx_col_name = xs.index.name
 
-    blk = df[df.sig].reset_index().groupby('block')['time'].apply(np.array)
+    blk = df[df.sig].reset_index().groupby('block')[idx_col_name].apply(np.array)
     starts = blk.apply(lambda x: x[0])
     ends = blk.apply(lambda x: x[-1])
     se_info = scols(starts, ends, keys=['start', 'end'])
