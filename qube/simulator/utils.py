@@ -650,7 +650,7 @@ def load_tick_price_block(
         combined = reduce(
             lambda x, y: x.combine_first(y),
             [prices_df[s]["is_real"].copy().fillna(-1).astype(int) for s in keys],
-        ).replace(-1, np.nan)
+        ).replace(-1, 0)
         for s in keys:
             prices_df.loc[idx[:, (s, "is_real")]] = combined
 
