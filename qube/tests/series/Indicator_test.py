@@ -256,6 +256,18 @@ class IndicatorTest(unittest.TestCase):
         x_kama = kama(s1.to_frame().close, k_period).flatten()
         np.testing.assert_almost_equal(x_kama[k_period:], k1[::-1][k_period:], 5, err_msg='KAMA values are not equal')
 
+    def test_kama_invalid_value_warning(self):
+        df_1 = generate_feed(DateUtils.get_datetime('2017-08-01 00:00:00'), 10.0, 10000)
+        # - let's make first 20 bars empty !
+        df_1.iloc[:20,:] = np.nan
+        # print(df_1[:30])
+
+        # here we create bar series push some data and attach KAMA indicator
+        s1: BarSeries = BarSeries(60, df_1)
+        k1 = KAMA(7)
+        s1.attach(k1)
+        print(np.array([k1[::-1]]).T)
+
     def test_bollinger(self):
         b_period = 7
         b_std = 2

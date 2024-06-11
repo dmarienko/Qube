@@ -273,7 +273,8 @@ class KAMA(Indicator):
 
         # do kama factors calculations (before attaching new empty slot !)
         rs = np.sum(np.abs(np.diff(self.__x_past)))
-        er = np.abs(x - self.__x_past[0]) / rs
+        er = (np.abs(x - self.__x_past[0]) / rs) if not np.isnan(rs) else np.nan
+        # er = (np.abs(x - self.__x_past[0]) / rs)
         sc = np.square(er * self._K1 + self._S1)
 
         # attaching new slot for future data

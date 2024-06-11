@@ -239,7 +239,7 @@ def apply_to_frame(func, x, *args, **kwargs):
     return xp
 
 
-def ohlc_resample(df, new_freq: str = '1H', vmpt: bool = False, resample_tz=None,
+def ohlc_resample(df, new_freq: str = '1h', vmpt: bool = False, resample_tz=None,
                   non_ohlc_columns_aggregator='last') -> Union[pd.DataFrame, dict]:
     """
     Resample OHLCV/tick series to new timeframe.

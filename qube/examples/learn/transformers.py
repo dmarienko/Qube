@@ -43,7 +43,7 @@ class RollingRange(TransformerMixin, BaseEstimator):
         hilo.index = hilo.index + self.forward_shift_periods * pd.Timedelta(self.timeframe)
 
         # and combine with existing data
-        return x.combine_first(hilo).fillna(method='ffill')
+        return x.combine_first(hilo).ffill()
 
 
 @signal_generator

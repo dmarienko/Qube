@@ -53,7 +53,7 @@ def split_signals(signals: pd.Series, split_intervals_dates) -> List[pd.Series]:
         )
         signals_intervals_dates.append(signals.index[nearest_signal_date])
 
-    signals.fillna(method="ffill", inplace=True)
+    signals.ffill(inplace=True)
 
     split_start_date = signals.index[0]
     result = []
@@ -649,8 +649,8 @@ def load_tick_price_block(
         # entries for single symbol in case when we use aux instruments
         combined = reduce(
             lambda x, y: x.combine_first(y),
-            [prices_df[s]["is_real"].copy() for s in keys],
-        )
+            [prices_df[s]["is_real"].copy().fillna(-1).astype(int) for s in keys],
+        ).replace(-1, np.nan)
         for s in keys:
             prices_df.loc[idx[:, (s, "is_real")]] = combined
 

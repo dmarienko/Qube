@@ -16,7 +16,11 @@ Qube can be used to build automated trading systems for different financial mark
 
 
 # Installation
+```pip install qube2```
+or
+
 ```pip install git+https://git@github.com/dmarienko/Qube.git```
+
 
 # Using 
 See docs folder:

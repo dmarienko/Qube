@@ -54,15 +54,15 @@ class Test(TestCase):
         self.ds_bnc = {'BTCUSDT': self.data_bnc}
 
     def test_simulation(self):
-        m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+        m1 = MarketDataComposer(make_pipeline(RollingRange('1h', 12), RangeBreakoutDetector()),
                                 SingleInstrumentPicker(), debug=True).fit(self.ds)
 
-        m2 = MarketDataComposer(make_pipeline(RollingRange('3H', 4), RangeBreakoutDetector()), SingleInstrumentPicker(),
+        m2 = MarketDataComposer(make_pipeline(RollingRange('3h', 4), RangeBreakoutDetector()), SingleInstrumentPicker(),
                                 debug=True).fit(self.ds)
 
         r = simulation({
             'exp1 [simple break]': m1,
-            'exp2 [time tracker]': [m2, TimeExpirationTracker('5H')]
+            'exp2 [time tracker]': [m2, TimeExpirationTracker('5h')]
         }, self.ds, 'forex', 'Test1')
         # debug_output(r.results[0].portfolio, 'Portfolio')
 
@@ -72,15 +72,15 @@ class Test(TestCase):
         r.report(1000, only_report=True)
 
     def test_simulation_threads(self):
-        m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+        m1 = MarketDataComposer(make_pipeline(RollingRange('1h', 12), RangeBreakoutDetector()),
                                 SingleInstrumentPicker(), debug=True).fit(self.ds)
 
-        m2 = MarketDataComposer(make_pipeline(RollingRange('3H', 4), RangeBreakoutDetector()), SingleInstrumentPicker(),
+        m2 = MarketDataComposer(make_pipeline(RollingRange('3h', 4), RangeBreakoutDetector()), SingleInstrumentPicker(),
                                 debug=True).fit(self.ds)
 
         r = simulation({
             'exp1 [simple break]': m1,
-            'exp2 [time tracker]': [m2, TimeExpirationTracker('5H')]
+            'exp2 [time tracker]': [m2, TimeExpirationTracker('5h')]
         }, self.ds, 'forex', 'Test1', ncpus=3)
         # debug_output(r.results[0].portfolio, 'Portfolio')
 
@@ -90,7 +90,7 @@ class Test(TestCase):
         r.report(1000, only_report=True)
 
     def test_simulation_fixed_risk_trader(self):
-        m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+        m1 = MarketDataComposer(make_pipeline(RollingRange('1h', 12), RangeBreakoutDetector()),
                                 SingleInstrumentPicker(), debug=True).fit(self.ds)
 
         r = simulation({
@@ -109,7 +109,7 @@ class Test(TestCase):
         self.assertAlmostEqual(-455.0, r.results[0].portfolio['ES_PnL'].sum())
 
     def test_simulation_fixed_risk_trader_pct(self):
-        m1 = MarketDataComposer(make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector()),
+        m1 = MarketDataComposer(make_pipeline(RollingRange('1h', 12), RangeBreakoutDetector()),
                                 SingleInstrumentPicker(), debug=True).fit(self.ds)
 
         r = simulation({

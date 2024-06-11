@@ -22,12 +22,21 @@ def generate_feed(start_time, initial_price, series_size, trades=False) -> pd.Da
     ask = np.round(bid + spreads, 2)
 
     if trades is False:
-        return pd.DataFrame(index=dt, data={'bid': bid, 'ask': ask, 'bidvol': np.repeat([100], series_size),
-                                            'askvol': np.repeat([200], series_size)},
-                            columns=['bid', 'ask', 'bidvol', 'askvol'])
+        return pd.DataFrame(
+            index=dt,
+            data={
+                "bid": bid,
+                "ask": ask,
+                "bidvol": np.repeat([100], series_size),
+                "askvol": np.repeat([200], series_size),
+            },
+            columns=["bid", "ask", "bidvol", "askvol"],
+        )
     else:
         taker_side = np.random.choice([0, 1], series_size)
         trade_price = np.round((bid + ask) / 2, 2)
-        return pd.DataFrame(index=dt,
-                            data={'price': trade_price, 'size': np.repeat([400], series_size), 'takerside': taker_side},
-                            columns=['price', 'size', 'takerside'])
+        return pd.DataFrame(
+            index=dt,
+            data={"price": trade_price, "size": np.repeat([400], series_size), "takerside": taker_side},
+            columns=["price", "size", "takerside"],
+        )

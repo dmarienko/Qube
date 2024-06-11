@@ -168,6 +168,15 @@ class TestSimulator(unittest.TestCase):
         print(ticks['GBPUSD'].head())
         print(ticks['USDCHF'].head())
 
+    def test_ticks_loader_arr_concat(self):
+        ds_qts = DataSource('simulator::ohlc_data', self.DS_CFG_FILE)
+        ticks = load_tick_price_block(
+            ds_qts, None, ['XOM', 'MSFT', 'EURGBP'], '2015-01-01', exec_by_new_update=True, logger=QubeLogger.getLogger(self.__module__)
+        )
+        print(ticks['XOM'].head())
+        print(ticks['MSFT'].head())
+        print(ticks['EURGBP'].head())
+
     def test_simulator_ohlc(self):
         ds_daily = DataSource('simulator::ohlc_data', self.DS_CFG_FILE)
 
