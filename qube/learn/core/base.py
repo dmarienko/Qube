@@ -10,7 +10,7 @@ from sklearn.pipeline import Pipeline
 from qube.learn.core.data_utils import make_dataframe_from_dict, pre_close_time_shift
 from qube.learn.core.metrics import ForwardReturnsCalculator
 from qube.learn.core.pickers import AbstractDataPicker, SingleInstrumentPicker, PortfolioPicker
-from qube.learn.core.structs import (MarketInfo, _FIELD_MARKET_INFO, _FIELD_EXACT_TIME, QLEARN_VERSION)
+from qube.learn.core.structs import MarketInfo, _FIELD_MARKET_INFO, _FIELD_EXACT_TIME, QLEARN_VERSION
 from qube.utils.ui_utils import green
 
 
@@ -20,7 +20,7 @@ def predict_and_postprocess(class_predict_function):
         yh = class_predict_function(obj, xp, *args, **kwargs)
 
         # if this predictor doesn't provide tag we operate with closes
-        if not getattr(obj, _FIELD_EXACT_TIME, False) and obj.market_info_.column == 'close':
+        if yh is not None and not yh.empty and not getattr(obj, _FIELD_EXACT_TIME, False) and obj.market_info_.column == "close":
             yh = yh.shift(1, freq=pre_close_time_shift(xp))
 
         return yh
@@ -50,13 +50,14 @@ def operation(op, *args):
     Loads operation for predictor
     """
     from qube.learn.core.operations import Imply, And, Or, Neg, Mul, Join
+
     ops = {
-        'imply': Imply,
-        'and': And,
-        'or': Or,
-        'neg': Neg,
-        'mul': Mul,
-        'join': Join,
+        "imply": Imply,
+        "and": And,
+        "or": Or,
+        "neg": Neg,
+        "mul": Mul,
+        "join": Join,
     }
 
     if op.lower() in ops:
@@ -77,41 +78,41 @@ def signal_generator(cls):
     cls.__qlearn__ = QLEARN_VERSION
     setattr(cls, _FIELD_MARKET_INFO, None)
     setattr(cls, _FIELD_EXACT_TIME, False)
-    _decorate_class_method_if_exist(cls, 'predict', predict_and_postprocess)
-    _decorate_class_method_if_exist(cls, 'predict_proba', predict_and_postprocess)
-    _decorate_class_method_if_exist(cls, 'fit', preprocess_fitargs_and_fit)
+    _decorate_class_method_if_exist(cls, "predict", predict_and_postprocess)
+    _decorate_class_method_if_exist(cls, "predict_proba", predict_and_postprocess)
+    _decorate_class_method_if_exist(cls, "fit", preprocess_fitargs_and_fit)
 
     # syntax sugar
-    setattr(cls, 'Imply', __operator_impl_class__('imply'))
-    setattr(cls, '__rshift__', __operator_impl_class__('imply'))
+    setattr(cls, "Imply", __operator_impl_class__("imply"))
+    setattr(cls, "__rshift__", __operator_impl_class__("imply"))
 
-    setattr(cls, 'And', __operator_impl_class__('and'))
-    setattr(cls, '__and__', __operator_impl_class__('and'))
+    setattr(cls, "And", __operator_impl_class__("and"))
+    setattr(cls, "__and__", __operator_impl_class__("and"))
 
-    setattr(cls, 'Or', __operator_impl_class__('or'))
-    setattr(cls, '__or__', __operator_impl_class__('or'))
+    setattr(cls, "Or", __operator_impl_class__("or"))
+    setattr(cls, "__or__", __operator_impl_class__("or"))
 
-    setattr(cls, 'Neg', __operator_impl_class__('neg'))
-    setattr(cls, '__neg__', __operator_impl_class__('neg'))
-    setattr(cls, '__invert__', __operator_impl_class__('neg'))
+    setattr(cls, "Neg", __operator_impl_class__("neg"))
+    setattr(cls, "__neg__", __operator_impl_class__("neg"))
+    setattr(cls, "__invert__", __operator_impl_class__("neg"))
 
-    setattr(cls, 'Mul', __operator_impl_class__('mul'))
-    setattr(cls, '__mul__', __operator_impl_class__('mul'))
+    setattr(cls, "Mul", __operator_impl_class__("mul"))
+    setattr(cls, "__mul__", __operator_impl_class__("mul"))
 
-    setattr(cls, 'Add', __operator_impl_class__('join'))
-    setattr(cls, '__add__', __operator_impl_class__('join'))
+    setattr(cls, "Add", __operator_impl_class__("join"))
+    setattr(cls, "__add__", __operator_impl_class__("join"))
 
     return cls
 
 
-def collect_qlearn_estimators(p, estimators_list, step=''):
-    if isinstance(p, BaseEstimator) and hasattr(p, '__qlearn__'):
+def collect_qlearn_estimators(p, estimators_list, step=""):
+    if isinstance(p, BaseEstimator) and hasattr(p, "__qlearn__"):
         estimators_list.append((step, p))
         return estimators_list
 
     if isinstance(p, Pipeline):
         for sn, se in p.steps:
-            collect_qlearn_estimators(se, estimators_list, (step + '__' + sn) if step else sn)
+            collect_qlearn_estimators(se, estimators_list, (step + "__" + sn) if step else sn)
         return estimators_list
 
     if isinstance(p, BaseSearchCV):
@@ -128,7 +129,7 @@ class MarketDataComposer(BaseEstimator):
     Market data composer for any predictors related to trading signals generation
     """
 
-    def __init__(self, predictor, selector: AbstractDataPicker, column='close', debug=False):
+    def __init__(self, predictor, selector: AbstractDataPicker, column="close", debug=False):
         self.column = column
         self.predictor = predictor
         self.selector = selector
@@ -142,7 +143,7 @@ class MarketDataComposer(BaseEstimator):
         self.market_info_ = MarketInfo(symbol, self.column, debug=self.debug)
         new_kwargs = dict(**kwargs)
         for name, _ in self.estimators_:
-            mi_name = f'{name}__{_FIELD_MARKET_INFO}' if name else _FIELD_MARKET_INFO
+            mi_name = f"{name}__{_FIELD_MARKET_INFO}" if name else _FIELD_MARKET_INFO
             new_kwargs[mi_name] = MarketInfo(symbol, self.column)
         return new_kwargs
 
@@ -151,7 +152,7 @@ class MarketDataComposer(BaseEstimator):
         Setup dates interval for fitting/prediction
         """
         if self.debug:
-            print(' > Selected [' + green(f'{start}:{stop}') + ']')
+            print(" > Selected [" + green(f"{start}:{stop}") + "]")
         self.selector.for_range(start, stop)
         return self
 
@@ -193,7 +194,7 @@ class MarketDataComposer(BaseEstimator):
             _f_p = self.predictor.fit(xp, y, **n_fit_params)
 
             # store best parameters for each symbol
-            if hasattr(_f_p, 'best_params_') and hasattr(_f_p, 'best_score_'):
+            if hasattr(_f_p, "best_params_") and hasattr(_f_p, "best_score_"):
                 self.best_params_[str(symbol)] = _f_p.best_params_
                 self.best_score_[str(symbol)] = _f_p.best_score_
 
@@ -230,42 +231,42 @@ class MarketDataComposer(BaseEstimator):
             else:
                 r = yh
 
-        return make_dataframe_from_dict(r, 'frame')
+        return make_dataframe_from_dict(r, "frame")
 
     def __rshift__(self, other):
         # TODO: Test -> it doesn't work !!!
-        return operation('imply')(self, other)
+        return operation("imply")(self, other)
 
     def __and__(self, other):
-        return operation('and')(self, other)
+        return operation("and")(self, other)
 
     def __or__(self, other):
-        return operation('or')(self, other)
+        return operation("or")(self, other)
 
     def __add__(self, other):
         """
         Support for joining of different predictions
         """
-        return operation('join')(self, other)
+        return operation("join")(self, other)
 
     def __mul__(self, other):
         """
         Support for multiplication on constant
         """
-        return operation('mul')(self, other)
+        return operation("mul")(self, other)
 
     def __invert__(self):
-        return operation('neg')(self)
+        return operation("neg")(self)
 
     def __neg__(self):
-        return operation('neg')(self)
+        return operation("neg")(self)
 
     def estimated_portfolio(self, x, forwards_calculator: ForwardReturnsCalculator):
         """
         Get estimated portfolio based on forwards calculator
         """
         rets = {}
-        if forwards_calculator is None or not hasattr(forwards_calculator, 'get_forward_returns'):
+        if forwards_calculator is None or not hasattr(forwards_calculator, "get_forward_returns"):
             raise ValueError(
                 "forwards_calculator parameter doesn't have get_forward_returns(price, signals, market_info) method"
             )
@@ -273,7 +274,7 @@ class MarketDataComposer(BaseEstimator):
             yh = self.__get_prediction(symbol, xp)
             rets[symbol] = forwards_calculator.get_forward_returns(xp, yh, MarketInfo(symbol, self.column))
 
-        return make_dataframe_from_dict(rets, 'frame')
+        return make_dataframe_from_dict(rets, "frame")
 
 
 class SingleInstrumentComposer(MarketDataComposer):
@@ -281,7 +282,7 @@ class SingleInstrumentComposer(MarketDataComposer):
     Shortcut for MarketDataComposer(x, SingleInstrumentPicker(), ...)
     """
 
-    def __init__(self, predictor, column='close', debug=False):
+    def __init__(self, predictor, column="close", debug=False):
         super().__init__(predictor, SingleInstrumentPicker(), column, debug)
 
 
@@ -290,7 +291,7 @@ class PortfolioComposer(MarketDataComposer):
     Shortcut for MarketDataComposer(x, PortfolioPicker(), ...)
     """
 
-    def __init__(self, predictor, column='close', debug=False):
+    def __init__(self, predictor, column="close", debug=False):
         super().__init__(predictor, PortfolioPicker(), column, debug)
 
     def select(self, rules):

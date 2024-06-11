@@ -9,6 +9,10 @@
     "python.testing.pytestEnabled": true,
     // "python.testing.cwd": "./",
     "python.testing.unittestEnabled": false,
+    "black-formatter.args": [
+        "--line-length",
+        "120"
+    ],
     "python.testing.pytestArgs": [
         "qube/tests",
         "-s",

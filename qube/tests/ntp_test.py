@@ -20,10 +20,13 @@ class NtpTest(unittest.TestCase):
         ntp._controlling_thread.start()
         sleep(0.2)
         self.assertIsNotNone(ntp._offset)
-        print('offset %f' % ntp._offset)
+        print("offset %f" % ntp._offset)
         # let's test the logic is fine
-        self.assertAlmostEqual(ntp.get_now().timestamp(),
-                               (datetime.now() + timedelta(seconds=ntp.get_offset())).timestamp(), places=3)
+        self.assertAlmostEqual(
+            ntp.get_now().timestamp(),
+            (datetime.now() + timedelta(seconds=ntp.get_offset())).timestamp(),
+            places=3,
+        )
 
         # let's check get_now really match with real NTP time
         ntp_client = ntplib.NTPClient()
@@ -32,5 +35,6 @@ class NtpTest(unittest.TestCase):
 
 
 from pytest import main
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

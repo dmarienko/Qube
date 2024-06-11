@@ -147,7 +147,8 @@ class SignalTester:
         else:
             self.__logger = logger
 
-    def run_signals(self, signals,
+    def run_signals(self, 
+                    signals: pd.Series | pd.DataFrame,
                     portfolio_logger=None,
                     run_id=None,
                     progress_listener=None,
@@ -181,8 +182,24 @@ class SignalTester:
 
         self.__logger.setLevel(logging.INFO if kwargs.get(VERBOSE_MODE, True) else logging.WARN)
 
+        # we will use default portfolio logger if not specified
+        if portfolio_logger is None:
+            portfolio_logger = PortfolioLogger()
+
         # let's have unique identifier for the run_signals if it's not specified
+        sim_start_time = pd.Timestamp.now()
         run_id = 'run_id_%s' % str(uuid.uuid4()) if not run_id else run_id
+
+        if signals.empty:
+            self.warn(f'Simulation {run_id} gets empty signals data frame !')
+            return SimulationResult(
+                name, broker=self.__broker_info.__class__.__name__,
+                portfolio_logger=portfolio_logger,
+                execution_logger=execution_logger,
+                sim_start_time=sim_start_time, sim_start=None, sim_end=None,
+                instruments=[], tracks=[], number_processed_signals=0
+            )
+
         signals = SignalTester.validate_and_format_signals(signals)
         sim_start = signals.index[0].to_pydatetime()
         sim_end = signals.index[-1].to_pydatetime()
@@ -193,10 +210,6 @@ class SignalTester:
         instruments = signals.columns.tolist()
         if not instruments:
             raise ValueError("Couldn't find any named columns in signals data frame !")
-
-        # we will use default portfolio logger if not specified
-        if portfolio_logger is None:
-            portfolio_logger = PortfolioLogger()
 
         if terminator and terminator.is_terminated():
             return portfolio_logger
@@ -220,7 +233,6 @@ class SignalTester:
         #     exec_by_new_update = True
 
         # process signals on tick data
-        sim_start_time = pd.Timestamp.now()
         tracks = self.__run_simulation_on_ticks(
             positions, instruments, signals, portfolio_logger, run_id,
             progress_listener, terminator, execution_logger,

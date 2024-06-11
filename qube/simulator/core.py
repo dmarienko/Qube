@@ -9,7 +9,7 @@ from qube.series.BarSeries import BarSeries
 from qube.simulator.utils import generate_simulation_identificator
 from qube.utils.utils import dict2struct
 
-DB_SIMULATION_RESULTS = 'simdb'
+DB_SIMULATION_RESULTS = "simdb"
 
 
 class TradingService:
@@ -57,7 +57,7 @@ class Tracker:
         # something like that: self._service.tracker[instrument]
         return
 
-    def trade(self, trade_time, quantity, comment='', exact_price=None, market_order=True):
+    def trade(self, trade_time, quantity, comment="", exact_price=None, market_order=True):
         """
         Process trade from on_quote
         :param trade_time: time when trade occured
@@ -70,8 +70,15 @@ class Tracker:
         pnl = 0
         if np.isfinite(quantity):
             pnl = self._position.update_position_bid_ask(
-                trade_time, quantity, self._service.bid, self._service.ask, exec_price=exact_price,
-                **self._service.get_aux_quote(), comment=comment, crossed_market=market_order)
+                trade_time,
+                quantity,
+                self._service.bid,
+                self._service.ask,
+                exec_price=exact_price,
+                **self._service.get_aux_quote(),
+                comment=comment,
+                crossed_market=market_order,
+            )
 
             # set last trade time
             self._service.last_trade_time = trade_time
@@ -119,8 +126,8 @@ class Tracker:
         Custom statistic generator
         """
         return None
-    
-    def __on_tracker_cloning__(self, instrument: str, is_aux=False) -> Union['Tracker', None]:
+
+    def __on_tracker_cloning__(self, instrument: str, is_aux=False) -> Union["Tracker", None]:
         """
         It's possible to override this method to control what's returned on cloning this tracker.
         For example in case when we want to control all cloned trackers in parent one for multi assets portfolio
@@ -132,16 +139,17 @@ class Tracker:
         Tracker representation
         """
         import inspect
+
         r = []
         for a, p in inspect.signature(self.__init__).parameters.items():
-            if not a.startswith('debug') and hasattr(self, a):
+            if not a.startswith("debug") and hasattr(self, a):
                 v = getattr(self, a)
                 if p.default != v:
-                    r.append(f'{a}={repr(v)}')
+                    r.append(f"{a}={repr(v)}")
         return f'{str(self.__class__.__name__)}({",".join(r)})'
 
 
-class ExecutionLogger():
+class ExecutionLogger:
     def __init__(self):
         # we use raw list for appending log records instead pandas DataFrame
         self._exec_log = list()
@@ -170,40 +178,59 @@ class SimulationResult:
     Simulation results storage
     """
 
-    def __init__(self, name, broker, portfolio_logger, execution_logger,
-                 sim_start_time, sim_start, sim_end, instruments, tracks, number_processed_signals):
+    def __init__(
+        self,
+        name,
+        broker,
+        portfolio_logger,
+        execution_logger,
+        sim_start_time,
+        sim_start,
+        sim_end,
+        instruments,
+        tracks,
+        number_processed_signals,
+    ):
         self.name = name
-        self.id = generate_simulation_identificator('', broker, sim_start_time)
+        self.id = generate_simulation_identificator("", broker, sim_start_time)
         # we keep non-cumulative (PnL/Commissions) portfolio here
-        self.portfolio = split_cumulative_pnl(portfolio_logger.get_portfolio_log())
+        portf_log = portfolio_logger.get_portfolio_log()
+        self.portfolio = split_cumulative_pnl(portf_log) if not portf_log.empty else pd.DataFrame()
         self.executions = execution_logger.get_execution_log() if execution_logger is not None else None
         self.simulation_start_time = sim_start_time
         self.simulation_time = pd.Timestamp.now() - sim_start_time
         self.start = sim_start
         self.end = sim_end
         self.instruments = instruments
-        self.trackers: Dict[str, Tracker] = {t.instrument: repr(t.tracker) if t.tracker is not None else None for t in
-                                             tracks}
-        self.trackers_stat = {
-            t.instrument: t.tracker.statistics() if t.tracker is not None else None for t in tracks
+        self.trackers: Dict[str, Tracker] = {
+            t.instrument: repr(t.tracker) if t.tracker is not None else None for t in tracks
         }
+        self.trackers_stat = {t.instrument: t.tracker.statistics() if t.tracker is not None else None for t in tracks}
         self.number_processed_signals = number_processed_signals
 
         if isinstance(instruments, (list, tuple, set)):
-            _symbols_list = ','.join(instruments) if len(instruments) < 5 else f"{len(instruments)}"
+            _symbols_list = ",".join(instruments) if len(instruments) < 5 else f"{len(instruments)}"
         else:
-            _symbols_list = instruments 
+            _symbols_list = instruments
 
-        self.description = f"Interval: {sim_start} ~ {sim_end} | " \
-                           f"Time: {str(self.simulation_time)} | " \
-                           f"Signals: {number_processed_signals} | " \
-                           f"Execs: {len(self.executions) if self.executions is not None else '???'} | " \
-                           f"Symbols: {_symbols_list}"
+        self.description = (
+            f"Interval: {sim_start} ~ {sim_end} | "
+            f"Time: {str(self.simulation_time)} | "
+            f"Signals: {number_processed_signals} | "
+            f"Execs: {len(self.executions) if self.executions is not None else '???'} | "
+            f"Symbols: {_symbols_list}"
+        )
 
-    def performance(self, init_cash, risk_free=0,
-                    rolling_sharpe_window=252, account_transactions=True,
-                    margin_call_level=0.33, drop_margin_call=True,
-                    performance_statistics_period=365):
+    def performance(
+        self,
+        init_cash,
+        risk_free=0,
+        rolling_sharpe_window=252,
+        account_transactions=True,
+        margin_call_level=0.33,
+        drop_margin_call=True,
+        performance_statistics_period=365,
+    ):
         """
         Calculate simulation potfolio performance
         If drop_margin_call is set (default value) then it returns Sharpe=-np.inf if equity has margin call event.
@@ -225,13 +252,19 @@ class SimulationResult:
         # now we must take in account only data where equity is > minimal required margin
         below_mc = equity[equity <= init_cash * margin_call_level]
         if not below_mc.empty:
-            portfolio = portfolio[:below_mc.index[0]]
+            portfolio = portfolio[: below_mc.index[0]]
 
-        stats = dict2struct(portfolio_stats(portfolio, init_cash, risk_free=risk_free,
-                                            rolling_sharpe_window=rolling_sharpe_window,
-                                            account_transactions=account_transactions,
-                                            performance_statistics_period=performance_statistics_period,
-                                            benchmark=None))
+        stats = dict2struct(
+            portfolio_stats(
+                portfolio,
+                init_cash,
+                risk_free=risk_free,
+                rolling_sharpe_window=rolling_sharpe_window,
+                account_transactions=account_transactions,
+                performance_statistics_period=performance_statistics_period,
+                benchmark=None,
+            )
+        )
 
         # reset Sharpe to -inf if MC observed
         if not below_mc.empty and drop_margin_call:
@@ -253,17 +286,17 @@ class SimulationResult:
         :param resample: resample timeframe (for example 1D) defualt (None)
         :param account_transactions: True if we want to take in account trasaction costs (default False)
         """
-        rets = self.portfolio.filter(regex='.*_PnL').sum(axis=1)
+        rets = self.portfolio.filter(regex=".*_PnL").sum(axis=1)
 
         # if it's asked to calculate commissions
         if account_transactions:
-            rets -= self.portfolio.filter(regex='.*_Commissions').sum(axis=1)
+            rets -= self.portfolio.filter(regex=".*_Commissions").sum(axis=1)
 
         return rets.resample(resample).sum() if resample is not None else rets
 
     def trackers_stats(self) -> pd.DataFrame:
-        return pd.DataFrame.from_dict(self.trackers_stat, orient='index')
+        return pd.DataFrame.from_dict(self.trackers_stat, orient="index")
 
     def __repr__(self):
-        desc = self.description.replace(' | ', '\n\t')
-        return f' Simulation {self.name}.{self.id} \n\t{desc}'
+        desc = self.description.replace(" | ", "\n\t")
+        return f" Simulation {self.name}.{self.id} \n\t{desc}"

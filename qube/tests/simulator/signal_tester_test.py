@@ -3,13 +3,16 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
+from sklearn.base import BaseEstimator
 
+from qube.learn.core.base import signal_generator
 from qube.portfolio.performance import calculate_total_pnl
 from qube.datasource import DataSource
 from qube.portfolio.PortfolioLogger import PortfolioLogger
 from qube.simulator import SignalTester
 from qube.simulator.Brokerage import GenericStockBrokerInfo, GenericForexBrokerInfo
 from qube.simulator.core import Tracker, ExecutionLogger
+from qube.simulator.multisim import simulation
 from qube.simulator.utils import convert_ohlc_to_ticks, load_tick_price_block
 from qube.tests.simulator.utilities import MockDataSource, gen_pos, cumulative_pnl_calcs_eod, TickMockDataSource, cross_ma
 from qube.utils import QubeLogger
@@ -29,6 +32,23 @@ class ITracker(Tracker):
             print(f'\t>>> [{self._instrument}] {signal_time} : {signal_qty} | {quote_time}: {bid},{ask}')
 
         return signal_qty
+
+
+@signal_generator
+class TestNone(BaseEstimator):
+
+    def fit(self, x, y): return self
+
+    def predict(self, xs: pd.DataFrame):
+        return None #pd.Series()
+
+@signal_generator
+class TestEmpty(BaseEstimator):
+
+    def fit(self, x, y): return self
+
+    def predict(self, xs: pd.DataFrame):
+        return pd.Series()
 
 
 class TestSimulator(unittest.TestCase):
@@ -268,7 +288,7 @@ class TestSimulator(unittest.TestCase):
     def test_simulator_ticks_with_exec_by_new_update(self):
         rd_prices = lambda *r: pd.DataFrame(
             data=np.array([r[1:len(r):5], r[2:len(r):5], r[3:len(r):5], r[4:len(r):5]]).T,
-            index=pd.to_datetime(r[0:-1:5]), columns=['bid', 'ask', 'bidvol', 'askvol'])
+            index=pd.to_datetime(r[0:-1:5], format='mixed'), columns=['bid', 'ask', 'bidvol', 'askvol'])
 
         ds_tick = TickMockDataSource({
             'A': rd_prices(
@@ -416,6 +436,14 @@ class TestSimulator(unittest.TestCase):
         W = sim.run_signals(pos)
         total_pnl = calculate_total_pnl(W.portfolio, split_cumulative=False)
         self.assertAlmostEqual(total_pnl['Total_PnL'].sum(), -0.03999, delta=0.0001)
+
+    def test_simulator_empty_signals(self):        
+        ds = MockDataSource('2016-01-01', 10000, amplitudes=(10, 30, 5), freq='5 min')
+        prices = ds.load_data(['Test1', 'Test2'], start='2016-01-01', end='2016-02-01')
+        r2 = simulation( {
+            'test-none': TestNone(), 
+            'test-empty': TestEmpty(), 
+            }, prices, 'binance_um_vip0_usdt')
 
 
 from pytest import main

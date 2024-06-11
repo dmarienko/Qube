@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pdt
+import pandas.testing as pdt
 
 from qube.datasource import DataSource
 from qube.portfolio.PortfolioLogger import PortfolioLogger

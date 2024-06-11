@@ -688,7 +688,7 @@ def denoised_trend(x: pd.DataFrame, period: int, window=0, mean: str = 'kama', b
     si = abs(ri).rolling(window=period + 1).sum()
     # for open - close there may be gaps
     if bar_returns:
-        si = np.max(np.concatenate((abs_di[:, np.newaxis], si[:, np.newaxis]), axis=1), axis=1)
+        si = np.max(np.concatenate((abs_di.values[:, np.newaxis], si.values[:, np.newaxis]), axis=1), axis=1)
     filtered_trend = abs_di * (di / si)
     filtered_trend = filtered_trend.replace([np.inf, -np.inf], 0.0)
 

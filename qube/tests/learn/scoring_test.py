@@ -22,7 +22,7 @@ class MidDayPrice(TransformerMixin, BaseEstimator):
         return self
 
     def transform(self, x):
-        return x.assign(mid=.5 * (x.high + x.low))
+        return x.assign(mid=0.5 * (x.high + x.low))
 
 
 @signal_generator
@@ -37,16 +37,17 @@ class TesterSingle(BaseEstimator):
         price = X[self.market_info_.column]
         return srows(
             pd.Series(+1, price[(price > price.shift(self.period))].index),
-            pd.Series(-1, price[(price < price.shift(self.period))].index))
+            pd.Series(-1, price[(price < price.shift(self.period))].index),
+        )
 
 
 class ScoringTests(unittest.TestCase):
 
     def test_scorer(self):
         # data = pd.read_csv('../data/ES.csv.gz', parse_dates=True, index_col=['time'])
-        data = _read_timeseries_data('ES', compressed=True)
+        data = _read_timeseries_data("ES", compressed=True)
 
-        debug_output(data, 'Test OHLC')
+        debug_output(data, "Test OHLC")
 
         # wor = make_pipeline(_WeekOpenRange('4Min', 0.25), _RangeBreakoutDetector().fillna(0).as_classifier())
         # m1 = MarketDataComposer(TesterSingle(15), SingleInstrumentPicker(), None, debug=True)
@@ -55,23 +56,26 @@ class ScoringTests(unittest.TestCase):
         g1 = GridSearchCV(
             cv=TimeSeriesSplit(5),
             estimator=make_pipeline(MidDayPrice(), TesterSingle(5)),
-            scoring=ForwardDirectionScoring('1H'),
+            scoring=ForwardDirectionScoring("1H"),
             param_grid={
-                'testersingle__period': np.arange(2, 60),
-            }, verbose=True
+                "testersingle__period": np.arange(2, 60),
+            },
+            verbose=True,
         )
 
-        mds = MarketDataComposer(g1, SingleInstrumentPicker(), column='close', debug=True)
+        mds = MarketDataComposer(
+            g1, SingleInstrumentPicker(), column="close", debug=True
+        )
         mds.fit(data, None)
         print(g1.best_params_)
         print(g1.best_score_)
         self.assertAlmostEqual(0.48656, g1.best_score_, delta=1e-5)
 
     def test_scorer_open_close(self):
-        data = ohlc_resample(_read_timeseries_data('ES', compressed=True), '5Min')
+        data = ohlc_resample(_read_timeseries_data("ES", compressed=True), "5Min")
         # data = ohlc_resample(pd.read_csv('c:/data/ohlc/ES.csv.gz', parse_dates=True, index_col=['time']), '5Min')
 
-        bs = make_pipeline(RollingRange('1H', 12), RangeBreakoutDetector())
+        bs = make_pipeline(RollingRange("1h", 12), RangeBreakoutDetector())
         m2 = MarketDataComposer(bs, SingleInstrumentPicker(), None, debug=True)
         y0 = m2.fit(data, None).predict(data)
         print(sum(y0.index.second == 0))
@@ -79,68 +83,77 @@ class ScoringTests(unittest.TestCase):
         g1 = GridSearchCV(
             cv=TimeSeriesSplit(5),
             estimator=bs,
-            scoring=ForwardDirectionScoring('3H'),
+            scoring=ForwardDirectionScoring("3h"),
             param_grid={
-                'rollingrange__period': np.arange(12, 15),
-                'rollingrange__timeframe': ['1H'],
-            }, verbose=True
+                "rollingrange__period": np.arange(12, 15),
+                "rollingrange__timeframe": [pd.Timedelta("1h")],
+            },
+            verbose=True,
         )
 
-        mds = MarketDataComposer(g1, SingleInstrumentPicker(), column='close', debug=True)
+        mds = MarketDataComposer(
+            g1, SingleInstrumentPicker(), column="close", debug=True
+        )
         mds.fit(data, None)
         print(g1.best_params_)
         print(g1.best_score_)
         self.assertAlmostEqual(0.45124, g1.best_score_, delta=1e-5)
 
     def test_scorer_ticks(self):
-        data = _read_timeseries_data('XBTUSD', compressed=True)
+        data = _read_timeseries_data("XBTUSD", compressed=True)
 
-        bs = make_pipeline(RollingRange('10S', 30, 6), RangeBreakoutDetector(0.5))
+        bs = make_pipeline(RollingRange("10S", 30, 6), RangeBreakoutDetector(0.5))
 
         m2 = MarketDataComposer(bs, SingleInstrumentPicker(), None, debug=True)
         y0 = m2.fit(data, None).predict(data)
-        debug_output(y0, 'TestPrediction')
+        debug_output(y0, "TestPrediction")
 
         g1 = GridSearchCV(
             n_jobs=10,
             cv=TimeSeriesSplit(3),
             estimator=bs,
-            scoring=ForwardDirectionScoring('1Min'),
+            scoring=ForwardDirectionScoring("1Min"),
             param_grid={
-                'rollingrange__period': np.arange(10, 30),
-                'rollingrange__forward_shift_periods': np.arange(5, 10),
-                'rollingrange__timeframe': ['10S', '15S'],
-            }, verbose=True
+                "rollingrange__period": np.arange(10, 30),
+                "rollingrange__forward_shift_periods": np.arange(5, 10),
+                "rollingrange__timeframe": ["10S", "15S"],
+            },
+            verbose=True,
         )
 
-        mds = MarketDataComposer(g1, SingleInstrumentPicker(), column='close', debug=True)
+        mds = MarketDataComposer(
+            g1, SingleInstrumentPicker(), column="close", debug=True
+        )
         mds.fit(data, None)
         print(g1.best_params_)
         print(g1.best_score_)
         self.assertAlmostEqual(0.68888, g1.best_score_, delta=1e-5)
 
     def test_sharpe_scorer_ticks(self):
-        data = _read_timeseries_data('XBTUSD', compressed=True)
+        data = _read_timeseries_data("XBTUSD", compressed=True)
 
-        bs = make_pipeline(RollingRange('10S', 30, 6), RangeBreakoutDetector(0.5))
+        bs = make_pipeline(RollingRange("10S", 30, 6), RangeBreakoutDetector(0.5))
 
         m2 = MarketDataComposer(bs, SingleInstrumentPicker(), None, debug=True)
         y0 = m2.fit(data, None).predict(data)
-        debug_output(y0, 'TestPrediction')
+        debug_output(y0, "TestPrediction")
 
         g1 = GridSearchCV(
             n_jobs=10,
             cv=TimeSeriesSplit(3),
             estimator=bs,
-            scoring=ForwardReturnsSharpeScoring('1Min', commissions=0.17),
+            scoring=ForwardReturnsSharpeScoring("1Min", commissions=0.17),
             param_grid={
-                'rollingrange__period': np.arange(10, 30),
-                'rollingrange__forward_shift_periods': np.arange(5, 10),
-                'rollingrange__timeframe': ['10S', '15S'],
-            }, verbose=True
+                "rollingrange__period": np.arange(10, 30),
+                "rollingrange__forward_shift_periods": np.arange(5, 10),
+                "rollingrange__timeframe": ["10S", "15S"],
+            },
+            verbose=True,
         )
 
-        mds = MarketDataComposer(g1, SingleInstrumentPicker(), column='close', debug=True)
+        mds = MarketDataComposer(
+            g1, SingleInstrumentPicker(), column="close", debug=True
+        )
         mds.fit(data, None)
         print(g1.best_params_)
         print(g1.best_score_)
@@ -148,5 +161,6 @@ class ScoringTests(unittest.TestCase):
 
 
 from pytest import main
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
