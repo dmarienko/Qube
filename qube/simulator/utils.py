@@ -647,10 +647,20 @@ def load_tick_price_block(
         idx = pd.IndexSlice
         # we need to use 'keys' here instead of instruments because we may have multiple
         # entries for single symbol in case when we use aux instruments
-        combined = reduce(
-            lambda x, y: x.combine_first(y),
-            [prices_df[s]["is_real"].copy().fillna(-1).astype(int) for s in keys],
-        ).replace(-1, 0)
+        # combined = reduce(
+        #     lambda x, y: x.combine_first(y),
+        #     [prices_df[s]["is_real"].copy().fillna(-1).astype(int) for s in keys],
+        # ).replace(-1, np.nan)
+
+        _earliest = pd.Timestamp.max
+        _s_key = None
+        for s in keys:
+            _fvi = prices_df[s]["is_real"].first_valid_index()
+            if _fvi and _fvi < _earliest:
+                _earliest = _fvi
+                _s_key = s
+        combined = prices_df[_s_key]["is_real"].copy() if _s_key else pd.Series()
+
         for s in keys:
             prices_df.loc[idx[:, (s, "is_real")]] = combined
 
