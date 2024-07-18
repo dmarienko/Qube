@@ -18,7 +18,7 @@ from qube.utils.utils import mstruct
 class TakeStopTracker(Tracker):
     """
     Simple stop/take tracker provider
-    
+
     Now more sophisticated version is actual (MultiTakeStopTracker)
     """
 
@@ -56,7 +56,7 @@ class TakeStopTracker(Tracker):
         self.take = take_price
         self._take_user_data = user_data
 
-    def trade(self, trade_time, quantity, comment='', exact_price=None, market_order=True):
+    def trade(self, trade_time, quantity, comment="", exact_price=None, market_order=True):
         if quantity == 0:
             self._cleanup()
 
@@ -111,23 +111,26 @@ class TakeStopTracker(Tracker):
         return False
 
     def __exec_risk_management(self, timestamp, exec_price, is_take, is_long):
-        pos_dir = 'long' if is_long else 'short'
+        pos_dir = "long" if is_long else "short"
         if is_take:
-            self.debug(f' -> [{timestamp}] take {pos_dir} [{self._instrument}] at {exec_price:.5f}')
+            self.debug(f" -> [{timestamp}] take {pos_dir} [{self._instrument}] at {exec_price:.5f}")
             self.times_to_take.append(timestamp - self._service.last_trade_time)
-            super().trade(timestamp, 0,
-                          f'take {pos_dir} at {exec_price} by {"LIMIT" if self.take_by_limit_orders else "MARKET"}',
-                          exact_price=exec_price,
-                          market_order=not self.take_by_limit_orders)
+            super().trade(
+                timestamp,
+                0,
+                f'take {pos_dir} at {exec_price} by {"LIMIT" if self.take_by_limit_orders else "MARKET"}',
+                exact_price=exec_price,
+                market_order=not self.take_by_limit_orders,
+            )
             self.n_takes += 1
-            self.last_triggered_event = 'take'
+            self.last_triggered_event = "take"
             self.on_take(timestamp, exec_price, self._take_user_data)
         else:
-            self.debug(f' -> [{timestamp}] stop {pos_dir} [{self._instrument}] at {exec_price:.5f}')
+            self.debug(f" -> [{timestamp}] stop {pos_dir} [{self._instrument}] at {exec_price:.5f}")
             self.times_to_stop.append(timestamp - self._service.last_trade_time)
-            super().trade(timestamp, 0, f'stop {pos_dir} at {exec_price}', exact_price=exec_price)
+            super().trade(timestamp, 0, f"stop {pos_dir} at {exec_price}", exact_price=exec_price)
             self.n_stops += 1
-            self.last_triggered_event = 'stop'
+            self.last_triggered_event = "stop"
             self.on_stop(timestamp, exec_price, self._stop_user_data)
 
         # here we need to clean up stops/takes because position is closed
@@ -136,31 +139,36 @@ class TakeStopTracker(Tracker):
     def update_market_data(self, instrument: str, quote_time, bid, ask, bid_size, ask_size, is_service_quote, **kwargs):
         # check active stop/take
         # self.debug(f' ~~> {self._position.quantity} [{quote_time}] {bid}|{ask}({"S" if is_service_quote else "O"})')
-        if self._position.quantity > 0:
+        if not self.last_signal and (self.take or self.stop):
+            self._cleanup()
+
+        elif self._position.quantity > 0:
             if self.take and bid >= self.take:
                 self.__exec_risk_management(quote_time, self.take, is_take=True, is_long=True)
 
             if self.stop and ask <= self.stop:
-                self.__exec_risk_management(quote_time, self.stop if self.accurate_stops else ask, is_take=False,
-                                            is_long=True)
+                self.__exec_risk_management(
+                    quote_time, self.stop if self.accurate_stops else ask, is_take=False, is_long=True
+                )
 
-        if self._position.quantity < 0:
+        elif self._position.quantity < 0:
             if self.take and ask <= self.take:
                 self.__exec_risk_management(quote_time, self.take, is_take=True, is_long=False)
 
             if self.stop and bid >= self.stop:
-                self.__exec_risk_management(quote_time, self.stop if self.accurate_stops else bid, is_take=False,
-                                            is_long=False)
+                self.__exec_risk_management(
+                    quote_time, self.stop if self.accurate_stops else bid, is_take=False, is_long=False
+                )
 
         # call super method
         super().update_market_data(instrument, quote_time, bid, ask, bid_size, ask_size, is_service_quote, **kwargs)
 
     def statistics(self) -> Dict:
         return {
-            'takes': self.n_takes,
-            'stops': self.n_stops,
-            'average_time_to_take': np.mean(self.times_to_take) if self.times_to_take else np.nan,
-            'average_time_to_stop': np.mean(self.times_to_stop) if self.times_to_stop else np.nan,
+            "takes": self.n_takes,
+            "stops": self.n_stops,
+            "average_time_to_take": np.mean(self.times_to_take) if self.times_to_take else np.nan,
+            "average_time_to_stop": np.mean(self.times_to_stop) if self.times_to_stop else np.nan,
         }
 
 
@@ -238,7 +246,7 @@ class MultiTakeStopTracker(Tracker):
         # add part stop
         self.part_takes[take_price] = (close_fraction, user_data)
 
-    def trade(self, trade_time, quantity, comment='', exact_price=None, market_order=True):
+    def trade(self, trade_time, quantity, comment="", exact_price=None, market_order=True):
         if quantity == 0:
             self._cleanup()
 
@@ -269,7 +277,7 @@ class MultiTakeStopTracker(Tracker):
         self.last_signal = None
 
     def __process_take_risk_management(self, timestamp, exec_price, fraction_to_close, user_data, is_long):
-        pos_dir = 'long' if is_long else 'short'
+        pos_dir = "long" if is_long else "short"
 
         # new position after part or full closing
         current_pos = self._position.quantity
@@ -283,16 +291,17 @@ class MultiTakeStopTracker(Tracker):
         self.average_take_price = self._part_closed_values / self._part_closed_cumsize
 
         # for log record
-        evt = 'part_take' if is_part_take else 'take'
+        evt = "part_take" if is_part_take else "take"
 
-        self.debug(f' -> [{timestamp}] {evt} {pos_dir} [{self._instrument}] at {exec_price:.5f}')
+        self.debug(f" -> [{timestamp}] {evt} {pos_dir} [{self._instrument}] at {exec_price:.5f}")
         self.times_to_take.append(timestamp - self._service.last_trade_time)
 
         super().trade(
-            timestamp, new_pos,
+            timestamp,
+            new_pos,
             f'{evt} {pos_dir} at {exec_price} by {"LIMIT" if self.take_by_limit_orders else "MARKET"} -> [{new_pos}]',
             exact_price=exec_price,
-            market_order=not self.take_by_limit_orders
+            market_order=not self.take_by_limit_orders,
         )
 
         self.last_triggered_event = evt
@@ -307,12 +316,12 @@ class MultiTakeStopTracker(Tracker):
             self._cleanup()
 
     def __process_stop_risk_management(self, timestamp, exec_price, is_long):
-        pos_dir = 'long' if is_long else 'short'
-        self.debug(f' -> [{timestamp}] stop {pos_dir} [{self._instrument}] at {exec_price:.5f}')
+        pos_dir = "long" if is_long else "short"
+        self.debug(f" -> [{timestamp}] stop {pos_dir} [{self._instrument}] at {exec_price:.5f}")
         self.times_to_stop.append(timestamp - self._service.last_trade_time)
-        super().trade(timestamp, 0, f'stop {pos_dir} at {exec_price}', exact_price=exec_price)
+        super().trade(timestamp, 0, f"stop {pos_dir} at {exec_price}", exact_price=exec_price)
         self.n_stops += 1
-        self.last_triggered_event = 'stop'
+        self.last_triggered_event = "stop"
         self.on_stop(timestamp, exec_price, self._stop_user_data)
 
         # here we need to clean up stops/takes because position is closed
@@ -321,9 +330,11 @@ class MultiTakeStopTracker(Tracker):
     def update_market_data(self, instrument: str, quote_time, bid, ask, bid_size, ask_size, is_service_quote, **kwargs):
         # check active stop/take
         # self.debug(f' ~~> {self._position.quantity} [{quote_time}] {bid}|{ask}({"S" if is_service_quote else "O"})')
+        if not self.last_signal and (self.stop or self.part_takes):
+            self._cleanup()
 
         # - process long -
-        if self._position.quantity > 0:
+        elif self._position.quantity > 0:
             # process take config
             if self.part_takes:
                 for tprc in sorted(self.part_takes.keys()):
@@ -336,7 +347,7 @@ class MultiTakeStopTracker(Tracker):
                 self.__process_stop_risk_management(quote_time, self.stop if self.accurate_stops else ask, is_long=True)
 
         # - process short -
-        if self._position.quantity < 0:
+        elif self._position.quantity < 0:
             # process take config
             if self.part_takes:
                 for tprc in sorted(self.part_takes.keys(), reverse=True):
@@ -346,24 +357,25 @@ class MultiTakeStopTracker(Tracker):
 
             # process stop config
             if self.stop and bid >= self.stop:
-                self.__process_stop_risk_management(quote_time, self.stop if self.accurate_stops else bid,
-                                                    is_long=False)
+                self.__process_stop_risk_management(
+                    quote_time, self.stop if self.accurate_stops else bid, is_long=False
+                )
 
         # call super method
         super().update_market_data(instrument, quote_time, bid, ask, bid_size, ask_size, is_service_quote, **kwargs)
 
     def statistics(self) -> Dict:
         return {
-            'takes': self.n_takes,
-            'stops': self.n_stops,
-            'average_time_to_take': np.mean(self.times_to_take) if self.times_to_take else np.nan,
-            'average_time_to_stop': np.mean(self.times_to_stop) if self.times_to_stop else np.nan,
+            "takes": self.n_takes,
+            "stops": self.n_stops,
+            "average_time_to_take": np.mean(self.times_to_take) if self.times_to_take else np.nan,
+            "average_time_to_stop": np.mean(self.times_to_stop) if self.times_to_stop else np.nan,
         }
 
 
 class TriggerOrderTypes(Enum):
-    STOP_ORDER = 'StopOrder'
-    LIMIT_ORDER = 'LimitOrder'
+    STOP_ORDER = "StopOrder"
+    LIMIT_ORDER = "LimitOrder"
 
 
 @dataclass
@@ -371,6 +383,7 @@ class TriggerOrder:
     """
     Generic triggered order (both for limit and stop orders) with risk management (stop | take)
     """
+
     # trigger price
     price: float
 
@@ -387,7 +400,7 @@ class TriggerOrder:
     order_type: TriggerOrderTypes
 
     # user comment
-    comment: str = ''
+    comment: str = ""
 
     # any user data
     user_data: Any = None
@@ -396,9 +409,11 @@ class TriggerOrder:
     fired: bool = False
 
     def __str__(self):
-        takes = ','.join([f"{f} x {p}" for p, f in self.take.items()]) if self.take is not None else '---'
-        return f"[{'FIRED' if self.fired else 'ACTIVE'}] {self.order_type.value} for {'buy' if self.quantity > 0 else 'sell'} " \
-               f"of {self.quantity} @ {self.price} (T|S: ({takes}) | {self.stop})"
+        takes = ",".join([f"{f} x {p}" for p, f in self.take.items()]) if self.take is not None else "---"
+        return (
+            f"[{'FIRED' if self.fired else 'ACTIVE'}] {self.order_type.value} for {'buy' if self.quantity > 0 else 'sell'} "
+            f"of {self.quantity} @ {self.price} (T|S: ({takes}) | {self.stop})"
+        )
 
 
 class TriggeredOrdersTracker(MultiTakeStopTracker):
@@ -408,10 +423,9 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
     # 28-Mar-2022: basic class is MultiTakeStopTracker now
     """
 
-    def __init__(self, debug=False,
-                 accurate_stop_execution=True,
-                 take_by_limit_orders=True,
-                 open_by_limit_orders=False):
+    def __init__(
+        self, debug=False, accurate_stop_execution=True, take_by_limit_orders=True, open_by_limit_orders=False
+    ):
         """
         :param accurate_stop_execution: if true it emulates execution at exact stop level
         """
@@ -422,19 +436,26 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
         self.accurate_stops = accurate_stop_execution
         self.open_by_limit_orders = open_by_limit_orders
         if accurate_stop_execution:
-            self.debug(f' > TriggeredOrdersTracker accurate_stops parameter is set')
+            self.debug(f" > TriggeredOrdersTracker accurate_stops parameter is set")
         if open_by_limit_orders:
-            self.debug(f' > open_by_limit_orders is set !')
+            self.debug(f" > open_by_limit_orders is set !")
 
-    def trade(self, trade_time, quantity, comment='', exact_price=None, market_order=True):
+    def trade(self, trade_time, quantity, comment="", exact_price=None, market_order=True):
         if quantity == 0:
             self._cleanup()
 
         pnl = 0
         if np.isfinite(quantity):
             pnl = self._position.update_position_bid_ask(
-                trade_time, quantity, self.last_quote.bid, self.last_quote.ask, exec_price=exact_price,
-                **self._service.get_aux_quote(), comment=comment, crossed_market=market_order)
+                trade_time,
+                quantity,
+                self.last_quote.bid,
+                self.last_quote.ask,
+                exec_price=exact_price,
+                **self._service.get_aux_quote(),
+                comment=comment,
+                crossed_market=market_order,
+            )
 
             # set last trade time
             self._service.last_trade_time = trade_time
@@ -464,8 +485,9 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
         # order was not fired and needed to be tracked
         return True
 
-    def _process_limit_order(self, o: TriggerOrder, last_quote: Quote, quote_time, bid, ask, bid_size,
-                             ask_size) -> bool:
+    def _process_limit_order(
+        self, o: TriggerOrder, last_quote: Quote, quote_time, bid, ask, bid_size, ask_size
+    ) -> bool:
         # check if limit order can be executed
         if (o.quantity > 0 and last_quote.ask > o.price >= ask) or (o.quantity < 0 and last_quote.bid < o.price <= bid):
             o.fired = True
@@ -549,18 +571,20 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
 
         closer_take = min(takes.keys()) if is_buy else max(takes.keys())
         if (is_buy and (stop >= price or closer_take <= price)) or (
-                quantity < 0 and (stop <= price or closer_take >= price)):
+            quantity < 0 and (stop <= price or closer_take >= price)
+        ):
             raise ValueError(
-                f"Wrong stop/take ({stop}/{closer_take}) for {'buy' if is_buy else 'sell'} stop order at {price}")
+                f"Wrong stop/take ({stop}/{closer_take}) for {'buy' if is_buy else 'sell'} stop order at {price}"
+            )
 
         to = TriggerOrder(price, quantity, stop, takes, order_type, comment, user_data)
         self.orders.append(to)
 
         return to
 
-    def limit_order(self, price, quantity,
-                    stop=None, take=Union[None, Dict[float, float], float],
-                    comment='', user_data=None):
+    def limit_order(
+        self, price, quantity, stop=None, take=Union[None, Dict[float, float], float], comment="", user_data=None
+    ):
         """
         Create new limit order at specified price. Order may have stop and multiple take targets.
 
@@ -575,19 +599,22 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
         """
         is_buy = quantity > 0
         if (is_buy and price > self.last_quote.bid) or (not is_buy and price < self.last_quote.ask):
-            raise ValueError(f"Can't send {'buy' if is_buy else 'sell'} limit order at price {price}"
-                             f" market now is {self.last_quote} | {comment}")
+            raise ValueError(
+                f"Can't send {'buy' if is_buy else 'sell'} limit order at price {price}"
+                f" market now is {self.last_quote} | {comment}"
+            )
 
-        return self._create_new_trigger_order(TriggerOrderTypes.LIMIT_ORDER, price, quantity, stop, take, comment,
-                                              user_data)
+        return self._create_new_trigger_order(
+            TriggerOrderTypes.LIMIT_ORDER, price, quantity, stop, take, comment, user_data
+        )
 
-    def stop_order(self, price, quantity,
-                   stop=None, take=Union[None, Dict[float, float], float],
-                   comment='', user_data=None):
+    def stop_order(
+        self, price, quantity, stop=None, take=Union[None, Dict[float, float], float], comment="", user_data=None
+    ):
         """
         Create new stop order at specified price. Order may have stop and multiple take targets.
         # 28-mar-2022: added multiple takes target (Lviv / in the shelter under air raid alert)
-        
+
         :param price: price where order should be triggered
         :param quantity: position size to executed (positive - long, negative - short)
         :param stop: stop price (if none - no stop)
@@ -599,14 +626,17 @@ class TriggeredOrdersTracker(MultiTakeStopTracker):
         """
         is_buy = quantity > 0
         if (is_buy and price < self.last_quote.ask) or (not is_buy and price > self.last_quote.bid):
-            raise ValueError(f"Can't send {'buy' if is_buy else 'sell'} stop order at price {price}"
-                             f" market now is {self.last_quote} | {comment}")
+            raise ValueError(
+                f"Can't send {'buy' if is_buy else 'sell'} stop order at price {price}"
+                f" market now is {self.last_quote} | {comment}"
+            )
 
-        return self._create_new_trigger_order(TriggerOrderTypes.STOP_ORDER, price, quantity, stop, take, comment,
-                                              user_data)
+        return self._create_new_trigger_order(
+            TriggerOrderTypes.STOP_ORDER, price, quantity, stop, take, comment, user_data
+        )
 
     def statistics(self) -> Dict:
-        return {'triggers': len(self.fired) + len(self.orders), 'fired': len(self.fired), **super().statistics()}
+        return {"triggers": len(self.fired) + len(self.orders), "fired": len(self.fired), **super().statistics()}
 
 
 class FixedRiskTrader(TakeStopTracker):
@@ -615,13 +645,19 @@ class FixedRiskTrader(TakeStopTracker):
     It uses fixed stop and take levels: either absolute deltas or percantage from entry price
     """
 
-    def __init__(self, size: Union[IPositionSizer, numbers.Number], take=0, stop=0,
-                 in_percentage=False, tick_size=1,
-                 take_by_limit_orders=True,
-                 accurate_stops=False,
-                 reset_risks_on_repeated_signals=False,
-                 process_repeated_signals=False,
-                 debug=False):
+    def __init__(
+        self,
+        size: Union[IPositionSizer, numbers.Number],
+        take=0,
+        stop=0,
+        in_percentage=False,
+        tick_size=1,
+        take_by_limit_orders=True,
+        accurate_stops=False,
+        reset_risks_on_repeated_signals=False,
+        process_repeated_signals=False,
+        debug=False,
+    ):
         """
         :param size: position size - either fixed amount or size calculator (instance of IPositionSize class)
         :param take: take distance (if <= 0 - no take)
@@ -652,6 +688,9 @@ class FixedRiskTrader(TakeStopTracker):
             self.fixed_stop = abs(stop) * tick_size
 
     def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size) -> Union[float, None]:
+        # if signal == 0:
+        #     self._cleanup()
+        # else:
         # - check if we can change risk management
         stop_can_be_changed, take_can_be_changed = self._can_modify_risks_for(
             signal, self.fixed_stop, self.fixed_take, self.reset_risks_on_repeated_signals
@@ -660,20 +699,24 @@ class FixedRiskTrader(TakeStopTracker):
         # - if we can change stop loss level
         if stop_can_be_changed:
             if signal > 0:
-                self.stop_at(signal_time,
-                             ask * (1 - self.fixed_stop) if self.in_percentage else (ask - self.fixed_stop))
+                self.stop_at(
+                    signal_time, ask * (1 - self.fixed_stop) if self.in_percentage else (ask - self.fixed_stop)
+                )
             elif signal < 0:
-                self.stop_at(signal_time,
-                             bid * (1 + self.fixed_stop) if self.in_percentage else (bid + self.fixed_stop))
+                self.stop_at(
+                    signal_time, bid * (1 + self.fixed_stop) if self.in_percentage else (bid + self.fixed_stop)
+                )
 
         # - if we can change take level
         if take_can_be_changed:
             if signal > 0:
-                self.take_at(signal_time,
-                             ask * (1 + self.fixed_take) if self.in_percentage else (ask + self.fixed_take))
+                self.take_at(
+                    signal_time, ask * (1 + self.fixed_take) if self.in_percentage else (ask + self.fixed_take)
+                )
             elif signal < 0:
-                self.take_at(signal_time,
-                             bid * (1 - self.fixed_take) if self.in_percentage else (bid - self.fixed_take))
+                self.take_at(
+                    signal_time, bid * (1 - self.fixed_take) if self.in_percentage else (bid - self.fixed_take)
+                )
 
         # - check if it's allowed to process this signal
         if not self._can_process_signal(signal, self.process_repeated_signals):
@@ -701,8 +744,8 @@ class TimeExpirationTracker(Tracker):
     def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
         if self._position.quantity != 0 and quote_time - self._service.last_trade_time >= self.timeout:
             if self.debug:
-                print(f' > {self._instrument} position {self._position.quantity} is expired at {quote_time}')
-            pnl = self.trade(quote_time, 0, f'TimeExpirationTracker:: position {self._position.quantity} is expired')
+                print(f" > {self._instrument} position {self._position.quantity} is expired at {quote_time}")
+            pnl = self.trade(quote_time, 0, f"TimeExpirationTracker:: position {self._position.quantity} is expired")
             if pnl > 0:
                 self.n_expired_profit_ += 1
             elif pnl < 0:
@@ -710,9 +753,9 @@ class TimeExpirationTracker(Tracker):
 
     def statistics(self) -> Dict:
         return {
-            'expired': self.n_expired_loss_ + self.n_expired_profit_,
-            'expired_profitable': self.n_expired_profit_,
-            'expired_loss': self.n_expired_loss_
+            "expired": self.n_expired_loss_ + self.n_expired_profit_,
+            "expired_profitable": self.n_expired_profit_,
+            "expired_loss": self.n_expired_loss_,
         }
 
 
@@ -735,7 +778,7 @@ class DispatchTracker(Tracker):
 
             # active tracker
             self.active_tracker = trackers[active_tracker]
-            self.debug(f' .-> {active_tracker} tracker is activated')
+            self.debug(f" .-> {active_tracker} tracker is activated")
             self.n_activations_[active_tracker] += 1
 
         if debug:
@@ -747,19 +790,19 @@ class DispatchTracker(Tracker):
     def setup(self, service):
         super().setup(service)
         for t in self.trackers.values():
-            if t and hasattr(t, 'setup'):
+            if t and hasattr(t, "setup"):
                 t.setup(service)
 
     def on_info(self, info_time, info_data, **kwargs):
         if info_data in self.trackers:
             n_tracker = self.trackers[info_data]
-            mesg = ''
+            mesg = ""
             if self.flat_position_on_activate and n_tracker != self.active_tracker and self._position.quantity != 0:
-                self.trade(info_time, 0, f'<{info_data}> activated and flat position')
-                mesg = ' position is closed'
+                self.trade(info_time, 0, f"<{info_data}> activated and flat position")
+                mesg = " position is closed"
 
             self.active_tracker = n_tracker
-            self.debug(f' [D]-> [{info_time}] {info_data} tracker is activated {mesg}')
+            self.debug(f" [D]-> [{info_time}] {info_data} tracker is activated {mesg}")
             self.n_activations_[info_data] += 1
 
     def update_market_data(self, instrument: str, quote_time, bid, ask, bid_size, ask_size, is_service_quote, **kwargs):
@@ -768,8 +811,9 @@ class DispatchTracker(Tracker):
 
         # call handler if it's not service quote
         if not is_service_quote and self.active_tracker is not None:
-            self.active_tracker.update_market_data(instrument, quote_time, bid, ask, bid_size, ask_size,
-                                                   is_service_quote, **kwargs)
+            self.active_tracker.update_market_data(
+                instrument, quote_time, bid, ask, bid_size, ask_size, is_service_quote, **kwargs
+            )
             # self.active_tracker.on_quote(quote_time, bid, ask, bid_size, ask_size, **kwargs)
 
     def on_signal(self, signal_time, signal_qty, quote_time, bid, ask, bid_size, ask_size):
@@ -811,6 +855,8 @@ class PipelineTracker(Tracker):
 
     def __init__(self, *trackers):
         self.trackers = [t for t in trackers if isinstance(t, Tracker)]
+        self._last_signal = None
+        self._last_signal_time = None
 
     def setup(self, service):
         super().setup(service)
@@ -843,13 +889,33 @@ class PipelineTracker(Tracker):
 
         return processed_signal
 
-    def statistics(self) -> Dict:
+    def statistics(self) -> dict:
         r = dict()
-        for t in self.trackers:
-            s = t.statistics()
+        for index, t in enumerate(self.trackers):
+            s = {f"{k}_{index}_{t.__class__.__name__}": v for k, v in t.statistics().items()}
             if s is not None:
                 r.update(s)
         return r
+
+    @property
+    def last_signal(self):
+        return self._last_signal
+
+    @property
+    def last_signal_time(self):
+        return self._last_signal_time
+
+    @last_signal.setter
+    def last_signal(self, value):
+        self._last_signal = value
+        for t in self.trackers:
+            t.last_signal = value
+
+    @last_signal_time.setter
+    def last_signal_time(self, value):
+        self._last_signal_time = value
+        for t in self.trackers:
+            t.last_signal_time = value
 
 
 class ATRTracker(TakeStopTracker):
@@ -859,12 +925,20 @@ class ATRTracker(TakeStopTracker):
     Stop at entry -/+ ATR[1] * stop_rosk
     """
 
-    def __init__(self, size, timeframe, period, take_target, stop_risk, atr_smoother='sma',
-                 debug=False,
-                 take_by_limit_orders=True,
-                 accurate_stops=False,
-                 process_repeated_signals=False,
-                 reset_risks_on_repeated_signals=False):
+    def __init__(
+        self,
+        size,
+        timeframe,
+        period,
+        take_target,
+        stop_risk,
+        atr_smoother="sma",
+        debug=False,
+        take_by_limit_orders=True,
+        accurate_stops=False,
+        process_repeated_signals=False,
+        reset_risks_on_repeated_signals=False,
+    ):
         super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
         self.timeframe = timeframe
         self.period = period
@@ -881,6 +955,9 @@ class ATRTracker(TakeStopTracker):
         self.ohlc.attach(self.atr)
 
     def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
+        # if signal == 0:
+        #     self._cleanup()
+        # else:
         av = self.atr[1]
         if av is None or not np.isfinite(av):
             # skip if ATR is not calculated yet
@@ -917,12 +994,19 @@ class SignalBarTracker(TriggeredOrdersTracker):
     Tracker with delay execution
     """
 
-    def __init__(self, timeframe, tick_size=1e-5,
-                 entry_factor=0, stop_factor=0, impr='initial', risk_reward=1,
-                 debug=False,
-                 accurate_stop_execution=True,
-                 take_by_limit_orders=True,
-                 open_by_limit_orders=False):
+    def __init__(
+        self,
+        timeframe,
+        tick_size=1e-5,
+        entry_factor=0,
+        stop_factor=0,
+        impr="initial",
+        risk_reward=1,
+        debug=False,
+        accurate_stop_execution=True,
+        take_by_limit_orders=True,
+        open_by_limit_orders=False,
+    ):
         """
         :param accurate_stop_execution: if true it will emulates execution at exact stop level
         """
@@ -931,7 +1015,8 @@ class SignalBarTracker(TriggeredOrdersTracker):
         self.entry_factor = entry_factor
         self.stop_factor = stop_factor
         self.impr = impr
-        if not self.impr in ['initial', 'improve']: raise ValueError("impr must be 'initial or 'improve")
+        if not self.impr in ["initial", "improve"]:
+            raise ValueError("impr must be 'initial or 'improve")
         self.risk_reward = risk_reward
         super().__init__(debug, accurate_stop_execution, take_by_limit_orders, open_by_limit_orders)
 
@@ -952,7 +1037,7 @@ class SignalBarTracker(TriggeredOrdersTracker):
             if (qty > 0 and low < stop) or (qty < 0 and high > stop):
                 self.cancel(self.orders[0])
 
-            if cur_ohlc.is_new_bar == True and self.impr == 'improve':
+            if cur_ohlc.is_new_bar == True and self.impr == "improve":
                 # check improvement policy
                 high_old = cur_ohlc.highs()[-2]
                 low_old = cur_ohlc.lows()[-2]
@@ -960,14 +1045,17 @@ class SignalBarTracker(TriggeredOrdersTracker):
                 self.cancel(self.orders[0])
                 if (qty > 0 and entry <= stop) or (qty < 0 and entry >= stop):
                     return None
-                self.to = self.stop_order(entry, qty, stop, take,
-                                          comment='DelayTracker; ' +
-                                                  # 'time:'+str(signal_time)+'; '+
-                                                  'take=' + str(round(take, 5)) + '; ' +
-                                                  'stop=' + str(round(stop, 5))
-                                          , user_data=mstruct(time=str(quote_time))
-                                          )
-                self.debug(f' -> [{str(quote_time)}] set order at {entry:.5f} with stop {stop:.5f} and take {take:.5f}')
+                self.to = self.stop_order(
+                    entry,
+                    qty,
+                    stop,
+                    take,
+                    comment="DelayTracker; " +
+                    # 'time:'+str(signal_time)+'; '+
+                    "take=" + str(round(take, 5)) + "; " + "stop=" + str(round(stop, 5)),
+                    user_data=mstruct(time=str(quote_time)),
+                )
+                self.debug(f" -> [{str(quote_time)}] set order at {entry:.5f} with stop {stop:.5f} and take {take:.5f}")
 
     def deal_param(self, qty, high, low):
         if qty > 0:
@@ -985,14 +1073,17 @@ class SignalBarTracker(TriggeredOrdersTracker):
             high = cur_ohlc.highs()[-1]
             low = cur_ohlc.lows()[-1]
             entry, stop, take = self.deal_param(signal_qty, high, low)
-            self.to = self.stop_order(entry, signal_qty, stop, take,
-                                      comment='DelayTracker; ' +
-                                              # 'time:'+str(signal_time)+'; '+
-                                              'take=' + str(round(take, 5)) + '; ' +
-                                              'stop=' + str(round(stop, 5))
-                                      , user_data=mstruct(time=str(quote_time))
-                                      )
-            self.debug(f' -> [{str(signal_time)}] set order at {entry:.5f} with stop {stop:.5f} and take {take:.5f}')
+            self.to = self.stop_order(
+                entry,
+                signal_qty,
+                stop,
+                take,
+                comment="DelayTracker; " +
+                # 'time:'+str(signal_time)+'; '+
+                "take=" + str(round(take, 5)) + "; " + "stop=" + str(round(stop, 5)),
+                user_data=mstruct(time=str(quote_time)),
+            )
+            self.debug(f" -> [{str(signal_time)}] set order at {entry:.5f} with stop {stop:.5f} and take {take:.5f}")
         return 0
 
 
@@ -1000,13 +1091,21 @@ class RADTrailingStopTracker(TakeStopTracker):
     """
     RAD chandelier position tracker (no pyramiding only trailing stop)
     """
-    def __init__(self, size, timeframe, period, stop_risk_mx, atr_smoother='sma', 
-                 filter_signals_by_side=True,
-                 take_by_limit_orders=True,
-                 accurate_stops=False,
-                 process_repeated_signals=False,
-                 process_new_signals=False,
-                 debug=False):
+
+    def __init__(
+        self,
+        size,
+        timeframe,
+        period,
+        stop_risk_mx,
+        atr_smoother="sma",
+        filter_signals_by_side=True,
+        take_by_limit_orders=True,
+        accurate_stops=False,
+        process_repeated_signals=False,
+        process_new_signals=False,
+        debug=False,
+    ):
         super().__init__(debug, take_by_limit_orders=take_by_limit_orders, accurate_stops=accurate_stops)
         self.timeframe = timeframe
         self.period = period
@@ -1026,17 +1125,17 @@ class RADTrailingStopTracker(TakeStopTracker):
         self.ohlc = self.get_ohlc_series(self.timeframe)
         self.ohlc.attach(self.atr)
         self.ohlc.attach(self.mm)
-        
+
         # current stop level
         self.level = None
-        self.side = 0 # +1: up trend, -1: down trend
-        
+        self.side = 0  # +1: up trend, -1: down trend
+
     def statistics(self):
         return super().statistics()
 
     def get_stops(self):
         return self._stops(1)
-    
+
     def _stops(self, n):
         av, m = self.atr[n], self.mm[n]
         if av is None or m is None:
@@ -1047,31 +1146,31 @@ class RADTrailingStopTracker(TakeStopTracker):
         l_stop = hh - self.stop_risk_mx * av
         s_stop = ll + self.stop_risk_mx * av
         return s_stop, l_stop
-    
+
     def update_stop_level(self) -> bool:
         if not self.ohlc.is_new_bar:
             return False
-        
+
         # new bar just started
         s2, l2 = self._stops(2)
         s1, l1 = self._stops(1)
         if s2 is None:
             return False
-            
+
         c1 = self.ohlc[1].close
         c2 = self.ohlc[2].close
-        
+
         if c2 > l2 and c1 < l1:
             self.side = -1
             self.level = s1
-            
+
         if c2 < s2 and c1 > s1:
             self.side = +1
             self.level = l1
-        
+
         if self.side > 0:
             self.level = max(self.level, l1)
-            
+
         if self.side < 0:
             self.level = min(self.level, s1)
 
@@ -1084,7 +1183,7 @@ class RADTrailingStopTracker(TakeStopTracker):
         s1, l1 = self._stops(1)
         if direction > 0:
             return l1
-        elif direction < 0:  
+        elif direction < 0:
             return s1
 
         return None
@@ -1093,15 +1192,15 @@ class RADTrailingStopTracker(TakeStopTracker):
         if self.filter_signals_by_side:
             return self.side == 0 or self.level is None
         return False
-            
+
     def on_quote(self, quote_time, bid, ask, bid_size, ask_size, **kwargs):
         # refresh current stop level
         self.update_stop_level()
-        
-        # if we do not have indicator yet - skip stop update 
+
+        # if we do not have indicator yet - skip stop update
         if self._is_level_not_ready():
             return None
-        
+
         position = self._position.quantity
         if position != 0:
             # get actual level depending on indicator config
@@ -1109,12 +1208,12 @@ class RADTrailingStopTracker(TakeStopTracker):
 
             if position > 0 and level > self.stop:
                 self.stop_at(quote_time, level)
-                self.debug(f'[{quote_time}] {self._instrument} pull up stop to {level}')
+                self.debug(f"[{quote_time}] {self._instrument} pull up stop to {level}")
 
             if position < 0 and level < self.stop:
                 self.stop_at(quote_time, level)
-                self.debug(f'[{quote_time}] {self._instrument} pull down stop to {level}')
-                
+                self.debug(f"[{quote_time}] {self._instrument} pull down stop to {level}")
+
         super().on_quote(quote_time, bid, ask, bid_size, ask_size, **kwargs)
 
     def on_signal(self, signal_time, signal, quote_time, bid, ask, bid_size, ask_size):
@@ -1124,21 +1223,25 @@ class RADTrailingStopTracker(TakeStopTracker):
 
             # we have position and it's prohibited to process any new signals
             if not self.process_new_signals:
-                self.debug(f'[{quote_time}] {self._instrument} skip entry {signal} - signals updates are not allowed while position is open')
+                self.debug(
+                    f"[{quote_time}] {self._instrument} skip entry {signal} - signals updates are not allowed while position is open"
+                )
                 return None
-            
+
             # it can process new signals and we got close signal - so no need to process it more
             if signal == 0:
                 return 0
 
-        # - if we do not have indicator yet - skip entry 
+        # - if we do not have indicator yet - skip entry
         if self._is_level_not_ready():
-            self.debug(f'[{quote_time}] {self._instrument} skip entry indicators are not ready: {self.level} / {self.side}')
+            self.debug(
+                f"[{quote_time}] {self._instrument} skip entry indicators are not ready: {self.level} / {self.side}"
+            )
             return None
 
         # - check if it's allowed to process this signal
         if not self._can_process_signal(signal, self.process_repeated_signals):
-            self.debug(f'[{quote_time}] {self._instrument} skip signal at same direction - not allowed')
+            self.debug(f"[{quote_time}] {self._instrument} skip signal at same direction - not allowed")
             return None
 
         # - get actual level depending on indicator config
@@ -1147,30 +1250,24 @@ class RADTrailingStopTracker(TakeStopTracker):
             return None
 
         if signal > 0:
-            if (
-                    self.filter_signals_by_side and self.side > 0 and ask > level
-                ) or (
-                    not self.filter_signals_by_side and ask > level
+            if (self.filter_signals_by_side and self.side > 0 and ask > level) or (
+                not self.filter_signals_by_side and ask > level
             ):
                 self.stop_at(signal_time, level)
-                self.debug(f'[{quote_time}] {self._instrument} entry long at ${ask} stop to {level}')
+                self.debug(f"[{quote_time}] {self._instrument} entry long at ${ask} stop to {level}")
             else:
-                self.debug(f'[{quote_time}] {self._instrument} skip long : stop {level} is above entry {ask}')
+                self.debug(f"[{quote_time}] {self._instrument} skip long : stop {level} is above entry {ask}")
                 signal = np.nan
 
         elif signal < 0:
-            if (
-                    self.filter_signals_by_side and self.side < 0 and bid < level
-                ) or (
-                    not self.filter_signals_by_side and bid < level
+            if (self.filter_signals_by_side and self.side < 0 and bid < level) or (
+                not self.filter_signals_by_side and bid < level
             ):
                 self.stop_at(signal_time, level)
-                self.debug(f'[{quote_time}] {self._instrument} entry short at ${bid} stop to {level}')
+                self.debug(f"[{quote_time}] {self._instrument} entry short at ${bid} stop to {level}")
             else:
-                self.debug(f'[{quote_time}] {self._instrument} skip short : stop {level} is below entry {bid}')
+                self.debug(f"[{quote_time}] {self._instrument} skip short : stop {level} is below entry {bid}")
                 signal = np.nan
 
         # - return actual size
-        return self.position_calculator.get_position_size(
-            signal, self._position, (bid + ask) / 2, stop_price=self.stop
-        )
+        return self.position_calculator.get_position_size(signal, self._position, (bid + ask) / 2, stop_price=self.stop)
