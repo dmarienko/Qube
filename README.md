@@ -8,7 +8,7 @@
      |.'     | .' 
      +-------+'
      
-**WARNING**: [Qubx](https://github.com/dmarienko/Qubx/) is the successor of Qube, which is not maintained anymore !
+**WARNING**: [Qubx](https://github.com/xlydianSoftware/Qubx) is the successor of Qube, which is not maintained anymore !
 
 Community version of Quantitative Backtesting Framework for development trading strategies. It provides tools to backtest, optimize, 
 and analyze trading strategies using historical data. Library includes various functions that help with signal generation, portfolio construction, 
